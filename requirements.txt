@@ -1,0 +1,12 @@
+setuptools
+matplotlib
+PyYAML
+pympler
+Flask-SocketIO
+Flask
+socketIO-client
+numpy
+keras
+tensorflow==1.14.0
+scipy
+pillow
