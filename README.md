@@ -35,9 +35,7 @@ sudo docker-compose up -d
 
 Go to http://127.0.0.1:8200/dashboard to see the results.
 
-You shall see the dashboard like following:
-
-<img src="./dashboard.png">
+Here's an example of the [dashboard](./dashboard.png).
 
 #### (4) Stop the Experiment
 
