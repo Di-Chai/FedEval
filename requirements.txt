@@ -7,6 +7,6 @@ Flask
 socketIO-client
 numpy
 keras
-tensorflow==1.14.0
+tensorflow==1.15.2
 scipy
 pillow
