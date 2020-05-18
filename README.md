@@ -10,7 +10,7 @@
 
 #### (1) Build docker image
 
-We first build the docker image that will be used by the server and clients. It may take about 30 minutes, which is demends on your network.
+We first build the docker image that will be used by the server and clients. It may take about 30 minutes, which demends on your network.
 
 ```shell script
 cd docker
