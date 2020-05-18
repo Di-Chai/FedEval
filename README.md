@@ -22,8 +22,7 @@ sudo docker build . -t fleval:v1
 #### (1) Generate the data and docker-compose file
 
 ```shell script
-sudo docker run --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 python3 4_distribute_data.py
-sudo docker run --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 python3 5_generate_docker_compose.py
+sudo docker run --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 sh -c "python3 4_distribute_data.py && python3 5_generate_docker_compose.py"
 ```
 
 #### (2) Start the Experiment
