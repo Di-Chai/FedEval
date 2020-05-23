@@ -16,7 +16,7 @@ MobileNet:
   - 256
   optimizer: adam
   weights: imagenet
-Model: MLP
+Model: LeNet
 ResNet50:
   dense_units:
   - 256

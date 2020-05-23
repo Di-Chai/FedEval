@@ -135,5 +135,6 @@ dmypy.json
 # TMP dirs
 data/
 model_dir/
+log/
 *.jpg
 *.json

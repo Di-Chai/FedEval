@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from scipy.sparse import csr_matrix
-from tf_wrapper.model import BaseModel
+from tf_wrapper.model import BaseModel, FMLModel
 
 
 def str_hit(target, filter_list):
@@ -80,7 +80,7 @@ def recover_to_weights(weights, new_g_negative, upload_strategy):
         return weights
 
 
-class TFModel(BaseModel):
+class TFModel(FMLModel):
 
     def get_optimizer_weights(self):
         with self.graph.as_default():
