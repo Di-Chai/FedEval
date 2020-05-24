@@ -16,6 +16,10 @@ All the experiments run on a cluster of three machines. One machine with Intel(R
 
 ## Appendix 3
 
+#### Results of tuning the optimizers
+
+The following table show the results of FL accuracy when we vary the learning rate (lr) and optimizers. The experiments are performed on MNIST and FEMNIST datasets, using MLP and LeNet model, FedSGD and FedAvg FL schemas. Among these three optimizers, **Adam can achieve the best accuracy more frequently, and Adam is more robust given different lr**.
+
 <table style="text-align:center">
     <tr>
         <td></td>
@@ -223,3 +227,259 @@ All the experiments run on a cluster of three machines. One machine with Intel(R
     </tr>
 </table>
 
+#### Results of tuning the learning rate (LR)
+
+<table style="text-align:center">
+    <tr>
+        <td></td>
+        <td colspan="3">MNIST LeNet FedAvg</td>
+        <td colspan="3">MNIST LeNet FedSGD</td>
+    </tr>
+    <tr>
+        <td>LR</td>
+        <td>Acc</td>
+        <td>CommRound</td>
+        <td>TimeAll</td>
+        <td>Acc</td>
+        <td>CommRound</td>
+        <td>TimeAll</td>
+    </tr>
+    <tr>
+        <td>0.0001</td>
+        <td>0.99</td>
+        <td>174</td>
+        <td>13.9</td>
+        <td>0.984</td>
+        <td>2000</td>
+        <td>160.4</td>
+    </tr>
+    <tr>
+        <td>0.0005</td>
+        <td>0.992</td>
+        <td>113</td>
+        <td>8.8</td>
+        <td>0.995</td>
+        <td>1609</td>
+        <td>144</td>
+    </tr>
+    <tr>
+        <td>0.001</td>
+        <td>0.995</td>
+        <td>104</td>
+        <td>8.4</td>
+        <td>0.992</td>
+        <td>1128</td>
+        <td>100.7</td>
+    </tr>
+    <tr>
+        <td>0.005</td>
+        <td>0.99</td>
+        <td>90</td>
+        <td>7.3</td>
+        <td>0.993</td>
+        <td>286</td>
+        <td>26.1</td>
+    </tr>
+    <tr>
+        <td>0.01</td>
+        <td>0.983</td>
+        <td>53</td>
+        <td>4.4</td>
+        <td>0.994</td>
+        <td>157</td>
+        <td>14</td>
+    </tr>
+    <tr>
+        <td>Central</td>
+        <td  colspan="6">0.995</td>
+    </tr>
+    <tr>
+        <td></td>
+        <td colspan="3">MNIST MLP FedAvg</td>
+        <td colspan="3">MNIST MLP FedSGD</td>
+    </tr>
+    <tr>
+        <td>LR</td>
+        <td>Acc</td>
+        <td>CommRound</td>
+        <td>TimeAll</td>
+        <td>Acc</td>
+        <td>CommRound</td>
+        <td>TimeAll</td>
+    </tr>
+    <tr>
+        <td>0.0001</td>
+        <td>0.983</td>
+        <td>132</td>
+        <td>22.3</td>
+        <td>0.981</td>
+        <td>2000</td>
+        <td>855.5</td>
+    </tr>
+    <tr>
+        <td>0.0005</td>
+        <td>0.986</td>
+        <td>81</td>
+        <td>13.7</td>
+        <td>0.984</td>
+        <td>775</td>
+        <td>322.4</td>
+    </tr>
+    <tr>
+        <td>0.001</td>
+        <td>0.982</td>
+        <td>92</td>
+        <td>15.8</td>
+        <td>0.983</td>
+        <td>427</td>
+        <td>177.3</td>
+    </tr>
+    <tr>
+        <td>0.005</td>
+        <td>0.974</td>
+        <td>60</td>
+        <td>10.4</td>
+        <td>0.982</td>
+        <td>141</td>
+        <td>59.1</td>
+    </tr>
+    <tr>
+        <td>0.01</td>
+        <td>0.957</td>
+        <td>56</td>
+        <td>9.7</td>
+        <td>0.981</td>
+        <td>117</td>
+        <td>48.9</td>
+    </tr>
+    <tr>
+        <td>Central</td>
+        <td colspan="6">0.988</td>
+    </tr>
+    <tr>
+        <td></td>
+        <td colspan="3">FEMNIST LeNet FedAvg</td>
+        <td colspan="3">FEMNIST LeNet FedSGD</td>
+    </tr>
+    <tr>
+        <td>LR</td>
+        <td>Acc</td>
+        <td>CommRound</td>
+        <td>TimeAll</td>
+        <td>Acc</td>
+        <td>CommRound</td>
+        <td>TimeAll</td>
+    </tr>
+    <tr>
+        <td>0.0001</td>
+        <td>0.803</td>
+        <td>120</td>
+        <td>10.9</td>
+        <td>0.651</td>
+        <td>2000</td>
+        <td>154</td>
+    </tr>
+    <tr>
+        <td>0.0005</td>
+        <td>0.846</td>
+        <td>121</td>
+        <td>9.4</td>
+        <td>0.81</td>
+        <td>2000</td>
+        <td>153.6</td>
+    </tr>
+    <tr>
+        <td>0.001</td>
+        <td>0.843</td>
+        <td>115</td>
+        <td>8.5</td>
+        <td>0.846</td>
+        <td>2000</td>
+        <td>151.9</td>
+    </tr>
+    <tr>
+        <td>0.005</td>
+        <td>0.763</td>
+        <td>60</td>
+        <td>4.8</td>
+        <td>0.848</td>
+        <td>618</td>
+        <td>46.9</td>
+    </tr>
+    <tr>
+        <td>0.01</td>
+        <td>0.618</td>
+        <td>72</td>
+        <td>6.2</td>
+        <td>0.848</td>
+        <td>265</td>
+        <td>20.6</td>
+    </tr>
+    <tr>
+        <td>Central</td>
+        <td colspan="6">0.85</td>
+    </tr>
+    <tr>
+        <td></td>
+        <td colspan="3">FEMNIST MLP FedAvg</td>
+        <td colspan="3">FEMNIST MLP FedSGD</td>
+    </tr>
+    <tr>
+        <td>LR</td>
+        <td>Acc</td>
+        <td>CommRound</td>
+        <td>TimeAll</td>
+        <td>Acc</td>
+        <td>CommRound</td>
+        <td>TimeAll</td>
+    </tr>
+    <tr>
+        <td>0.0001</td>
+        <td>0.798</td>
+        <td>128</td>
+        <td>36.8</td>
+        <td>0.682</td>
+        <td>2000</td>
+        <td>441.6</td>
+    </tr>
+    <tr>
+        <td>0.0005</td>
+        <td>0.754</td>
+        <td>81</td>
+        <td>22.5</td>
+        <td>0.779</td>
+        <td>2000</td>
+        <td>447.1</td>
+    </tr>
+    <tr>
+        <td>0.001</td>
+        <td>0.541</td>
+        <td>74</td>
+        <td>18.3</td>
+        <td>0.814</td>
+        <td>2000</td>
+        <td>446.7</td>
+    </tr>
+    <tr>
+        <td>0.005</td>
+        <td>0.089</td>
+        <td>29</td>
+        <td>8.9</td>
+        <td>0.703</td>
+        <td>571</td>
+        <td>126.2</td>
+    </tr>
+    <tr>
+        <td>0.01</td>
+        <td>0.067</td>
+        <td>25</td>
+        <td>7.7</td>
+        <td>0.439</td>
+        <td>344</td>
+        <td>76.1</td>
+    </tr>
+    <tr>
+        <td>Central</td>
+        <td colspan="6">0.829</td>
+    </tr>
+</table>
