@@ -119,7 +119,7 @@ The following table show the results of FL accuracy when we vary the learning ra
         <td>0.981</td>
     </tr>
     <tr>
-        <td>Central</td>
+        <td>CentralAcc</td>
         <td colspan="6">0.995</td>
         <td colspan="6">0.988</td>
     </tr>
@@ -221,11 +221,12 @@ The following table show the results of FL accuracy when we vary the learning ra
         <td>0.439</td>
     </tr>
     <tr>
-        <td>Central</td>
+        <td>CentralAcc</td>
         <td colspan="6">0.85</td>
         <td colspan="6">0.829</td>
     </tr>
 </table>
+
 
 #### Results of tuning the learning rate (LR)
 
@@ -290,8 +291,8 @@ The following table show the results of FL accuracy when we vary the learning ra
         <td>14</td>
     </tr>
     <tr>
-        <td>Central</td>
-        <td  colspan="6">0.995</td>
+        <td>CentralAcc</td>
+        <td colspan="6">0.995</td>
     </tr>
     <tr>
         <td></td>
@@ -353,7 +354,7 @@ The following table show the results of FL accuracy when we vary the learning ra
         <td>48.9</td>
     </tr>
     <tr>
-        <td>Central</td>
+        <td>CentralAcc</td>
         <td colspan="6">0.988</td>
     </tr>
     <tr>
@@ -416,7 +417,7 @@ The following table show the results of FL accuracy when we vary the learning ra
         <td>20.6</td>
     </tr>
     <tr>
-        <td>Central</td>
+        <td>CentralAcc</td>
         <td colspan="6">0.85</td>
     </tr>
     <tr>
@@ -479,7 +480,10 @@ The following table show the results of FL accuracy when we vary the learning ra
         <td>76.1</td>
     </tr>
     <tr>
-        <td>Central</td>
+        <td>CentralAcc</td>
         <td colspan="6">0.829</td>
     </tr>
 </table>
+
+------
+
