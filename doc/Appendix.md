@@ -16,21 +16,13 @@ All the experiments run on a cluster of three machines. One machine with Intel(R
 
 ## Appendix 3
 
-<table>
+<table style="text-align:center">
     <tr>
         <td></td>
-        <td>MNIST LeNet FedAvg</td>
-        <td></td>
-        <td></td>
-        <td>MNIST LeNet FedSGD</td>
-        <td></td>
-        <td></td>
-        <td>MNIST MLP FedAvg</td>
-        <td></td>
-        <td></td>
-        <td>MNIST MLP FedSGD</td>
-        <td></td>
-        <td></td>
+        <td colspan="3">MNIST LeNet FedAvg</td>
+        <td colspan="3">MNIST LeNet FedSGD</td>
+        <td colspan="3">MNIST MLP FedAvg</td>
+        <td colspan="3">MNIST MLP FedSGD</td>
     </tr>
     <tr>
         <td>LR</td>
@@ -124,33 +116,15 @@ All the experiments run on a cluster of three machines. One machine with Intel(R
     </tr>
     <tr>
         <td>Central</td>
-        <td>0.995</td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td>0.988</td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
+        <td colspan="6">0.995</td>
+        <td colspan="6">0.988</td>
     </tr>
     <tr>
         <td></td>
-        <td>FEMNIST LeNet FedAvg</td>
-        <td></td>
-        <td></td>
-        <td>FEMNIST LeNet FedSGD</td>
-        <td></td>
-        <td></td>
-        <td>FEMNIST MLP FedAvg</td>
-        <td></td>
-        <td></td>
-        <td>FEMNIST MLP FedSGD</td>
-        <td></td>
-        <td></td>
+        <td colspan="3">FEMNIST LeNet FedAvg</td>
+        <td colspan="3">FEMNIST LeNet FedSGD</td>
+        <td colspan="3">FEMNIST MLP FedAvg</td>
+        <td colspan="3">FEMNIST MLP FedSGD</td>
     </tr>
     <tr>
         <td>LR</td>
@@ -244,32 +218,8 @@ All the experiments run on a cluster of three machines. One machine with Intel(R
     </tr>
     <tr>
         <td>Central</td>
-        <td>0.85</td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td>0.829</td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-    </tr>
-    <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
+        <td colspan="6">0.85</td>
+        <td colspan="6">0.829</td>
     </tr>
 </table>
+
