@@ -7,7 +7,6 @@ Having motivated the need for an easy-to-use and lightweight benchmarking system
 - **Step 1:** Distribute the data to all clients, where different strategies can be applied to generate IID or non-IID data.
 - **Step 2:** Provide the training scripts and distribute the codes to all the clients.
 - **Step 3:** Training the model. The ACTPR evaluation model will run automatically in this step. 
-  \end{itemize}
 
 We used the docker container technology to simulate the server and clients. The isolation between different containers guarantees that our simulation can reflect the real-world application. All the benchmark system is open-sourced, and four benchmark FL datasets are included in the system. Thus researches can implement their new idea and evaluate with ACTPR model very quickly.
 
