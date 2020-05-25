@@ -1,8 +1,10 @@
 # Appendix
 
-## Appendix 1
+## Appendix 1 The Benchmarking System
 
-#### Datasets and Hardware
+<img src="bm_system.png" width="50%">
+
+## Appendix 2 Datasets and Hardware
 
 Four datasets are used in the experiments: [MNIST](http://yann.lecun.com/exdb/mnist/), [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html), [FEMNIST](https://github.com/TalwalkarLab/leaf#datasets), [CelebA](https://github.com/TalwalkarLab/leaf#datasets). We perform the classification task on all datasets. FEMNIST is an extended MNIST dataset based on handwritten digits and characters. CelebA builds on the Large-scale CelebFaces Attributes Dataset, and we use the *smiling* label as the classification target. For the non-IID evaluation, we use different strategies. In MNIST and CIFAR-10, we simulate non-IID by restricting the number of clients' local image classes. Experiments of each client has 1,2​ and 3 classes are reported. In FEMNIST and CelebA, we have the identity of who generates the data. Thus we partition the data naturally based on the identity, and perform a random shuffle for IID setting.
 
@@ -10,11 +12,11 @@ On average, each client holds 300 images on MNIST and CIFAR-10 datasets, 137 ima
 
 All the experiments run on a cluster of three machines. One machine with Intel(R) Xeon(R) E5-2620 32-core 2.10GHz CPU, 378GB RAM, and two machines with Intel(R) Xeon(R) E5-2630 24-core 2.6GHz CPU, 63GB RAM. We put the server on the first machine and 40, 30, 30 clients on three machines, respectively. 
 
-## Appendix 2
+## Appendix 3 Grid-Search for FedAvg (B, C, E)
 
 [Grid search result for FedAvg.](https://anonymous.4open.science/repository/19c83e2b-0176-4ae2-b231-b260a74794e3/doc/fedavg_grid_search.md)
 
-## Appendix 3
+## Appendix 4 Tuning the Optimizer and Learning Rate
 
 #### Results of tuning the optimizers
 
@@ -484,6 +486,5 @@ The following table show the results of FL accuracy when we vary the learning ra
         <td colspan="6">0.829</td>
     </tr>
 </table>
-
 ------
 
