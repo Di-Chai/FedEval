@@ -1,0 +1,58 @@
+.. FedEval documentation master file, created by
+   sphinx-quickstart on Mon May 25 17:59:08 2020.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+========================================
+The ACTPR Benchmarking System
+========================================
+
+ACTPR Model
+----------------
+
+The ACTPR model is the core of our benchmarking system. It defines five evaluation metrics for the FL systems: Accuracy, Communication, Time consumption, Privacy and Robustness.
+
+The Benchmarking System
+-----------------------------------------------
+
+.. figure:: images/bm_system.png
+   :alt: The framework of the benchmarking system
+   :width: 60%
+   :align: center
+
+   The framework of the benchmarking system
+
+We publish an easy-to-use and lightweight benchmarking system for federated learning (FL). The above figure shows the framework of the system, and it contains the following three steps:
+
+- **Step 1:** Distribute the data to all clients, where different strategies can be applied to generate IID or non-IID data.
+- **Step 2:** Provide the training scripts and distribute the codes to all the clients.
+- **Step 3:** Training the model. The ACTPR evaluation model will run automatically in this step. 
+
+We used the docker container technology to simulate the server and clients. The isolation between different containers guarantees that our simulation can reflect the real-world application. **All the benchmark system is open-sourced, and five benchmark FL datasets are included in the system.** Thus researches can implement their new idea and evaluate with ACTPR model very quickly.
+
+Project Overview
+------------------
+
+.. figure:: images/project_overview.png
+   :alt: The Project Overview
+   :width: 70%
+   :align: center
+
+   The Project Overview
+
+The above figure shows the overview of our project. We provide one model scripts and three config files (i.e., model config, runtime config, and data config) to the system. 
+
+.. toctree::
+   :numbered:
+   :maxdepth: 2
+   :caption: Contents
+   
+   Install.md
+
+   QuickStart.md
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Appendixs of the paper
+   
+   Appendix.rst

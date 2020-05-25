@@ -1,0 +1,261 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>The ACTPR Benchmarking System &mdash; FedEval 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="1. Install" href="Install.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="#" class="icon icon-home"> FedEval
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Install.html">1. Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="QuickStart.html">2. Quick Start</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Appendixs of the paper</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html">Appendix 1 The Benchmarking System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-2-datasets-and-hardware">Appendix 2 Datasets and Hardware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-3-tuning-optimizer-and-lr">Appendix 3 Tuning Optimizer and LR</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-4-grid-search-on-fedavg">Appendix 4 Grid Search on FedAvg</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">FedEval</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#">Docs</a> &raquo;</li>
+        
+      <li>The ACTPR Benchmarking System</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="the-actpr-benchmarking-system">
+<h1>The ACTPR Benchmarking System<a class="headerlink" href="#the-actpr-benchmarking-system" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="actpr-model">
+<h2>ACTPR Model<a class="headerlink" href="#actpr-model" title="Permalink to this headline">¶</a></h2>
+<p>The ACTPR model is the core of our benchmarking system. It defines five evaluation metrics for the FL systems: Accuracy, Communication, Time consumption, Privacy and Robustness.</p>
+</div>
+<div class="section" id="the-benchmarking-system">
+<h2>The Benchmarking System<a class="headerlink" href="#the-benchmarking-system" title="Permalink to this headline">¶</a></h2>
+<div class="figure align-center" id="id1">
+<a class="reference internal image-reference" href="_images/bm_system.png"><img alt="The framework of the benchmarking system" src="_images/bm_system.png" style="width: 60%;" /></a>
+<p class="caption"><span class="caption-text">The framework of the benchmarking system</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</div>
+<p>We publish an easy-to-use and lightweight benchmarking system for federated learning (FL). The above figure shows the framework of the system, and it contains the following three steps:</p>
+<ul class="simple">
+<li><p><strong>Step 1:</strong> Distribute the data to all clients, where different strategies can be applied to generate IID or non-IID data.</p></li>
+<li><p><strong>Step 2:</strong> Provide the training scripts and distribute the codes to all the clients.</p></li>
+<li><p><strong>Step 3:</strong> Training the model. The ACTPR evaluation model will run automatically in this step.</p></li>
+</ul>
+<p>We used the docker container technology to simulate the server and clients. The isolation between different containers guarantees that our simulation can reflect the real-world application. <strong>All the benchmark system is open-sourced, and five benchmark FL datasets are included in the system.</strong> Thus researches can implement their new idea and evaluate with ACTPR model very quickly.</p>
+</div>
+<div class="section" id="project-overview">
+<h2>Project Overview<a class="headerlink" href="#project-overview" title="Permalink to this headline">¶</a></h2>
+<div class="figure align-center" id="id2">
+<a class="reference internal image-reference" href="_images/project_overview.png"><img alt="The Project Overview" src="_images/project_overview.png" style="width: 70%;" /></a>
+<p class="caption"><span class="caption-text">The Project Overview</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</div>
+<p>The above figure shows the overview of our project. We provide one model scripts and three config files (i.e., model config, runtime config, and data config) to the system.</p>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Install.html">1. Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Install.html#environments">1.1. Environments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Install.html#build-docker-image">1.2. Build docker image</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="QuickStart.html">2. Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="QuickStart.html#generate-the-data-and-docker-compose-file">2.1. Generate the data and docker-compose file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="QuickStart.html#start-the-experiment">2.2. Start the Experiment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="QuickStart.html#view-the-results">2.3. View the results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="QuickStart.html#stop-the-experiment">2.4. Stop the Experiment</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">Appendixs of the paper</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html">Appendix 1 The Benchmarking System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-2-datasets-and-hardware">Appendix 2 Datasets and Hardware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-3-tuning-optimizer-and-lr">Appendix 3 Tuning Optimizer and LR</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-4-grid-search-on-fedavg">Appendix 4 Grid Search on FedAvg</a></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Install.html" class="btn btn-neutral float-right" title="1. Install" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, anonymous
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
