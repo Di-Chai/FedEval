@@ -1,8 +1,8 @@
-# Appendix
+##  Appendix 1 The Benchmarking System
 
-## Appendix 1 The Benchmarking System
+<img src="images/bm_system.png" width="70%">
 
-Having motivated the need for an easy-to-use and lightweight benchmarking system, we propose a federated benchmarking system shown in this [figure](https://anonymous.4open.science/repository/19c83e2b-0176-4ae2-b231-b260a74794e3/doc/bm_system.png). The system contains the following three steps:
+Having motivated the need for an easy-to-use and lightweight benchmarking system, we propose a federated benchmarking system shown in this figure. The system contains the following three steps:
 
 - **Step 1:** Distribute the data to all clients, where different strategies can be applied to generate IID or non-IID data.
 - **Step 2:** Provide the training scripts and distribute the codes to all the clients.
