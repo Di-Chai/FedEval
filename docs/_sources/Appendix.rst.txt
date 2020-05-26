@@ -61,15 +61,12 @@ machines with Intel(R) Xeon(R) E5-2630 24-core 2.6GHz CPU, 63GB RAM. We
 put the server on the first machine and 40, 30, 30 clients on three
 machines, respectively.
 
-.. _header-n16:
 
 Appendix 3 Tuning the Optimizer and Learning Rate
 =================================================
 
-.. _header-n19:
-
-Results of tuning the optimizers
---------------------------------
+3.1 Results of tuning the optimizers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following table show the results of FL accuracy when we vary the
 learning rate (lr) and optimizers. The experiments are performed on
@@ -306,12 +303,10 @@ accuracy more frequently, and Adam is more robust given different lr**.
    </div>
    </body></html>
 
-.. _header-n23:
-
 --------------
 
-Results of tuning the learning rate (LR)
-----------------------------------------
+3.2 Results of tuning the learning rate (LR)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 

@@ -36,7 +36,7 @@
   <link rel="stylesheet" href="_static/my.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="FEMNIST LeNet" href="fedavg_grid_search.html" />
+    <link rel="next" title="1. FEMNIST LeNet" href="fedavg_grid_search.html" />
     <link rel="prev" title="3. Configs" href="Configs.html" /> 
 </head>
 
@@ -92,15 +92,15 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Appendix 1 The Benchmarking System</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#appendix-2-datasets-and-hardware">Appendix 2 Datasets and Hardware</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#appendix-3-tuning-the-optimizer-and-learning-rate">Appendix 3 Tuning the Optimizer and Learning Rate</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#results-of-tuning-the-optimizers">Results of tuning the optimizers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#results-of-tuning-the-learning-rate-lr">Results of tuning the learning rate (LR)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#results-of-tuning-the-optimizers">3.1 Results of tuning the optimizers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#results-of-tuning-the-learning-rate-lr">3.2 Results of tuning the learning rate (LR)</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="#appendix-4-grid-search-on-fedavg">Appendix 4 Grid Search on FedAvg</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html">FEMNIST LeNet</a></li>
-<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html#mnist-mlp">MNIST MLP</a></li>
-<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html#mnist-lenet">MNIST LeNet</a></li>
-<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html#celeba-lenet">Celeba LeNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html">1. FEMNIST LeNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html#mnist-mlp">2. MNIST MLP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html#mnist-lenet">3. MNIST LeNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html#celeba-lenet">4. Celeba LeNet</a></li>
 </ul>
 </li>
 </ul>
@@ -217,9 +217,9 @@ put the server on the first machine and 40, 30, 30 clients on three
 machines, respectively.</p>
 </div>
 <div class="section" id="appendix-3-tuning-the-optimizer-and-learning-rate">
-<span id="header-n16"></span><h1>Appendix 3 Tuning the Optimizer and Learning Rate<a class="headerlink" href="#appendix-3-tuning-the-optimizer-and-learning-rate" title="Permalink to this headline">¶</a></h1>
+<h1>Appendix 3 Tuning the Optimizer and Learning Rate<a class="headerlink" href="#appendix-3-tuning-the-optimizer-and-learning-rate" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="results-of-tuning-the-optimizers">
-<span id="header-n19"></span><h2>Results of tuning the optimizers<a class="headerlink" href="#results-of-tuning-the-optimizers" title="Permalink to this headline">¶</a></h2>
+<h2>3.1 Results of tuning the optimizers<a class="headerlink" href="#results-of-tuning-the-optimizers" title="Permalink to this headline">¶</a></h2>
 <p>The following table show the results of FL accuracy when we vary the
 learning rate (lr) and optimizers. The experiments are performed on
 MNIST and FEMNIST datasets, using MLP and LeNet model, FedSGD and FedAvg
@@ -451,9 +451,9 @@ accuracy more frequently, and Adam is more robust given different lr</strong>.</
 </tbody></table>
 </div>
 </body></html></div>
-<hr class="docutils" id="header-n23" />
+<hr class="docutils" />
 <div class="section" id="results-of-tuning-the-learning-rate-lr">
-<h2>Results of tuning the learning rate (LR)<a class="headerlink" href="#results-of-tuning-the-learning-rate-lr" title="Permalink to this headline">¶</a></h2>
+<h2>3.2 Results of tuning the learning rate (LR)<a class="headerlink" href="#results-of-tuning-the-learning-rate-lr" title="Permalink to this headline">¶</a></h2>
 <html xmlns="http://www.w3.org/1999/xhtml"><head></head><body>
 <div style="width:100%;display:block;overflow-y:auto;">
 <table style="text-align:center">
@@ -718,10 +718,10 @@ accuracy more frequently, and Adam is more robust given different lr</strong>.</
 <h1>Appendix 4 Grid Search on FedAvg<a class="headerlink" href="#appendix-4-grid-search-on-fedavg" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html">FEMNIST LeNet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html#mnist-mlp">MNIST MLP</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html#mnist-lenet">MNIST LeNet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html#celeba-lenet">Celeba LeNet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html">1. FEMNIST LeNet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html#mnist-mlp">2. MNIST MLP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html#mnist-lenet">3. MNIST LeNet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html#celeba-lenet">4. Celeba LeNet</a></li>
 </ul>
 </div>
 </div>
@@ -734,7 +734,7 @@ accuracy more frequently, and Adam is more robust given different lr</strong>.</
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="fedavg_grid_search.html" class="btn btn-neutral float-right" title="FEMNIST LeNet" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="fedavg_grid_search.html" class="btn btn-neutral float-right" title="1. FEMNIST LeNet" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="Configs.html" class="btn btn-neutral float-left" title="3. Configs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
