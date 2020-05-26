@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>2. Quick Start &mdash; FedEval 1.0 documentation</title>
+  <title>1. Install &mdash; FedEval 1.0 documentation</title>
   
 
   
@@ -21,10 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -36,8 +36,8 @@
   <link rel="stylesheet" href="_static/my.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Appendix 1 The Benchmarking System" href="Appendix.html" />
-    <link rel="prev" title="1. Install" href="Install.html" /> 
+    <link rel="next" title="2. Quick Start" href="QuickStart.html" />
+    <link rel="prev" title="The ACTPR Benchmarking System" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -83,20 +83,18 @@
             
               <p class="caption"><span class="caption-text">Contents</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="Install.html">1. Install</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">2. Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#generate-the-data-and-docker-compose-file">2.1. Generate the data and docker-compose file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#start-the-experiment">2.2. Start the Experiment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#view-the-results">2.3. View the results</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#stop-the-experiment">2.4. Stop the Experiment</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">1. Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#environments">1.1. Environments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#build-docker-image">1.2. Build docker image</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="QuickStart.html">2. Quick Start</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Appendixs of the paper</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Appendix.html">Appendix 1 The Benchmarking System</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-2-datasets-and-hardware">Appendix 2 Datasets and Hardware</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-3-tuning-optimizer-and-lr">Appendix 3 Tuning Optimizer and LR</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-3-tuning-the-optimizer-and-learning-rate">Appendix 3 Tuning the Optimizer and Learning Rate</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-4-grid-search-on-fedavg">Appendix 4 Grid Search on FedAvg</a></li>
 </ul>
 
@@ -143,13 +141,13 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li><span class="section-number">2. </span>Quick Start</li>
+      <li>1. Install</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/QuickStart.md.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/Install.md.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -162,35 +160,20 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="quick-start">
-<h1><span class="section-number">2. </span>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="generate-the-data-and-docker-compose-file">
-<h2><span class="section-number">2.1. </span>Generate the data and docker-compose file<a class="headerlink" href="#generate-the-data-and-docker-compose-file" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-shell script notranslate"><div class="highlight"><pre><span></span>sudo docker run --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 sh -c &quot;python3 4_distribute_data.py &amp;&amp; python3 5_generate_docker_compose.py&quot;
-</pre></div>
+  <div class="section" id="install">
+<h1>1. Install<a class="headerlink" href="#install" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="environments">
+<h2>1.1. Environments<a class="headerlink" href="#environments" title="Permalink to this headline">¶</a></h2>
+<ol class="simple">
+<li><p>Operating System : Ubuntu 18.04 or Mac OS</p></li>
+<li><p>Hardware: Recommend memory 16GB+</p></li>
+</ol>
 </div>
-</div>
-<div class="section" id="start-the-experiment">
-<h2><span class="section-number">2.2. </span>Start the Experiment<a class="headerlink" href="#start-the-experiment" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-shell script notranslate"><div class="highlight"><pre><span></span>sudo docker-compose up -d
-</pre></div>
-</div>
-</div>
-<div class="section" id="view-the-results">
-<h2><span class="section-number">2.3. </span>View the results<a class="headerlink" href="#view-the-results" title="Permalink to this headline">¶</a></h2>
-<p>Go to http://127.0.0.1:8200/dashboard to see the results.</p>
-<p>Here’s an example of the <a class="reference external" href="./dashboard.png">dashboard</a>.</p>
-</div>
-<div class="section" id="stop-the-experiment">
-<h2><span class="section-number">2.4. </span>Stop the Experiment<a class="headerlink" href="#stop-the-experiment" title="Permalink to this headline">¶</a></h2>
-<p>Stop and remove the containers</p>
-<div class="highlight-shell script notranslate"><div class="highlight"><pre><span></span>sudo docker-compose stop
-sudo docker-compose rm
-</pre></div>
-</div>
-<p>Manual stop and remove all the containers</p>
-<div class="highlight-shell script notranslate"><div class="highlight"><pre><span></span>sudo docker stop $(sudo docker ps --filter ancestor=fleval:v1 -aq)
-sudo docker rm $(sudo docker ps --filter ancestor=fleval:v1 -aq)
+<div class="section" id="build-docker-image">
+<h2>1.2. Build docker image<a class="headerlink" href="#build-docker-image" title="Permalink to this headline">¶</a></h2>
+<p>We first build the docker image that will be used by the server and clients. It may take about 30 minutes, which demends on your network.</p>
+<div class="highlight-shell script notranslate"><div class="highlight"><pre><span></span>cd docker
+sudo docker build . -t fleval:v1
 </pre></div>
 </div>
 </div>
@@ -204,10 +187,10 @@ sudo docker rm $(sudo docker ps --filter ancestor=fleval:v1 -aq)
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Appendix.html" class="btn btn-neutral float-right" title="Appendix 1 The Benchmarking System" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="QuickStart.html" class="btn btn-neutral float-right" title="2. Quick Start" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="Install.html" class="btn btn-neutral float-left" title="1. Install" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral float-left" title="The ACTPR Benchmarking System" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
