@@ -55,12 +55,15 @@ On average, each client holds 300 images on MNIST,
 At each client, we randomly select 80\%, 10\%, and 10\% for training,
 validation, and testing.
 
+We use MLP and LeNet models in the experiments. The MLP model is implemented using 2 hidden layers with 512 units, ReLU activation, and dropout probability 0.2. The LeNet model is implemented using the same parameter with the work of LeCun et al. [1].
+
 All the experiments run on a cluster of three machines. One machine with
 Intel(R) Xeon(R) E5-2620 32-core 2.10GHz CPU, 378GB RAM, and two
 machines with Intel(R) Xeon(R) E5-2630 24-core 2.6GHz CPU, 63GB RAM. We
 put the server on the first machine and 40, 30, 30 clients on three
 machines, respectively.
 
+[1] LeCun Y, Bottou L, Bengio Y, et al. `Gradient-based learning applied to document recognition[J]. <http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf>`_ Proceedings of the IEEE, 1998, 86(11): 2278-2324.  
 
 Appendix 3 Tuning the Optimizer and Learning Rate
 =================================================

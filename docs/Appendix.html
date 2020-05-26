@@ -36,7 +36,7 @@
   <link rel="stylesheet" href="_static/my.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="1. FEMNIST LeNet" href="fedavg_grid_search.html" />
+    <link rel="next" title="FEMNIST LeNet" href="fedavg_grid_search.html" />
     <link rel="prev" title="3. Configs" href="Configs.html" /> 
 </head>
 
@@ -97,10 +97,10 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="#appendix-4-grid-search-on-fedavg">Appendix 4 Grid Search on FedAvg</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html">1. FEMNIST LeNet</a></li>
-<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html#mnist-mlp">2. MNIST MLP</a></li>
-<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html#mnist-lenet">3. MNIST LeNet</a></li>
-<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html#celeba-lenet">4. Celeba LeNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html">FEMNIST LeNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html#mnist-mlp">MNIST MLP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html#mnist-lenet">MNIST LeNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fedavg_grid_search.html#celeba-lenet">Celeba LeNet</a></li>
 </ul>
 </li>
 </ul>
@@ -210,11 +210,13 @@ IID setting.</p>
 137 images on the FEMNIST dataset, and 24 images on the CelebA dataset.
 At each client, we randomly select 80%, 10%, and 10% for training,
 validation, and testing.</p>
+<p>We use MLP and LeNet models in the experiments. The MLP model is implemented using 2 hidden layers with 512 units, ReLU activation, and dropout probability 0.2. The LeNet model is implemented using the same parameter with the work of LeCun et al. [1].</p>
 <p>All the experiments run on a cluster of three machines. One machine with
 Intel(R) Xeon(R) E5-2620 32-core 2.10GHz CPU, 378GB RAM, and two
 machines with Intel(R) Xeon(R) E5-2630 24-core 2.6GHz CPU, 63GB RAM. We
 put the server on the first machine and 40, 30, 30 clients on three
 machines, respectively.</p>
+<p>[1] LeCun Y, Bottou L, Bengio Y, et al. <a class="reference external" href="http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf">Gradient-based learning applied to document recognition[J].</a> Proceedings of the IEEE, 1998, 86(11): 2278-2324.</p>
 </div>
 <div class="section" id="appendix-3-tuning-the-optimizer-and-learning-rate">
 <h1>Appendix 3 Tuning the Optimizer and Learning Rate<a class="headerlink" href="#appendix-3-tuning-the-optimizer-and-learning-rate" title="Permalink to this headline">¶</a></h1>
@@ -718,10 +720,10 @@ accuracy more frequently, and Adam is more robust given different lr</strong>.</
 <h1>Appendix 4 Grid Search on FedAvg<a class="headerlink" href="#appendix-4-grid-search-on-fedavg" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html">1. FEMNIST LeNet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html#mnist-mlp">2. MNIST MLP</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html#mnist-lenet">3. MNIST LeNet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html#celeba-lenet">4. Celeba LeNet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html">FEMNIST LeNet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html#mnist-mlp">MNIST MLP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html#mnist-lenet">MNIST LeNet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fedavg_grid_search.html#celeba-lenet">Celeba LeNet</a></li>
 </ul>
 </div>
 </div>
@@ -734,7 +736,7 @@ accuracy more frequently, and Adam is more robust given different lr</strong>.</
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="fedavg_grid_search.html" class="btn btn-neutral float-right" title="1. FEMNIST LeNet" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="fedavg_grid_search.html" class="btn btn-neutral float-right" title="FEMNIST LeNet" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="Configs.html" class="btn btn-neutral float-left" title="3. Configs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
