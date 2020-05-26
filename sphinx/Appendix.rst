@@ -32,7 +32,7 @@ with ACTPR model very quickly.
 
 .. _header-n12:
 
-Appendix 2 Datasets and Hardware
+Appendix 2 Dataset, Model settings and Hardware
 ================================
 
 Three datasets are used in the experiments:
