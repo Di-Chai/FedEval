@@ -37,7 +37,6 @@ We used the docker container technology to simulate the server and clients. The 
 Project Overview
 ------------------
 
-
 .. raw:: html
 
    <html xmlns="http://www.w3.org/1999/xhtml">
