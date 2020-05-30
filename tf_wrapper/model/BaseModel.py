@@ -325,7 +325,7 @@ class BaseModel(object):
         if return_outputs:
             return summary_output
 
-    def predict(self, test_data, sample_size=None, output_names=('prediction',), cache_volume=64):
+    def predict(self, test_data=None, sample_size=None, output_names=('prediction',), cache_volume=64):
 
         '''
         Args:
@@ -337,7 +337,10 @@ class BaseModel(object):
         '''
 
         # Get feed_dict
-        feed_dict = self._get_feed_dict(**test_data)
+        if test_data is not None:
+            feed_dict = self._get_feed_dict(**test_data)
+        else:
+            feed_dict = {}
 
         if sample_size is None:
             sample_size = [v.shape[0] for _, v in feed_dict.items()]
@@ -454,47 +457,16 @@ class BaseModel(object):
 
 class FMLModel(BaseModel):
 
-    def __init__(self, inputs_shape, targets_shape, learning_rate=1e-4,
+    def __init__(self, inputs_shape, targets_shape,
                  code_version='MLP', model_dir='model_dir', gpu_device='-1'):
 
         self.inputs_shape = inputs_shape
         self.targets_shape = targets_shape
-        self.lr = learning_rate
 
-        super(FMLModel, self).__init__(code_version, model_dir, gpu_device)
-
-    def _build_model(self, inputs, targets, trainable):
-        """
-         Please Override this function, return the loss
-        """
-        print('inputs_shape', self.inputs_shape)
-        print('targets_shape', self.targets_shape)
-        print('inputs', inputs)
-        print('targets', targets)
-        print('trainable', trainable)
-        loss = None
-        return loss
-
-    def build_client(self, init_vars=True, max_to_keep=5):
-
-        with self.graph.as_default():
-
-            input_tensor = {}
-            for input_name in self.inputs_shape:
-                input_tensor[input_name] = \
-                    tf.compat.v1.placeholder(tf.float32, [None] + list(self.inputs_shape[input_name]), name=input_name)
-                self.input[input_name] = input_tensor[input_name].name
-
-            target_tensor = {}
-            for target_name in self.targets_shape:
-                target_tensor[target_name] = \
-                    tf.compat.v1.placeholder(tf.float32, [None] + list(self.targets_shape[target_name]),
-                                             name=target_name)
-                self.input[target_name] = target_tensor[target_name].name
-
-            self._build_model(inputs=input_tensor, targets=target_tensor, trainable=True)
-
-            super(FMLModel, self).build(init_vars=init_vars, max_to_keep=max_to_keep)
+        super(FMLModel, self).__init__(
+            inputs_shape=inputs_shape, targets_shape=targets_shape,
+            code_version=code_version, model_dir=model_dir, gpu_device=gpu_device
+        )
 
     def build_attack(self, gradient_names, init_vars=True, max_to_keep=5, batch_size=None,):
 
@@ -527,7 +499,7 @@ class FMLModel(BaseModel):
                 target_tensor[target_name] = tf.nn.softmax(target_tensor_raw[target_name], axis=-1)
                 self.output[target_name] = target_tensor[target_name].name
 
-            loss = self._build_model(inputs=input_tensor, targets=target_tensor, trainable=False)
+            loss = self.forward(inputs=input_tensor, targets=target_tensor, trainable=False)
 
             assert loss is not None
 

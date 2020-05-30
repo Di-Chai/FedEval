@@ -125,7 +125,8 @@ class FedImage:
         else:
             self.num_class = self.y.shape[-1]
 
-        os.makedirs(self.data_dir, exist_ok=True)
+        if data_dir is not None:
+            os.makedirs(self.data_dir, exist_ok=True)
 
     def iid_data(self, sample_size=300, save_file=True):
 
@@ -135,7 +136,7 @@ class FedImage:
                                               shared_data=0, save_file=False)
         else:
             local_dataset = self.non_iid_data(non_iid_class=self.num_class, strategy='average', sample_size=sample_size,
-                                              shared_data=0, save_file=True)
+                                              shared_data=0, save_file=False)
         # Transfer non-iid to iid
         x_train_all = np.concatenate([e['x_train'] for e in local_dataset], axis=0)
         y_train_all = np.concatenate([e['y_train'] for e in local_dataset], axis=0)
