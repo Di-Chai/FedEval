@@ -102,3 +102,5 @@ for i in range(Nr):
 
 fig.tight_layout()
 plt.savefig(os.path.join(image_dir, 'attack-result.png'), type="png", dpi=300)
+
+print('Attach finish, please view the results in:', image_dir)

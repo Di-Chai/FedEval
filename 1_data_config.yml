@@ -39,7 +39,7 @@ input_shape:
 non-iid: 0
 non-iid-strategy: iid
 normalize: true
-sample_size: 1
+sample_size: 300
 shared_data: 0
 train_val_test:
 - 0.8

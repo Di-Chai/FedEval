@@ -548,4 +548,4 @@ class FMLModel(BaseModel):
             self.output['grad_y'] = tf.gradients(attack_loss, target_tensor['y'])[0].name
             ########################
 
-            super(FMLModel, self).build(init_vars=init_vars, max_to_keep=max_to_keep)
+            super(FMLModel, self).build_essential(init_vars=init_vars, max_to_keep=max_to_keep)

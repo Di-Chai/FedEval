@@ -1,0 +1,47 @@
+data_dir: data
+dataset: mnist
+input_shape:
+  celeba:
+    image:
+    - 109
+    - 89
+    - 3
+    label:
+    - 2
+  cifar10:
+    image:
+    - 32
+    - 32
+    - 3
+    label:
+    - 10
+  cifar100:
+    image:
+    - 32
+    - 32
+    - 3
+    label:
+    - 100
+  femnist:
+    image:
+    - 28
+    - 28
+    - 1
+    label:
+    - 62
+  mnist:
+    image:
+    - 28
+    - 28
+    - 1
+    label:
+    - 10
+non-iid: 0
+non-iid-strategy: iid
+normalize: true
+sample_size: 1
+shared_data: 0
+train_val_test:
+- 0.8
+- 0.1
+- 0.1

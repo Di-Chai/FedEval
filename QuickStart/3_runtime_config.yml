@@ -1,0 +1,21 @@
+clients:
+  bandwidth: 100Mbit
+  local_batch_size: 1000
+  local_rounds: 1
+  lr: 1e-4
+  num_clients: 10
+  script: client.py
+docker:
+  image: fleval:v1
+server:
+  MAX_NUM_ROUNDS: 5
+  MIN_NUM_WORKERS: 10
+  NUM_CLIENTS_CONTACTED_PER_ROUND: 10
+  NUM_TOLERATE: 20
+  ROUNDS_BETWEEN_TEST: 1
+  ROUNDS_BETWEEN_VALIDATIONS: 1
+  host: server
+  listen: server
+  port: 8200
+  save_gradients: True
+  script: server.py
