@@ -6,24 +6,24 @@ clients:
   num_clients: 100
   script: client.py
 docker:
-  image: dichai/fml:v1
+  image: fleval:v1
 machines:
   m1:
-    capacity: 35
+    capacity: 30
     dir: /home/ubuntu/FML
     host: 192.168.0.0
     key: key_file
     port: 22
     user_name: ubuntu
   m2:
-    capacity: 35
+    capacity: 30
     dir: /home/ubuntu/FML
     host: 192.168.0.1
     key: key_file
     port: 22
     user_name: ubuntu
   m3:
-    capacity: 30
+    capacity: 40
     dir: /home/ubuntu/FML
     host: 192.168.0.2
     key: key_file

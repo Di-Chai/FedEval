@@ -21,7 +21,7 @@ args_parser.add_argument('--max_epochs', type=int, default=5000)
 args_parser.add_argument('--non-iid', type=int, default=0)
 args_parser.add_argument('--non-iid-strategy', default='iid')
 args_parser.add_argument('--lr', default=5e-4)
-args_parser.add_argument('--result_file_name', default='experiment_result.txt')
+args_parser.add_argument('--file_name', default='experiment_result.txt')
 args_parser.add_argument('--sudo', default='sudo')
 args_parser.add_argument('--docker_env', default='YES')
 
@@ -145,7 +145,7 @@ if status_data is not None:
                   [total_rounds, server_send, server_receive, log_file.split('/')[-1]]
     result_list = [str(e) for e in result_list]
 
-    with open(args.result_file_name, 'a+') as f:
+    with open(args.file_name, 'a+') as f:
         f.write(', '.join(result_list) + '\n')
 
 os.system(sudo + 'docker-compose stop')
