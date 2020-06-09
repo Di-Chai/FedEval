@@ -3,7 +3,6 @@ import os
 os.chdir('../')
 
 params_run = [
-
     ['celeba', 'LeNet', 'adam', 'None', 5e-4, 1, 'natural', 1000, 1.0, 1],
     ['celeba', 'LeNet', 'adam', 'None', 5e-4, 1, 'natural', 4, 0.1, 32],
 ]
@@ -16,10 +15,10 @@ max_epochs = 2000
 upload_sparse = 1.0
 upload_strategy = 'no-compress'
 
-order = 'python3 run_base_server.py --dataset {} --model {} --non-iid {} --non-iid-strategy {} ' \
+order = 'python3 run_base_local.py --dataset {} --model {} --non-iid {} --non-iid-strategy {} ' \
         '--B {} --C {} --E {} --file_name {} --num_clients {} --max_epochs {} --lr {} --optimizer {} ' \
         '--upload_name_filter {} --upload_sparse {} --upload_strategy {} ' \
-        '--sudo sudo --path configs/cluster3'
+        '--sudo no'
 
 file_name = os.path.basename(__file__).strip('run_ .py') + '_trials.txt'
 

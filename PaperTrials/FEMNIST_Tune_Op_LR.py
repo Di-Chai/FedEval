@@ -32,7 +32,7 @@ B_C_E = [
 order = 'python run_base_local.py --dataset {} --model {} --non-iid {} --non-iid-strategy {} ' \
         '--B {} --C {} --E {} --file_name {} --num_clients {} --max_epochs {} --lr {} --optimizer {} ' \
         '--upload_name_filter {} --upload_sparse {} --upload_strategy {} ' \
-        '--sudo sudo'
+        '--sudo no'
 
 file_name = os.path.basename(__file__).strip('run_ .py') + '_results.txt'
 
