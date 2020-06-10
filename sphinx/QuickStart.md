@@ -1,9 +1,23 @@
 ## Quick Start
 
-#### Generate the data and docker-compose file
+Move to the QuickStart dir
 
 ```bash
-docker run --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 sh -c "python3 4_distribute_data.py && python3 5_generate_docker_compose.py"
+cd QuickStart
+```
+
+#### Generate the data and docker-compose file
+
+Generate the data for all the clients
+
+```bash
+docker run --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 sh -c "python 4_distribute_data.py"
+```
+
+Generate the docker-compose file
+
+```bash
+docker run --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 sh -c "python 5_generate_docker_compose.py"
 ```
 
 #### Start the Experiment
@@ -14,7 +28,7 @@ docker-compose up -d
 
 #### View the results
 
-Go to http://127.0.0.1:8200/dashboard to see the results.
+Go to http://127.0.0.1:8200/dashboard to see the results. The default port is 8200, and you can change the default settings in the [Configs](Configs.html#runtime-config).
 
 Here's an example of the [dashboard](#dashboard-example).
 

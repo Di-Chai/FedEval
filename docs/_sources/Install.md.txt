@@ -20,7 +20,6 @@ Firstly, please make sure that docker is installed and it can run in root-less m
 We first build the docker image that will be used by the server and clients. It may take about 30 minutes, which depends on your network.
 
 ```shell script
-cd docker
 docker build . -t fleval:v1
 ```
 

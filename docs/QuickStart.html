@@ -168,9 +168,18 @@
             
   <div class="section" id="quick-start">
 <h1>2. Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h1>
+<p>Move to the QuickStart dir</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> QuickStart
+</pre></div>
+</div>
 <div class="section" id="generate-the-data-and-docker-compose-file">
 <h2>2.1. Generate the data and docker-compose file<a class="headerlink" href="#generate-the-data-and-docker-compose-file" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker run --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 sh -c <span class="s2">&quot;python3 4_distribute_data.py &amp;&amp; python3 5_generate_docker_compose.py&quot;</span>
+<p>Generate the data for all the clients</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker run --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 sh -c <span class="s2">&quot;python 4_distribute_data.py&quot;</span>
+</pre></div>
+</div>
+<p>Generate the docker-compose file</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker run --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 sh -c <span class="s2">&quot;python 5_generate_docker_compose.py&quot;</span>
 </pre></div>
 </div>
 </div>
@@ -182,7 +191,7 @@
 </div>
 <div class="section" id="view-the-results">
 <h2>2.3. View the results<a class="headerlink" href="#view-the-results" title="Permalink to this headline">¶</a></h2>
-<p>Go to http://127.0.0.1:8200/dashboard to see the results.</p>
+<p>Go to http://127.0.0.1:8200/dashboard to see the results. The default port is 8200, and you can change the default settings in the <a class="reference external" href="Configs.html#runtime-config">Configs</a>.</p>
 <p>Here’s an example of the <a class="reference external" href="#dashboard-example">dashboard</a>.</p>
 </div>
 <div class="section" id="stop-the-experiment">
