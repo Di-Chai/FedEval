@@ -16,6 +16,8 @@ where the Dataset can be MNIST, FEMNIST, and CelebA, e.g., MNIST_Tune_BCE.py.
 
 #### Running the scripts
 
+Move to the PaperScripts dir
+
 ```bash
 cd PaperScripts
 ```
