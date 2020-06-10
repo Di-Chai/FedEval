@@ -57,9 +57,9 @@ train_val_test:
 |     data_dir     | The output dir of the clients' data                          |
 |     dataset      | Dataset name, mnist / cifar10 / cifar100 / femnist / mnist   |
 |   input_shape    | The image shape that will be used by the server to build the model; <br />You need to add inputs_shape for your own dataset here. |
-|     non-iid      | 0 for IID setting; <br />>=1 for non-IID setting, when the datasets are mnist, cifar10, cifar100, the non-iid means the # of image classes hold by each client |
+|     non-iid      | 0 for IID setting; <br />>=1 for non-IID setting, <br />When the datasets are mnist, cifar10, cifar100, the non-iid means the # of image classes hold by each client. |
 | non-iid-strategy | "natural" strategy for femnist and celebA dataset<br />"average" for mnist, cifar10 and cifar100 |
-|    normalize     | Normalize to 0~1                                             |
+|    normalize     | Bool. If tue, normalize the image to 0~1                     |
 |   sample_size    | Number of Images holf by each client                         |
 |   shared_data    | If shared_data > 0, the system will choose the correponding number of image from each client <br />to build shard dataset for all the participants |
 |  train_val_test  | Split the data to train, val, and test                       |

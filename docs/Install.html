@@ -25,6 +25,7 @@
         <script type="text/javascript" src="_static/underscore.js"></script>
         <script type="text/javascript" src="_static/doctools.js"></script>
         <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -81,7 +82,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents</span></p>
+              <p class="caption"><span class="caption-text">Guidlines</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">1. Install</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#environments">1.1. Environments</a></li>
@@ -90,13 +91,14 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="QuickStart.html">2. Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Configs.html">3. Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Reproduce.html">4. Reproduce the results in the paper</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Appendixs of the paper</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="Appendix.html">Appendix 1 The Benchmarking System</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-2-dataset-model-settings-and-hardware">Appendix 2 Dataset, Model settings and Hardware</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-3-tuning-the-optimizer-and-learning-rate">Appendix 3 Tuning the Optimizer and Learning Rate</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Appendix.html#appendix-4-grid-search-on-fedavg">Appendix 4 Grid Search on FedAvg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html">A The Benchmarking System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#b-experiment-settings">B Experiment settings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#c-tuning-the-optimizer-and-learning-rate">C Tuning the Optimizer and Learning Rate</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#d-grid-search-on-fedavg">D Grid Search on FedAvg</a></li>
 </ul>
 
             
@@ -166,15 +168,41 @@
 <div class="section" id="environments">
 <h2>1.1. Environments<a class="headerlink" href="#environments" title="Permalink to this headline">¶</a></h2>
 <ol class="simple">
-<li><p>Operating System : Ubuntu 18.04 or Mac OS</p></li>
-<li><p>Hardware: Recommend memory 16GB+</p></li>
+<li><p>Operating System : Ubuntu 18.04, Mac OS</p></li>
+<li><p>Hardware: the following table shows the recommended memory size in different dataset and models.</p></li>
 </ol>
-</div>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th align="center">Setting</th>
+<th align="center">Required RAM size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">MNIST MLP</td>
+<td align="center">40 GB / 100 Clients</td>
+</tr>
+<tr>
+<td align="center">MNIST LeNet</td>
+<td align="center">80 GB / 100 Clients</td>
+</tr>
+<tr>
+<td align="center">FEMNIST LeNet</td>
+<td align="center">60 GB / 100 Clients</td>
+</tr>
+<tr>
+<td align="center">CelebA LeNet</td>
+<td align="center">200 GB / 100 Clients</td>
+</tr>
+</tbody>
+</table></div>
 <div class="section" id="build-docker-image">
 <h2>1.2. Build docker image<a class="headerlink" href="#build-docker-image" title="Permalink to this headline">¶</a></h2>
-<p>We first build the docker image that will be used by the server and clients. It may take about 30 minutes, which demends on your network.</p>
+<p>Firstly, please make sure that docker is installed and it can run in root-less mode. More detail can be found here: https://docs.docker.com/engine/security/rootless/</p>
+<p>We first build the docker image that will be used by the server and clients. It may take about 30 minutes, which depends on your network.</p>
 <div class="highlight-shell script notranslate"><div class="highlight"><pre><span></span>cd docker
-sudo docker build . -t fleval:v1
+docker build . -t fleval:v1
 </pre></div>
 </div>
 </div>

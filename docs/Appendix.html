@@ -37,7 +37,7 @@
   <link rel="stylesheet" href="_static/my.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="3. Configs" href="Configs.html" /> 
+    <link rel="prev" title="4. Reproduce the results in the paper" href="Reproduce.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -81,16 +81,17 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents</span></p>
+              <p class="caption"><span class="caption-text">Guidlines</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Install.html">1. Install</a></li>
 <li class="toctree-l1"><a class="reference internal" href="QuickStart.html">2. Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Configs.html">3. Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Reproduce.html">4. Reproduce the results in the paper</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Appendixs of the paper</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">A The Benchmarking System</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#b-dataset-model-settings-and-hardware">B Dataset, Model settings and Hardware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#b-experiment-settings">B Experiment settings</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#c-tuning-the-optimizer-and-learning-rate">C Tuning the Optimizer and Learning Rate</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#results-of-tuning-the-optimizers">Results of tuning the optimizers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#results-of-tuning-the-learning-rate-lr">Results of tuning the learning rate (LR)</a></li>
@@ -174,12 +175,12 @@
 </ul>
 <p>We simulate the server and clients using the docker container, which enables free control of the network resources (e.g., the bandwidth and network delay) and the computing resources (e.g., the number of CPUs and RAM size) for each client. The isolation between different containers guarantees that our simulation can reflect the real-world application. All the benchmark system is open-sourced, and five benchmark FL datasets are provided in the system. Thus researches can easily implement their new idea and evaluate with the ACTPR model.</p>
 </div>
-<div class="section" id="b-dataset-model-settings-and-hardware">
-<h1>B Dataset, Model settings and Hardware<a class="headerlink" href="#b-dataset-model-settings-and-hardware" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="b-experiment-settings">
+<h1>B Experiment settings<a class="headerlink" href="#b-experiment-settings" title="Permalink to this headline">¶</a></h1>
 <p>Three datasets are used in the experiments: <a class="reference external" href="http://yann.lecun.com/exdb/mnist/">MNIST</a>,
 <a class="reference external" href="https://github.com/TalwalkarLab/leaf#datasets">FEMNIST</a>,
-<a class="reference external" href="https://github.com/TalwalkarLab/leaf#datasets">CelebA</a>. We perform the classification task on all datasets. FEMNIST is an extended MNIST dataset based on handwritten digits and characters. CelebA builds on the Large-scale CelebFaces Attributes Dataset, and we use the smiling label as the classification target. On average, each client holds 300 images on MNIST, 137 images on the FEMNIST dataset, and 24 images on the CelebA dataset. At each client, we randomly select 80%, 10%, and 10% for training, validation, and testing. We use MLP and LeNet models in the experiments. The MLP model is implemented using 2 hidden layers with 512 units, ReLU activation, and dropout probability 0.2. The LeNet model is implemented using the same parameter with the work of LeCun et al. [1].</p>
-<p>All the experiments run on a cluster of three machines. One machine with Intel(R) Xeon(R) E5-2620 32-core 2.10GHz CPU, 378GB RAM, and two machines with Intel(R) Xeon(R) E5-2630 24-core 2.6GHz CPU, 63GB RAM. We put the server on the first machine and 40, 30, 30 clients on three machines, respectively. The maximum bandwidth between containers are 1Gb/s in our environment. We limit the clients’ bandwidth to 100Mb/s, and did not restract the server’ bandwidth. Since the number of clients all machines are greater than the number of CPU cores, we did not limit the clients’ computing resources.</p>
+<a class="reference external" href="https://github.com/TalwalkarLab/leaf#datasets">CelebA</a>. We perform the classification task on all datasets. FEMNIST is an extended MNIST dataset based on handwritten digits and characters. CelebA builds on the Large-scale CelebFaces Attributes Dataset, and we use the smiling label as the classification target. On average, each client holds 300 images on MNIST, 137 images on the FEMNIST dataset, and 24 images on the CelebA dataset. At each client, we randomly select 80%, 10%, and 10% for training, validation, and testing. We use MLP and LeNet models in the experiments. The MLP model is implemented using 2 hidden layers with 512 units, ReLU activation, and dropout probability 0.2. The LeNet model is implemented using the same parameter with the work of LeCun et al. [1], and we use ReLU as activation. Since the models are required to be twice differentiable in the DLG attack, we change the ReLU activation to sigmoid and linear function in MLP and LeNet, respectively. The replaced activation is different because we compared available activations and chose the best one for each model.</p>
+<p>All the experiments run on a cluster of three machines. One machine with Intel(R) Xeon(R) E5-2620 32-core 2.10GHz CPU, 378GB RAM, and two machines with Intel(R) Xeon(R) E5-2630 24-core 2.6GHz CPU, 63GB RAM. We put the server on the first machine and 40, 30, 30 clients on three machines, respectively. The maximum bandwidth between containers is 1Gb/s in our environment. We limit the clients’ bandwidth to 100Mb/s and do not restrict the server’s bandwidth. Since the number of clients all machines is greater than the number of CPU cores, we did not limit the clients’ computing resources.</p>
 <p>[1] LeCun Y, Bottou L, Bengio Y, et al. <a class="reference external" href="http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf">Gradient-based learning applied to document recognition[J].</a> Proceedings of the IEEE, 1998, 86(11): 2278-2324.</p>
 </div>
 <div class="section" id="c-tuning-the-optimizer-and-learning-rate">
@@ -1102,7 +1103,7 @@
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
       
-        <a href="Configs.html" class="btn btn-neutral float-left" title="3. Configs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="Reproduce.html" class="btn btn-neutral float-left" title="4. Reproduce the results in the paper" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

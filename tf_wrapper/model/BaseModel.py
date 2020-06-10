@@ -63,8 +63,8 @@ class BaseModel(object):
             exit(1)
 
     @staticmethod
-    def conv2d(x, conv_filter, activation, stride, padding, name, trainable=True):
-        w = tf.compat.v1.get_variable(name + '/kernel', conv_filter, trainable=trainable)
+    def conv2d(x, filter, activation, stride, padding, name, trainable=True):
+        w = tf.compat.v1.get_variable(name + '/kernel', filter, trainable=trainable)
         y = tf.nn.conv2d(x, w, strides=stride, padding=padding)
         w_bias = tf.compat.v1.get_variable(name + '/bias', y.get_shape().as_list()[-1:], trainable=trainable)
         if activation is not None:
@@ -82,8 +82,8 @@ class BaseModel(object):
             return tf.add(tf.matmul(x, w), b, name=name)
 
     @staticmethod
-    def cross_entropy_loss(labels, logits):
-        return tf.reduce_sum(tf.multiply(labels, -tf.log(logits)), axis=-1)
+    def softmax_cross_entropy(labels, logits):
+        return tf.reduce_sum(tf.multiply(labels, -tf.log(tf.nn.softmax(logits, axis=-1))), axis=-1)
 
     def forward(self, inputs, targets, trainable):
         """You need to override this function"""

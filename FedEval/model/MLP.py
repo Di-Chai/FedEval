@@ -60,3 +60,53 @@ class MLP(TFModel):
             self.op['train_op'] = train_op.name
 
         return loss
+
+
+class MLPAttack(TFModel):
+
+    def __init__(self,
+                 inputs_shape,
+                 targets_shape,
+                 units,
+                 dropout=0.1,
+                 lr=1e-4,
+                 optimizer='adam',
+                 activation='relu',
+                 code_version='MLP',
+                 model_dir='log',
+                 gpu_device='0'):
+
+        self.units = units
+        self.dropout = dropout
+        self.activation = activation
+        self.lr = lr
+        self.optimizer_name = optimizer
+
+        super().__init__(inputs_shape, targets_shape, code_version, model_dir, gpu_device)
+
+    def forward(self, inputs, targets, trainable):
+
+        with self.graph.as_default():
+            middle_result = inputs['x']
+            for layer_index in range(len(self.units)):
+                middle_result = self.dense(middle_result,
+                                           units=self.units[layer_index], activation=self.activation,
+                                           name='dense%s' % layer_index, trainable=trainable)
+                # middle_result = tf.nn.dropout(middle_result, keep_prob=1 - self.dropout)
+
+            y_hat = self.dense(middle_result, units=self.targets_shape['y'][-1], activation=None,
+                               name='dense%s' % len(self.units), trainable=trainable)
+
+            loss = self.softmax_cross_entropy(labels=targets['y'], logits=y_hat)
+            accuracy = tf.reduce_mean(tf.cast(
+                tf.equal(tf.argmax(targets['y'], axis=1), tf.argmax(y_hat, axis=1)), tf.float32))
+
+            self.optimizer = tf.train.GradientDescentOptimizer(self.lr)
+            train_op = self.optimizer.minimize(loss)
+
+            self.output['loss'] = tf.reduce_mean(loss).name
+            self.output['prediction'] = y_hat.name
+            self.output['accuracy'] = accuracy.name
+            self.op['train_op'] = train_op.name
+
+            return loss

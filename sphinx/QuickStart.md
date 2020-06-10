@@ -3,13 +3,13 @@
 #### Generate the data and docker-compose file
 
 ```bash
-sudo docker run --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 sh -c "python3 4_distribute_data.py && python3 5_generate_docker_compose.py"
+docker run --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 sh -c "python3 4_distribute_data.py && python3 5_generate_docker_compose.py"
 ```
 
 #### Start the Experiment
 
 ```bash
-sudo docker-compose up -d
+docker-compose up -d
 ```
 
 #### View the results
@@ -20,18 +20,18 @@ Here's an example of the [dashboard](#dashboard-example).
 
 #### Stop the Experiment
 
-Stop and remove the containers
+Stop and remove the containers using docker-compose
 
 ```bash
-sudo docker-compose stop
-sudo docker-compose rm
+docker-compose stop
+docker-compose rm
 ```
 
-Manual stop and remove all the containers
+Force stop and remove all the containers
 
 ```bash
-sudo docker stop $(sudo docker ps --filter ancestor=fleval:v1 -aq)
-sudo docker rm $(sudo docker ps --filter ancestor=fleval:v1 -aq)
+docker stop $(sudo docker ps --filter ancestor=fleval:v1 -aq)
+docker rm $(sudo docker ps --filter ancestor=fleval:v1 -aq)
 ```
 
 #### Dashboard Example

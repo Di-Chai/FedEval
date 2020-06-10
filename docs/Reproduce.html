@@ -1,0 +1,317 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>4. Reproduce the results in the paper &mdash; FedEval 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="A The Benchmarking System" href="Appendix.html" />
+    <link rel="prev" title="3. Configs" href="Configs.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FedEval
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Guidlines</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Install.html">1. Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="QuickStart.html">2. Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Configs.html">3. Configs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">4. Reproduce the results in the paper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#reproducing-scripts">4.1. Reproducing scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-the-scripts">4.2. Running the scripts</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Appendixs of the paper</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html">A The Benchmarking System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#b-experiment-settings">B Experiment settings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#c-tuning-the-optimizer-and-learning-rate">C Tuning the Optimizer and Learning Rate</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#d-grid-search-on-fedavg">D Grid Search on FedAvg</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FedEval</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>4. Reproduce the results in the paper</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/Reproduce.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="reproduce-the-results-in-the-paper">
+<h1>4. Reproduce the results in the paper<a class="headerlink" href="#reproduce-the-results-in-the-paper" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="reproducing-scripts">
+<h2>4.1. Reproducing scripts<a class="headerlink" href="#reproducing-scripts" title="Permalink to this headline">¶</a></h2>
+<p>We provide the following scripts for reproducing the results in our paper</p>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th align="center">Experiments</th>
+<th align="center">Reproducing Scripts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">Grid search of B, C, and E in FedAvg</td>
+<td align="center">Dataset_Tune_BCE.py</td>
+</tr>
+<tr>
+<td align="center">Tuning the optimizers and learning rates</td>
+<td align="center">Dataset_Tune_Op_LR.py</td>
+</tr>
+<tr>
+<td align="center">Accuracy, Communication, Time consumption Evaluation</td>
+<td align="center">Dataset_Eval.py</td>
+</tr>
+<tr>
+<td align="center">Privacy Evaluation</td>
+<td align="center">DLG_Attack_MultiThread.py<br />DLG_Attack_Metric.py<br />FC_Attack_MultiThread.py<br />FC_Attack_Metric.py</td>
+</tr>
+<tr>
+<td align="center">Robustness Evaluation</td>
+<td align="center">Dataset_Non_IID.py</td>
+</tr>
+</tbody>
+</table><p>where the Dataset can be MNIST, FEMNIST, and CelebA, e.g., MNIST_Tune_BCE.py.</p>
+</div>
+<div class="section" id="running-the-scripts">
+<h2>4.2. Running the scripts<a class="headerlink" href="#running-the-scripts" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> PaperScripts
+</pre></div>
+</div>
+<p>Grid search of B, C, and E in FedAvg</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># MNIST Dataset, output file: MNIST_Tune_BCE_trials.txt</span>
+python MNIST_Tune_BCE.py
+
+<span class="c1"># FEMNIST Dataset, output file: FEMNIST_Tune_BCE_trials.txt</span>
+python FEMNIST_Tune_BCE.py
+
+<span class="c1"># CelebA Dataset, output file: CelebA_Tune_BCE_trials.txt</span>
+python CelebA_Tune_BCE.py
+</pre></div>
+</div>
+<p>Tuning the optimizers and learning rates</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># MNIST Dataset, output file: MNIST_Tune_Op_LR_trials.txt</span>
+python MNIST_Tune_Op_LR.py
+
+<span class="c1"># FEMNIST Dataset, output file: FEMNIST_Tune_Op_LR_trials.txt</span>
+python FEMNIST_Tune_Op_LR.py
+
+<span class="c1"># CelebA Dataset, output file: CelebA_Tune_Op_LR_trials.txt</span>
+python CelebA_Tune_Op_LR.py
+</pre></div>
+</div>
+<p>Accuracy, Communication, and Time consumption evaluation.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># MNIST Dataset, output file: MNIST_Eval_trials.txt</span>
+python MNIST_Eval.py
+
+<span class="c1"># FEMNIST Dataset, output file: FEMNIST_Eval_trials.txt</span>
+python FEMNIST_Eval.py
+
+<span class="c1"># CelebA Dataset, output file: CelebA_Eval_trials.txt</span>
+python CelebA_Eval.py
+</pre></div>
+</div>
+<p>Privacy experiments</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1.1 Start the DLG attack using multi-threads</span>
+python DLG_Attack_MultiThread.py
+
+<span class="c1"># 1.2 Calculate the label accuracy and L2 distance using the results from 1.1</span>
+python DLG_Attack_Metric.py
+
+<span class="c1"># 2.1 Start the FC attack using multi-threads</span>
+python FC_Attack_MultiThread.py
+
+<span class="c1"># 2.2 Calculate the label accuracy and L2 distance using the results from 2.1</span>
+python FC_Attack_Metric.py
+</pre></div>
+</div>
+<p>Robustness evaluation</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># MNIST Dataset, output file: MNIST_Non_IID_trials.txt</span>
+python MNIST_Non_IID.py
+
+<span class="c1"># FEMNIST Dataset, output file: FEMNIST_Non_IID_trials.txt</span>
+python FEMNIST_Non_IID.py
+
+<span class="c1"># CelebA Dataset, output file: CelebA_Non_IID_trials.txt</span>
+python CelebA_Non_IID.py
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Appendix.html" class="btn btn-neutral float-right" title="A The Benchmarking System" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Configs.html" class="btn btn-neutral float-left" title="3. Configs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, anonymous
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

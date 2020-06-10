@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 from .BaseModel import TFModel
 
@@ -53,5 +54,75 @@ class LeNet(TFModel):
         train_op = self.optimizer.minimize(loss)
 
         self.op['train_op'] = train_op.name
+
+        return loss
+
+
+class LeNetAttack(TFModel):
+    def __init__(self,
+                 inputs_shape,
+                 targets_shape,
+                 lr=1e-4,
+                 activation=tf.nn.relu,
+                 code_version='MLP',
+                 model_dir='model_dir',
+                 gpu_device='-1'):
+
+        self.activation = activation
+        self.lr = lr
+
+        super(LeNetAttack, self).__init__(inputs_shape, targets_shape, code_version, model_dir, gpu_device)
+
+    def forward(self, inputs, targets, trainable):
+
+        X = self.conv2d(
+            x=inputs['x'],
+            filter=(5, 5, inputs['x'].shape[-1].value, 12),
+            activation=self.activation,
+            padding='SAME',
+            stride=(2, 2),
+            name='conv1',
+            trainable=trainable)
+
+        X = self.conv2d(
+            x=X,
+            filter=(5, 5, 12, 12),
+            activation=self.activation,
+            padding='SAME',
+            stride=(2, 2),
+            name='conv2',
+            trainable=trainable)
+
+        X = self.conv2d(
+            x=X,
+            filter=(5, 5, 12, 12),
+            activation=self.activation,
+            padding='SAME',
+            stride=(1, 1),
+            name='conv3',
+            trainable=trainable)
+
+        middle_dense = tf.reshape(X, (-1, np.prod(X.get_shape().as_list()[1:])), name='Feature')
+        prediction = self.dense(middle_dense, self.targets_shape['y'][-1], activation=None,
+                                name='prediction', trainable=trainable)
+
+        loss = self.softmax_cross_entropy(labels=targets['y'], logits=prediction)
+
+        correct_prediction = tf.equal(tf.argmax(targets['y'], 1), tf.argmax(prediction, 1))
+        correct_prediction = tf.cast(correct_prediction, tf.float32)
+        accuracy = tf.reduce_mean(correct_prediction, name='accuracy')
+
+        for v in tf.trainable_variables():
+            self.output[v.name] = tf.gradients(loss, v)[0].name
+
+        self.output['prediction'] = prediction.name
+        self.output['loss'] = tf.reduce_mean(loss).name
+        self.output['accuracy'] = accuracy.name
+
+        self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.lr)
+
+        train_op_adam = self.optimizer.minimize(loss)
+
+        self.op['train_op'] = train_op_adam.name
 
         return loss
