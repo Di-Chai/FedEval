@@ -179,13 +179,6 @@ if status_data is not None:
     with open('log/' + log_file.split('/')[-1], 'r') as f:
         log_data = f.readlines()
 
-    try:
-        from screen_short import get_image
-        get_image('http://{}:{}/dashboard'.format(server_host, server['port']),
-                  'log/' + log_file.split('/')[-1].replace('.log', '.png'))
-    except Exception as e:
-        print('Screen shot failed', e)
-
     log_data = log_data[-10:]
     best_metrics = [e.split('-')[-1].strip(' \n') for e in log_data]
     best_test_accuracy = [e for e in best_metrics if 'get best' in e and 'accuracy' in e]
@@ -206,6 +199,14 @@ if status_data is not None:
                    best_test_accuracy, total_time] + time_detail + \
                   [total_rounds, server_send, server_receive, log_file.split('/')[-1]]
     result_list = [str(e) for e in result_list]
+
+    if os.path.isfile(args.file_name) is False:
+        with open(args.file_name, 'w') as f:
+            f.write('dataset, model, optimizer, gradient_filter, IID, IID-Strategy, compress, compress-rate, '
+                    'B, C, E, LR, EarlyStopPatience, Device, LocalAcc, CentralAcc, FLAcc, TimeAll, Time-Init, '
+                    'Time-TrainReq, Time-TrainRun, Time-TrainSync, Time-TrainAgg, Time-ValReq, Time-ValRun, '
+                    'Time-ValSync, Time-ValAgg, CommRound, CommAmount(Server Send), CommAmount(Server Receive), '
+                    'LogFile\n')
 
     with open(args.file_name, 'a+') as f:
         f.write(', '.join(result_list) + '\n')

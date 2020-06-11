@@ -1,5 +1,5 @@
 data_dir: data
-dataset: mnist
+dataset: femnist
 input_shape:
   celeba:
     image:

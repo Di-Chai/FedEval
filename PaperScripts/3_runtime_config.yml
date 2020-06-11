@@ -2,7 +2,7 @@ clients:
   bandwidth: 100Mbit
   local_batch_size: 32
   local_rounds: 2
-  lr: '0.0005'
+  lr: 0.0005
   num_clients: 100
   script: client.py
 docker:
@@ -36,7 +36,7 @@ machines:
     port: 22
     user_name: ubuntu
 server:
-  MAX_NUM_ROUNDS: 2000
+  MAX_NUM_ROUNDS: 5000
   MIN_NUM_WORKERS: 100
   NUM_CLIENTS_CONTACTED_PER_ROUND: 10
   NUM_TOLERATE: 20

@@ -60,7 +60,7 @@ def print_results(mode, num_images, num_epochs, repeats):
             tmp_acc = []
             tmp_l2 = []
             for repeat_index in range(repeats):
-                image_path = os.path.join('../image', '{}-I{}-E{}-{}'.format(mode, ni, ne, repeat_index))
+                image_path = os.path.join('image', '{}-I{}-E{}-{}'.format(mode, ni, ne, repeat_index))
                 real_images = []
                 for i in range(ni):
                     real_images.append(cv2.imread(os.path.join(image_path, 'real-%s.png' % i),
@@ -91,7 +91,7 @@ def print_results(mode, num_images, num_epochs, repeats):
                             axs[i].set_xlabel('test')
                             axs[i].imshow(plot_image[i][0].reshape([28, 28]), cmap='gray')
                             if np.argmax(real_labels[0]) != np.argmax(attack_labels[0]):
-                                rect = patches.Rectangle((0, 0), 27, 27, linewidth=1.5, edgecolor='r', facecolor='none')
+                                rect = patches.Rectangle((0, 0), 27, 27, linewidth=4, edgecolor='r', facecolor='none')
                                 axs[i].add_patch(rect)
                         except Exception as e:
                             print(i, 0, e)
@@ -102,14 +102,15 @@ def print_results(mode, num_images, num_epochs, repeats):
                                 axs[i, j].axis('off')
                                 axs[i, j].imshow(plot_image[i][j].reshape([28, 28]), cmap='gray')
                                 if np.argmax(real_labels[j]) != np.argmax(attack_labels[j]):
-                                    rect = patches.Rectangle((0, 0), 27, 27, linewidth=1, edgecolor='r', facecolor='none')
+                                    rect = patches.Rectangle((0, 0), 27, 27, linewidth=4, edgecolor='r', facecolor='none')
                                     axs[i, j].add_patch(rect)
                             except Exception as e:
                                 print(i, j, e)
                 fig.tight_layout()
                 plt.savefig(os.path.join(image_path, 'attack-result-mark.png'), type="png", dpi=300)
 
-            print(mode, ni, ne, np.mean(tmp_acc), np.mean(tmp_l2))
+            print(mode, '#Images=%s' % ni, '#Epochs=%s' % ne,
+                  'LabelAcc=%.3f' % np.mean(tmp_acc), 'L2-Distance=%s' % np.mean(tmp_l2))
 
 
 if __name__ == '__main__':

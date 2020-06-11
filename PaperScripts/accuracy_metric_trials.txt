@@ -1,0 +1,2 @@
+time, dataset, model, optimizer, IID, IID-Strategy, batch-size, LR, max-epoch, early-stop-patience, LocalAcc, CentralAcc2020-06-11 16:49:39, mnist, MLP, adam, 0, iid, 32, 0.0005, 5000, 20, 0.8824166, 0.98462
+2020-06-11 17:48:53, mnist, LeNet, adam, 0, iid, 32, 0.0005, 5000, 20, 0.90529, 0.9935334

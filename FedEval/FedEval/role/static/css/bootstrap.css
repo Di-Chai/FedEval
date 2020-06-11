@@ -1587,6 +1587,7 @@ table th[class*="col-"] {
   }
   .table-responsive > .table {
     margin-bottom: 0;
+    text-align: center;
   }
   .table-responsive > .table > thead > tr > th,
   .table-responsive > .table > tbody > tr > th,

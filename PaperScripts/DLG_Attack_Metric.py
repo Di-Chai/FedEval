@@ -18,7 +18,7 @@ def attack_evaluation(mode, num_images, E, repeat_index=0):
 
     dir_name = "{}-I{}-E{}-{}".format(mode, num_images, E, repeat_index)
 
-    image_path = os.path.join('../image', dir_name)
+    image_path = os.path.join('image', dir_name)
 
     images = [e for e in os.listdir(image_path) if e.endswith('.png')]
 
@@ -73,7 +73,8 @@ if __name__ == '__main__':
                 acc, loss = attack_evaluation(mode, ni, ne, repeat_index)
                 tmp_acc.append(acc)
                 tmp_loss.append(loss)
-            print(mode, ni, ne, np.mean(tmp_acc), np.mean(tmp_loss))
+            print(mode, '#Images=%s' % ni, '#Epochs=%s' % ne,
+                  'LabelAcc=%.3f' % np.mean(tmp_acc), 'L2-Distance=%s' % np.mean(tmp_loss))
 
     #######################################################################################
     # Varying # of images, DLG, FedAvg, LeNet
@@ -89,7 +90,8 @@ if __name__ == '__main__':
                 acc, loss = attack_evaluation(mode, ni, ne, repeat_index)
                 tmp_acc.append(acc)
                 tmp_loss.append(loss)
-            print(mode, ni, ne, np.mean(tmp_acc), np.mean(tmp_loss))
+            print(mode, '#Images=%s' % ni, '#Epochs=%s' % ne,
+                  'LabelAcc=%.3f' % np.mean(tmp_acc), 'L2-Distance=%s' % np.mean(tmp_loss))
 
     #######################################################################################
     # Varying # of epochs, DLG, FedAvg, LeNet
@@ -105,7 +107,8 @@ if __name__ == '__main__':
                 acc, loss = attack_evaluation(mode, ni, ne, repeat_index)
                 tmp_acc.append(acc)
                 tmp_loss.append(loss)
-            print(mode, ni, ne, np.mean(tmp_acc), np.mean(tmp_loss))
+            print(mode, '#Images=%s' % ni, '#Epochs=%s' % ne,
+                  'LabelAcc=%.3f' % np.mean(tmp_acc), 'L2-Distance=%s' % np.mean(tmp_loss))
 
     #######################################################################################
     # Varying # of images, FedSGD, MLP
@@ -121,7 +124,8 @@ if __name__ == '__main__':
                 acc, loss = attack_evaluation(mode, ni, ne, repeat_index)
                 tmp_acc.append(acc)
                 tmp_loss.append(loss)
-            print(mode, ni, ne, np.mean(tmp_acc), np.mean(tmp_loss))
+            print(mode, '#Images=%s' % ni, '#Epochs=%s' % ne,
+                  'LabelAcc=%.3f' % np.mean(tmp_acc), 'L2-Distance=%s' % np.mean(tmp_loss))
 
     #######################################################################################
     # Varying # of images, FedAvg, MLP
@@ -137,7 +141,8 @@ if __name__ == '__main__':
                 acc, loss = attack_evaluation(mode, ni, ne, repeat_index)
                 tmp_acc.append(acc)
                 tmp_loss.append(loss)
-            print(mode, ni, ne, np.mean(tmp_acc), np.mean(tmp_loss))
+            print(mode, '#Images=%s' % ni, '#Epochs=%s' % ne,
+                  'LabelAcc=%.3f' % np.mean(tmp_acc), 'L2-Distance=%s' % np.mean(tmp_loss))
 
     #######################################################################################
     # Varying # of epochs, FedAvg, MLP
@@ -153,4 +158,5 @@ if __name__ == '__main__':
                 acc, loss = attack_evaluation(mode, ni, ne, repeat_index)
                 tmp_acc.append(acc)
                 tmp_loss.append(loss)
-            print(mode, ni, ne, np.mean(tmp_acc), np.mean(tmp_loss))
+            print(mode, '#Images=%s' % ni, '#Epochs=%s' % ne,
+                  'LabelAcc=%.3f' % np.mean(tmp_acc), 'L2-Distance=%s' % np.mean(tmp_loss))

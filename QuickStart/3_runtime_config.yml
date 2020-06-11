@@ -14,8 +14,8 @@ server:
   NUM_TOLERATE: 20
   ROUNDS_BETWEEN_TEST: 1
   ROUNDS_BETWEEN_VALIDATIONS: 1
-  host: 127.0.0.1
-  listen: 127.0.0.1
+  host: server
+  listen: server
   port: 8200
   save_gradients: True
   script: server.py
