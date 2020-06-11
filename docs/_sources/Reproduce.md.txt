@@ -6,6 +6,7 @@ We provide the following scripts for reproducing the results in our paper
 
 |                     Experiments                      |                     Reproducing Scripts                      |
 | :--------------------------------------------------: | :----------------------------------------------------------: |
+|              Local and central training              |                      Local\_Central.py                       |
 |         Grid search of B, C, and E in FedAvg         |                     Dataset_Tune_BCE.py                      |
 |       Tuning the optimizers and learning rates       |                    Dataset_Tune_Op_LR.py                     |
 | Accuracy, Communication, Time consumption Evaluation |                       Dataset_Eval.py                        |

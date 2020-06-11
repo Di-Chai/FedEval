@@ -1,6 +1,6 @@
 clients:
   bandwidth: 100Mbit
-  local_batch_size: 32
+  local_batch_size: 4
   local_rounds: 2
   lr: 0.0005
   num_clients: 100
