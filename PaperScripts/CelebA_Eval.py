@@ -1,7 +1,5 @@
 import os
 
-os.chdir('../')
-
 params_run = [
     ['celeba', 'LeNet', 'adam', 'None', 5e-4, 0, 'iid', 1000, 1.0, 1],
     ['celeba', 'LeNet', 'adam', 'None', 5e-4, 0, 'iid', 4, 0.1, 32],

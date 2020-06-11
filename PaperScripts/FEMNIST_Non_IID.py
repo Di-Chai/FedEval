@@ -1,7 +1,5 @@
 import os
 
-os.chdir('../')
-
 params_run = [
 
     ['femnist', 'MLP', 'adam', 'None', 1e-3, 1, 'natural', 1000, 1.0, 1],

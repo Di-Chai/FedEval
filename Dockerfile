@@ -9,7 +9,7 @@ RUN ln -s /usr/bin/pip3 /usr/bin/pip
 
 # Install python requirements
 RUN pip install setuptools matplotlib PyYAML pympler \
-                Flask-SocketIO Flask socketIO-client \
+                Flask-SocketIO Flask socketIO-client opencv-python-headless \
                 numpy keras tensorflow==1.14.0 scipy pillow
 
 ADD FedEval /root/FedEval

@@ -1,7 +1,5 @@
 import os
 
-os.chdir('../')
-
 params_run = [
 
     # dataset, model, optimizer, upload_name_filter, lr, non_iid, non_iid_strategy, b, c, e

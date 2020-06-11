@@ -1,4 +1,5 @@
 import os
+from multiprocessing import cpu_count
 from tf_wrapper.utils import multiple_process
 
 instruction = 'python GradientAttack_FC_MLP.py --training_samples {} --client_batch_size {} ' \
@@ -20,7 +21,7 @@ def task(share_queue, locker, data, parameters):
 if __name__ == "__main__":
 
     # number of process
-    n_job = 10  # cpu_count()
+    n_job = cpu_count()
 
     ############################################################################
     # Varying # of images, FC, FedSGD, MLP

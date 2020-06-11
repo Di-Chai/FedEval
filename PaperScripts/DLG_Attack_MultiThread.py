@@ -24,7 +24,7 @@ def task(share_queue, locker, data, parameters):
 if __name__ == "__main__":
 
     # number of process
-    n_job = 8  # cpu_count()
+    n_job = cpu_count()
 
     #######################################################################################
     # Varying # of images, DLG, FedSGD, LeNet

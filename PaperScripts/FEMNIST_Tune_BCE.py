@@ -1,7 +1,4 @@
 import os
-import numpy as np
-
-os.chdir('../')
 
 datasets = ['femnist']
 

@@ -3,8 +3,6 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
-os.chdir('../')
-
 from FedEval.model import LeNetAttack
 from FedEval.dataset import FedImage
 

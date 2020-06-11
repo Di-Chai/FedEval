@@ -1,7 +1,5 @@
 import os
 
-os.chdir('../')
-
 datasets = ['femnist']
 
 models = ['MLP', 'LeNet']
