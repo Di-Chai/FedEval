@@ -100,6 +100,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Appendix.html#b-experiment-settings">B Experiment settings</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Appendix.html#c-tuning-the-optimizer-and-learning-rate">C Tuning the Optimizer and Learning Rate</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Appendix.html#d-grid-search-on-fedavg">D Grid Search on FedAvg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Appendix.html#e-reproduce-the-results">E Reproduce the results</a></li>
 </ul>
 
             
@@ -211,7 +212,7 @@
 </pre></div>
 </div>
 <p>1 Local training and central training</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker run --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 python Local_Central.py
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker run -it --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 python Local_Central.py
 </pre></div>
 </div>
 <p>2 Grid search of B, C, and E in FedAvg</p>
@@ -243,13 +244,13 @@ python CelebA_Eval.py
 </div>
 <p>5 Privacy experiments, you can change “–cpus” value to increase or decrease the cpu resources used in the experiments.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 5(1.1) Start the DLG attack using multi-threads</span>
-docker run --rm --cpus <span class="m">8</span> -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 python DLG_Attack_MultiThread.py
+docker run -it --rm --cpus <span class="m">8</span> -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 python DLG_Attack_MultiThread.py
 <span class="c1"># 5(1.2) Calculate the label accuracy and L2 distance</span>
-docker run --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 python -W ignore DLG_Attack_Metric.py
+docker run -it --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 python -W ignore DLG_Attack_Metric.py
 <span class="c1"># 5(2.1) Start the FC attack using multi-threads</span>
-docker run --rm --cpus <span class="m">8</span> -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 python FC_Attack_MultiThread.py
+docker run -it --rm --cpus <span class="m">8</span> -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 python FC_Attack_MultiThread.py
 <span class="c1"># 5(2.2) Calculate the label accuracy and L2 distance</span>
-docker run --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 python -W ignore FC_Attack_Metric.py
+docker run -it --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fleval:v1 python -W ignore FC_Attack_Metric.py
 </pre></div>
 </div>
 <p>6 Robustness evaluation</p>

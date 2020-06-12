@@ -26,7 +26,7 @@ cd PaperScripts
 1 Local training and central training
 
 ```bash
-docker run --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 python Local_Central.py
+docker run -it --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 python Local_Central.py
 ```
 
 2 Grid search of B, C, and E in FedAvg
@@ -66,13 +66,13 @@ python CelebA_Eval.py
 
 ```bash
 # 5(1.1) Start the DLG attack using multi-threads
-docker run --rm --cpus 8 -v $(pwd):$(pwd) -w $(pwd) fleval:v1 python DLG_Attack_MultiThread.py
+docker run -it --rm --cpus 8 -v $(pwd):$(pwd) -w $(pwd) fleval:v1 python DLG_Attack_MultiThread.py
 # 5(1.2) Calculate the label accuracy and L2 distance
-docker run --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 python -W ignore DLG_Attack_Metric.py
+docker run -it --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 python -W ignore DLG_Attack_Metric.py
 # 5(2.1) Start the FC attack using multi-threads
-docker run --rm --cpus 8 -v $(pwd):$(pwd) -w $(pwd) fleval:v1 python FC_Attack_MultiThread.py
+docker run -it --rm --cpus 8 -v $(pwd):$(pwd) -w $(pwd) fleval:v1 python FC_Attack_MultiThread.py
 # 5(2.2) Calculate the label accuracy and L2 distance
-docker run --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 python -W ignore FC_Attack_Metric.py
+docker run -it --rm -v $(pwd):$(pwd) -w $(pwd) fleval:v1 python -W ignore FC_Attack_Metric.py
 ```
 
 6 Robustness evaluation
