@@ -1,2 +1,0 @@
-recursive-include FedEval/role/templates *
-recursive-include FedEval/role/static *

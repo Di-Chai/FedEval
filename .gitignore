@@ -132,8 +132,15 @@ dmypy.json
 .idea/
 
 # TMP dirs
-data/
-model_dir/
-log/
+data
+FedEval/data
+configs
+model_dir
+log
 *.jpg
 *.json
+develop
+scripts
+scripts_final
+sphinx
+docker/local
