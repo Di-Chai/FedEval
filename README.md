@@ -1,4 +1,6 @@
-## FedEval: A Benchmark System with a Comprehensive Evaluation Model for Federated Learning [HomePage](https://di-chai.github.io/FedEval/)
+## FedEval: A Benchmark System with a Comprehensive Evaluation Model for Federated Learning
+ 
+[HomePage](https://di-chai.github.io/FedEval/)
 
 #### The ACTPR Evaluation Model
 
@@ -8,7 +10,7 @@ The ACTPR model is the core of our benchmarking system. It defines five evaluati
 
 ![The framework of FedEval benchmarking system](https://di-chai.github.io/FedEval/_images/bm_system.png)
 
-Having motivated the need for an easy-to-evaluate and lightweight benchmarking system, we propose a federated benchmarking system called FedEval shown in the above figure, which demonstrates the inputs, inner architecture, and outputs of the system. Our ACTPR evaluation model is built inside the benchmarking system. Three key modules are designed in the system:
+We propose a federated benchmarking system called FedEval shown in the above figure, which demonstrates the inputs, inner architecture, and outputs of the system. Our ACTPR evaluation model is built inside the benchmarking system. Three key modules are designed in the system:
 
 -  **Data config and the *data_loader* module**: Our benchmarking system provides four standard federated learning datasets, and different data settings (e.g., non-IID data) can be implemented by changing the data configs. Self-defined data is also supported. We only need to define the *load_data* function in *data_loader* module to add a new dataset, which will share the same set of processing functions with the built-in datasets.
    
