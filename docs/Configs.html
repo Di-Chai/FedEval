@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>3. Configs &mdash; FedEval 1.0 documentation</title>
+  <title>4. Configs &mdash; FedEval 1.0 documentation</title>
   
 
   
@@ -37,8 +37,7 @@
   <link rel="stylesheet" href="_static/my.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="4. Reproduce the results in the paper" href="Reproduce.html" />
-    <link rel="prev" title="2. Quick Start" href="QuickStart.html" /> 
+    <link rel="prev" title="3. Quick Start" href="QuickStart.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -82,25 +81,16 @@
               
             
             
-              <p class="caption"><span class="caption-text">Guidlines</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="Install.html">1. Install</a></li>
-<li class="toctree-l1"><a class="reference internal" href="QuickStart.html">2. Quick Start</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">3. Configs</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#data-config">3.1. Data Config</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#model-config">3.2. Model Config</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#runtime-config">3.3. Runtime Config</a></li>
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Install.html">2. Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="QuickStart.html">3. Quick Start</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">4. Configs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#data-config">4.1. Data Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-config">4.2. Model Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#runtime-config">4.3. Runtime Config</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Reproduce.html">4. Reproduce the results in the paper</a></li>
-</ul>
-<p class="caption"><span class="caption-text">Appendixs of the paper</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="Appendix.html">A The Benchmarking System</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Appendix.html#b-experiment-settings">B Experiment settings</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Appendix.html#c-tuning-the-optimizer-and-learning-rate">C Tuning the Optimizer and Learning Rate</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Appendix.html#d-grid-search-on-fedavg">D Grid Search on FedAvg</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Appendix.html#e-reproduce-the-results">E Reproduce the results</a></li>
 </ul>
 
             
@@ -146,7 +136,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>3. Configs</li>
+      <li>4. Configs</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -166,16 +156,16 @@
            <div itemprop="articleBody">
             
   <div class="section" id="configs">
-<h1>3. Configs<a class="headerlink" href="#configs" title="Permalink to this headline">¶</a></h1>
+<h1>4. Configs<a class="headerlink" href="#configs" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="data-config">
-<h2>3.1. Data Config<a class="headerlink" href="#data-config" title="Permalink to this headline">¶</a></h2>
+<h2>4.1. Data Config<a class="headerlink" href="#data-config" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">data_dir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">data</span>
 <span class="nt">dataset</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mnist</span>
 <span class="nt">input_shape</span><span class="p">:</span>
   <span class="nt">celeba</span><span class="p">:</span>
     <span class="nt">image</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">109</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">89</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">54</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">44</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">3</span>
     <span class="nt">label</span><span class="p">:</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">2</span>
@@ -207,11 +197,11 @@
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
     <span class="nt">label</span><span class="p">:</span>
     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">10</span>
-<span class="nt">non-iid</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0</span> 
+<span class="nt">non-iid</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0</span>
 <span class="nt">non-iid-strategy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">iid</span>
-<span class="nt">normalize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>    
+<span class="nt">normalize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="nt">sample_size</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">300</span>
-<span class="nt">shared_data</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0</span> 
+<span class="nt">shared_data</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0</span>
 <span class="nt">train_val_test</span><span class="p">:</span>
 <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">0.8</span>
 <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">0.1</span>
@@ -265,36 +255,39 @@
 </tbody>
 </table></div>
 <div class="section" id="model-config">
-<h2>3.2. Model Config<a class="headerlink" href="#model-config" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">LeNet</span><span class="p">:</span>
-  <span class="nt">activation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">relu</span>
-  <span class="nt">optimizer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">adam</span>
-  <span class="nt">pooling</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">max</span>
-<span class="nt">MLP</span><span class="p">:</span>
-  <span class="nt">activation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">relu</span>
-  <span class="nt">dropout</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.2</span>
-  <span class="nt">optimizer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Adam</span>
-  <span class="nt">units</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">512</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">512</span>
-<span class="nt">MobileNet</span><span class="p">:</span>
-  <span class="nt">alpha</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.35</span>
-  <span class="nt">dense_units</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">256</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">256</span>
-  <span class="nt">optimizer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">adam</span>
-  <span class="nt">weights</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">imagenet</span>
-<span class="nt">Model</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">LeNet</span>
-<span class="nt">ResNet50</span><span class="p">:</span>
-  <span class="nt">dense_units</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">256</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">256</span>
-  <span class="nt">optimizer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">adam</span>
-<span class="nt">upload</span><span class="p">:</span>
-  <span class="nt">upload_name_filter</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">None</span>
-  <span class="nt">upload_sparse</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1.0</span>
-  <span class="nt">upload_strategy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">no-compress</span>
+<h2>4.2. Model Config<a class="headerlink" href="#model-config" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">FedModel</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">FedSGD</span>
+  <span class="nt">train_strategy</span><span class="p">:</span>
+    <span class="nt">B</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
+    <span class="nt">C</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1.0</span>
+    <span class="nt">E</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
+    <span class="nt">lazy_update</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+    <span class="nt">max_num_rounds</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
+    <span class="nt">num_tolerance</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">20</span>
+    <span class="nt">rounds_between_val</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
+  <span class="nt">upload_strategy</span><span class="p">:</span>
+    <span class="nt">upload_dismiss</span><span class="p">:</span> <span class="p p-Indicator">[]</span>
+    <span class="nt">upload_optimizer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+    <span class="nt">upload_sparsity</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.01</span>
+<span class="nt">MLModel</span><span class="p">:</span>
+  <span class="nt">LeNet</span><span class="p">:</span>
+    <span class="nt">activation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">relu</span>
+    <span class="nt">lr</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.0005</span>
+    <span class="nt">optimizer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">adam</span>
+    <span class="nt">pooling</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">max</span>
+  <span class="nt">MLP</span><span class="p">:</span>
+    <span class="nt">activation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">relu</span>
+    <span class="nt">dropout</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.2</span>
+    <span class="nt">lr</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.0005</span>
+    <span class="nt">optimizer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gd</span>
+    <span class="nt">units</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">512</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">512</span>
+  <span class="nt">lr</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.0005</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">LeNet</span>
+  <span class="nt">optimizer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">sgd</span>
+<span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">LeNet</span>
 </pre></div>
 </div>
 <p>Three models are placed inside the system: MLP, LeNet, and MobileNet. You can add your own model and put the config in this file.</p>
@@ -329,7 +322,7 @@
 </tbody>
 </table></div>
 <div class="section" id="runtime-config">
-<h2>3.3. Runtime Config<a class="headerlink" href="#runtime-config" title="Permalink to this headline">¶</a></h2>
+<h2>4.3. Runtime Config<a class="headerlink" href="#runtime-config" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">clients</span><span class="p">:</span>
   <span class="nt">bandwidth</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">100Mbit</span>
   <span class="nt">local_batch_size</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
@@ -438,10 +431,8 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="Reproduce.html" class="btn btn-neutral float-right" title="4. Reproduce the results in the paper" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
-      
-        <a href="QuickStart.html" class="btn btn-neutral float-left" title="2. Quick Start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="QuickStart.html" class="btn btn-neutral float-left" title="3. Quick Start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

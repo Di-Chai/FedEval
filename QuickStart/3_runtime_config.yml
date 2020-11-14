@@ -1,0 +1,9 @@
+clients:
+  bandwidth: 100Mbit
+docker:
+  image: fedeval:v1
+server:
+  host: server
+  listen: server
+  num_clients: 100
+  port: 8200

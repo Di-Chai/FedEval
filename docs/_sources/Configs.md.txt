@@ -8,8 +8,8 @@ dataset: mnist
 input_shape:
   celeba:
     image:
-    - 109
-    - 89
+    - 54
+    - 44
     - 3
     label:
     - 2
@@ -41,11 +41,11 @@ input_shape:
     - 1
     label:
     - 10
-non-iid: 0 
+non-iid: 0
 non-iid-strategy: iid
-normalize: true    
+normalize: true
 sample_size: 300
-shared_data: 0 
+shared_data: 0
 train_val_test:
 - 0.8
 - 0.1
@@ -67,35 +67,39 @@ train_val_test:
 ## Model Config
 
 ```yaml
-LeNet:
-  activation: relu
-  optimizer: adam
-  pooling: max
-MLP:
-  activation: relu
-  dropout: 0.2
-  optimizer: Adam
-  units:
-  - 512
-  - 512
-MobileNet:
-  alpha: 0.35
-  dense_units:
-  - 256
-  - 256
-  optimizer: adam
-  weights: imagenet
-Model: LeNet
-ResNet50:
-  dense_units:
-  - 256
-  - 256
-  optimizer: adam
-upload:
-  upload_name_filter:
-  - None
-  upload_sparse: 1.0
-  upload_strategy: no-compress
+FedModel:
+  name: FedSGD
+  train_strategy:
+    B: 1000
+    C: 1.0
+    E: 1
+    lazy_update: true
+    max_num_rounds: 1000
+    num_tolerance: 20
+    rounds_between_val: 1
+  upload_strategy:
+    upload_dismiss: []
+    upload_optimizer: true
+    upload_sparsity: 0.01
+MLModel:
+  LeNet:
+    activation: relu
+    lr: 0.0005
+    optimizer: adam
+    pooling: max
+  MLP:
+    activation: relu
+    dropout: 0.2
+    lr: 0.0005
+    optimizer: gd
+    units:
+    - 512
+    - 512
+  lr: 0.0005
+  name: LeNet
+  optimizer: sgd
+name: LeNet
+
 ```
 
 

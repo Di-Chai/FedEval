@@ -1,0 +1,233 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>1. Introduction &mdash; FedEval 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="2. Install" href="Install.html" />
+    <link rel="prev" title="FedEval" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FedEval
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Guidlines</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">1. Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#the-actpr-evaluation-model">1.1. The ACTPR Evaluation Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-benchmarking-system-fedeval">1.2. The Benchmarking System: FedEval</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Install.html">2. Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="QuickStart.html">3. Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Configs.html">4. Configs</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FedEval</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>1. Introduction</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/Introduction.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="introduction">
+<h1>1. Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="the-actpr-evaluation-model">
+<h2>1.1. The ACTPR Evaluation Model<a class="headerlink" href="#the-actpr-evaluation-model" title="Permalink to this headline">¶</a></h2>
+<p>The ACTPR model is the core of our benchmarking system. It defines five evaluation metrics for the FL systems: Accuracy, Communication, Time consumption, Privacy and Robustness.</p>
+</div>
+<div class="section" id="the-benchmarking-system-fedeval">
+<h2>1.2. The Benchmarking System: FedEval<a class="headerlink" href="#the-benchmarking-system-fedeval" title="Permalink to this headline">¶</a></h2>
+<p><img alt="The framework of FedEval benchmarking system" src="_images/bm_system.png" /></p>
+<p>Having motivated the need for an easy-to-evaluate and lightweight benchmarking system, we propose a federated benchmarking system called FedEval shown in the above figure, which demonstrates the inputs, inner architecture, and outputs of the system. Our ACTPR evaluation model is built inside the benchmarking system. Three key modules are designed in the system:</p>
+<ul class="simple">
+<li><p><strong>Data config and the <em>data_loader</em> module</strong>: Our benchmarking system provides four standard federated learning datasets, and different data settings (e.g., non-IID data) can be implemented by changing the data configs. Self-defined data is also supported. We only need to define the <em>load_data</em> function in <em>data_loader</em> module to add a new dataset, which will share the same set of processing functions with the built-in datasets.</p></li>
+<li><p><strong>Model config and the <em>tf_wrapper</em> module</strong>: Four machine learning models are built inside our system, including MLP, LeNet, MobileNet, and ResNet50. We use TensorFlow as the backend, and the <em>tf_wrapper</em> module handles the model training and predictions. Thus we can benefit from the flexibility of building models using TensorFlow and no need to worry about the training process. Self-defined ML models are also supported. To add a new model, we only need to provide the scripts of building the model architecture, and the <em>tf8_wrapper</em> module will take are of the model training and predictions.</p></li>
+<li><p><strong>Runtime config and the <em>strategy</em> module</strong>: One of the essential components in our benchmarking system is the <em>strategy</em> module, which defines the protocol of the federated training, e.g., which parameters are uploaded by the clients, how the parameters are aggregated at the server, how the global parameters are updated to local, and so on. Self-defined strategies are supported. To comprehensively evaluate a new federated learning method using the ACTPR model, we only need to implement the federated learning method in the strategy module.</p></li>
+</ul>
+<p>We use the docker container technology to simulate the server and clients (i.e., each participant is a container), and use socket IO in the communication. The isolation between different containers guarantees that our simulation can reflect the real-world application. The entire system is open-sourced, four benchmark FL datasets and four benchmark ML models are included in the system. The essential components (i.e., dataset, ML models, and FL strategy) can be easily used or self-defined. Thus researches can implement their new idea and evaluate with ACTPR model very quickly.</p>
+<p>Briefly, three steps are needed to start an experiment in our benchmarking system:</p>
+<ul class="simple">
+<li><p><strong>Step 1</strong>: Determine the benchmark dataset, ML model, and FL strategy, then modify the data, model, and runtime configs based on the templates.</p></li>
+<li><p><strong>Step 2</strong>: Use the built-in tool to generate data for clients and create the docker-compose files.</p></li>
+<li><p><strong>Step 3</strong>: Start the experiments using docker-compose, and monitor the dashboard for the evaluation status and results.</p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Install.html" class="btn btn-neutral float-right" title="2. Install" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral float-left" title="FedEval" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, anonymous
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
