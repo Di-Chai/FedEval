@@ -142,5 +142,4 @@ log
 develop
 scripts
 scripts_final
-sphinx
 docker/local
