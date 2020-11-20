@@ -1,6 +1,8 @@
 ## FedEval: A Benchmark System with a Comprehensive Evaluation Model for Federated Learning
- 
+
 [HomePage](https://di-chai.github.io/FedEval/)
+
+The paper is available at: https://arxiv.org/abs/2011.09655
 
 #### The ACTPR Evaluation Model
 
