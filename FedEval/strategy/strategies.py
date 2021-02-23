@@ -1,6 +1,7 @@
 import gc
 gc.set_threshold(700, 10, 5)
 
+import time
 import heapq
 import numpy as np
 
@@ -51,6 +52,9 @@ class FedSGD:
         self.upload_strategy = upload_strategy
         self.train_strategy = train_strategy
         self.current_round = None
+        if role == 'server':
+            self.params = None
+            self.gradients = None
         # Receive the data
         if role == 'client':
             assert train_data and val_data and test_data
@@ -62,7 +66,8 @@ class FedSGD:
 
     # (1) Host functions
     def host_get_init_params(self):
-        return self._retrieve_local_params()
+        self.global_params = self._retrieve_local_params()
+        return self.global_params
 
     # (1) Host functions
     def update_host_params(self, client_params, aggregate_weights):
@@ -104,6 +109,9 @@ class FedSGD:
         evaluate.update({'val_size': self.val_data['x'].shape[0]})
         evaluate.update({'test_size': self.test_data['x'].shape[0]})
         return evaluate
+
+    def get_leaked_gradients(self):
+        pass
 
 
 class FedAvg(FedSGD):
@@ -239,9 +247,6 @@ class FedSTC(FedSGD):
         return result
 
 
-class FedDistillate:
+class FedProx:
     pass
 
-
-class FedMAML:
-    pass

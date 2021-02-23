@@ -17,10 +17,10 @@ def generate_data(data_config, model_config, runtime_config):
                     train_val_test=data_config['train_val_test'],
                     num_clients=runtime_config['server']['num_clients'])
 
-    if data_config['non-iid'] == 0:
+    if data_config['non-iid']:
         data.iid_data(sample_size=data_config['sample_size'])
     else:
-        data.non_iid_data(non_iid_class=data_config['non-iid'],
+        data.non_iid_data(non_iid_class=data_config['non-iid-class'],
                           strategy=data_config['non-iid-strategy'],
                           shared_data=data_config['shared_data'], sample_size=data_config['sample_size'])
 

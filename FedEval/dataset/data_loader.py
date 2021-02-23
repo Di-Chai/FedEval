@@ -234,8 +234,9 @@ class FedImage:
             class_pointer = np.array([int(np.sum(num_of_each_class[0:i])) for i in range(self.num_class)])
 
             # manual set test set
+            non_iid_class = int(non_iid_class)
             class_size = int(train_size / non_iid_class)
-
+            
             for i in range(self.num_clients):
                 choose_class = np.random.choice(range(self.num_class), non_iid_class, replace=False)
                 if strategy == 'average':

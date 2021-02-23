@@ -35,9 +35,6 @@ class Aggregator(object):
 
         # weights should be a ordered list of parameter
         # for stats
-        self.train_losses = []
-        self.avg_test_losses = []
-
         self.avg_val_metrics = []
         self.avg_test_metrics = []
 
@@ -58,7 +55,6 @@ class Aggregator(object):
         # weighted sum
         aggr_loss = sum(client_losses[i] / total_size * client_sizes[i]
                         for i in range(len(client_sizes)))
-        self.train_losses += [[cur_round, cur_time, aggr_loss]]
         return aggr_loss
 
     def get_model_description(self):
@@ -344,7 +340,6 @@ class Server(object):
                         self.current_round
                     )
                     self.info_each_round[self.current_round]['train_loss'] = aggr_train_loss
-                    self.aggregator.train_losses.append(aggr_train_loss)
 
                     self.logger.info("=== Train ===")
                     self.logger.info('Receive update result form %s clients' % len(self.c_up))
