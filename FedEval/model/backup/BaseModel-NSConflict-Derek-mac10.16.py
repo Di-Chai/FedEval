@@ -87,8 +87,8 @@ class TFModel(FMLModel):
             if self.optimizer is None:
                 raise ValueError('Model has no optimizer, please define one in the forward function')
             optimizer_weight = {
-                var.name: self.session.run(var) for var in tf.all_variables()
-                if str_hit(var.name, [self.optimizer.get_name()]) and not str_hit(var.name, dismiss_var_names)}
+                var.cid: self.session.run(var) for var in tf.all_variables()
+                if str_hit(var.cid, [self.optimizer.get_name()]) and not str_hit(var.cid, dismiss_var_names)}
             return optimizer_weight
 
     def get_optimizer_shape(self):
@@ -97,8 +97,8 @@ class TFModel(FMLModel):
 
     def get_trainable_weights(self, dismiss_var_names=()):
         with self.graph.as_default():
-            trainable_weights = {var.name: self.session.run(var) for var in tf.trainable_variables()
-                                 if not str_hit(var.name, dismiss_var_names)}
+            trainable_weights = {var.cid: self.session.run(var) for var in tf.trainable_variables()
+                                 if not str_hit(var.cid, dismiss_var_names)}
             return trainable_weights
                 
     def train_one_round(self, training_data, batch_size=None, epoch=1,):
@@ -115,7 +115,7 @@ class TFModel(FMLModel):
             verbose=False
         )
         train_loss = np.mean(train_summary[-1]['train_loss']).astype(float)
-        return train_loss, training_data['x'].shape[0]
+        return train_loss
 
     def evaluate(self, eval_data):
         train_summary = self.predict(eval_data, output_names=('loss', 'accuracy'))
@@ -145,7 +145,7 @@ class KerasModel:
         self.is_build = True
 
     def get_optimizer_weights(self):
-        optimizer_weights_name = [e.name for e in self.model.optimizer.weights]
+        optimizer_weights_name = [e.cid for e in self.model.optimizer.weights]
         optimizer_weights_value = self.model.optimizer.get_weights()
         optimizer_weights = {optimizer_weights_name[e]: optimizer_weights_value[e]
                              for e in range(len(optimizer_weights_name))
@@ -157,9 +157,9 @@ class KerasModel:
         return {key: optimizer_weights[key].shape for key in optimizer_weights}
 
     def get_weights(self, upload_name_filter=()):
-        all_weights_name = [e.name for e in self.model.weights]
+        all_weights_name = [e.cid for e in self.model.weights]
         all_weights_value = self.model.get_weights()
-        trainable_weights_name = [e.name for e in self.model.trainable_weights]
+        trainable_weights_name = [e.cid for e in self.model.trainable_weights]
         trainable_weights = {all_weights_name[e]: all_weights_value[e] for e in range(len(all_weights_name))
                              if all_weights_name[e] in trainable_weights_name and
                              not str_hit(all_weights_name[e], upload_name_filter)}
@@ -169,12 +169,12 @@ class KerasModel:
         return {'trainable': trainable_weights, 'optimizer': optimizer_weights}
 
     def set_weights(self, value_dict):
-        all_weights_name = [e.name for e in self.model.weights]
+        all_weights_name = [e.cid for e in self.model.weights]
         all_weights_value = self.model.get_weights()
         for i in range(len(all_weights_name)):
             if all_weights_name[i] in value_dict['trainable']:
                 all_weights_value[i] = value_dict['trainable'][all_weights_name[i]]
-        optimizer_weights_name = [e.name for e in self.model.optimizer.weights]
+        optimizer_weights_name = [e.cid for e in self.model.optimizer.weights]
         optimizer_weights_value = self.model.optimizer.get_weights()
         for i in range(len(optimizer_weights_name)):
             if optimizer_weights_name[i] in value_dict['optimizer']:
@@ -186,7 +186,7 @@ class KerasModel:
         train_summary = self.model.fit(x=training_data['x'], y=training_data['y'],
                                        batch_size=batch_size, epochs=epoch, verbose=0)
         train_loss = train_summary.history['loss'][-1]
-        return float(train_loss), training_data['x'].shape[0]
+        return float(train_loss)
 
     def evaluate(self, eval_data):
         eval_result = self.model.evaluate(x=eval_data['x'], y=eval_data['y'], batch_size=8)

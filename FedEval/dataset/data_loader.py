@@ -1,14 +1,61 @@
 import os
 import json
+import copy
 import pickle
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-from tf_wrapper.preprocess import SplitData
-from tf_wrapper.train import MiniBatchTrain
+# Remove the random seed, because we want to repeat the trials and take the average results
+# np.random.seed(1)
 
-np.random.seed(1)
+
+def split_data(data, ratio_list):
+    '''
+    Divide the data based on the given parameter ratio_list.
+
+    Args:
+        data(ndarray):Data to be split.
+        ratio_list(list):Split ratio, the `data` will be split according to the ratio.
+    :return:The elements in the returned list are the divided data, and the
+        dimensions of the list are the same as ratio_list.
+    :type: list
+    '''
+    if np.sum(ratio_list) != 1:
+        ratio_list = np.array(ratio_list)
+        ratio_list = ratio_list / np.sum(ratio_list)
+    return [data[int(sum(ratio_list[0:e])*len(data)):
+                 int(sum(ratio_list[0:e+1])*len(data))] for e in range(len(ratio_list))]
+
+
+def shuffle(X, Y):
+    '''
+    Input (X, Y) pairs, shuffle and return it.
+    '''
+    xy = list(zip(X, Y))
+    np.random.shuffle(xy)
+    return np.array([e[0] for e in xy], dtype=np.float32), np.array([e[1] for e in xy], dtype=np.float32)
+
+
+def get_data_shape(dataset):
+    if dataset == 'celeba':
+        x_size = (None, 54, 44, 3)
+        y_size = (None, 2)
+    elif dataset == 'femnist':
+        x_size = (None, 28, 28, 1)
+        y_size = (None, 62)
+    elif dataset == 'mnist':
+        x_size = (None, 28, 28, 1)
+        y_size = (None, 10)
+    elif dataset == 'cifar10':
+        x_size = (None, 32, 32, 3)
+        y_size = (None, 10)
+    elif dataset == 'cifar100':
+        x_size = (None, 32, 32, 3)
+        y_size = (None, 100)
+    else:
+        raise ValueError('Unknown dataset', dataset)
+    return x_size, y_size
 
 
 class FedImage:
@@ -74,7 +121,7 @@ class FedImage:
         identity = []
         for d in data:
             for u_id, xy in d['user_data'].items():
-                tmp_x, tmp_y = MiniBatchTrain.shuffle(xy['x'], xy['y'])
+                tmp_x, tmp_y = shuffle(xy['x'], xy['y'])
                 x.append(tmp_x)
                 y.append(tmp_y)
                 identity.append(len(xy['x']))
@@ -86,13 +133,13 @@ class FedImage:
 
         return x, y
 
-    def __init__(self, dataset, num_clients, data_dir, custom_data_loader=None,
+    def __init__(self, dataset, num_clients, output_dir, custom_data_loader=None,
                  flatten=False, normalize=True, train_val_test=(0.8, 0.1, 0.1,)):
 
         self.dataset = dataset
         self.num_clients = num_clients
         self.custom_data_loader = custom_data_loader
-        self.data_dir = data_dir
+        self.data_dir = output_dir
         self.train_val_test = train_val_test
 
         self.local_path = os.path.dirname(os.path.abspath(__file__))
@@ -107,7 +154,7 @@ class FedImage:
         elif dataset == 'femnist':
             self.x, self.y = self.load_femnist()
         elif dataset == 'celeba':
-            self.x, self.y = self.load_celeba
+            self.x, self.y = self.load_celeba()
         else:
             assert custom_data_loader
             self.x, self.y = custom_data_loader()
@@ -124,7 +171,7 @@ class FedImage:
         else:
             self.num_class = self.y.shape[-1]
 
-        if data_dir is not None:
+        if output_dir is not None:
             os.makedirs(self.data_dir, exist_ok=True)
 
     def iid_data(self, sample_size=300, save_file=True):
@@ -137,31 +184,15 @@ class FedImage:
             local_dataset = self.non_iid_data(non_iid_class=self.num_class, strategy='average', sample_size=sample_size,
                                               shared_data=0, save_file=False)
         # Transfer non-iid to iid
-        x_train_all = np.concatenate([e['x_train'] for e in local_dataset], axis=0)
-        y_train_all = np.concatenate([e['y_train'] for e in local_dataset], axis=0)
+        x_train_all = np.concatenate([copy.deepcopy(e['x_train']) for e in local_dataset], axis=0)
+        y_train_all = np.concatenate([copy.deepcopy(e['y_train']) for e in local_dataset], axis=0)
 
-        x_train_all, y_train_all = MiniBatchTrain.shuffle(x_train_all, y_train_all)
+        x_train_all, y_train_all = shuffle(x_train_all, y_train_all)
         train_size = int(len(x_train_all) / len(local_dataset))
 
         for i in range(len(local_dataset)):
             local_dataset[i]['x_train'] = x_train_all[i*train_size: (i+1)*train_size]
             local_dataset[i]['y_train'] = y_train_all[i*train_size: (i+1)*train_size]
-
-        # x, y = MiniBatchTrain.shuffle(self.x, self.y)
-        #
-        # local_data_size = []
-        # for i in range(self.num_clients):
-        #     local_data_size.append(sample_size)
-        # local_data_size = np.array(local_data_size, dtype=np.int32)
-        #
-        # local_dataset = []
-        # for i in range(self.num_clients):
-        #
-        #     local_x = x[np.sum(local_data_size[0:i]):np.sum(local_data_size[0:i+1])]
-        #     local_y = y[np.sum(local_data_size[0:i]):np.sum(local_data_size[0:i+1])]
-        #
-        #     local_data = self.generate_local_data(local_x, local_y)
-        #     local_dataset.append(local_data)
 
         if save_file:
             for i in range(len(local_dataset)):
@@ -172,8 +203,8 @@ class FedImage:
 
     def generate_local_data(self, local_x, local_y, additional_test=None):
         if additional_test is None:
-            local_train_x, local_val_x, local_test_x = SplitData.split_data(local_x, self.train_val_test)
-            local_train_y, local_val_y, local_test_y = SplitData.split_data(local_y, self.train_val_test)
+            local_train_x, local_val_x, local_test_x = split_data(local_x, self.train_val_test)
+            local_train_y, local_val_y, local_test_y = split_data(local_y, self.train_val_test)
             return {
                 'x_train': local_train_x,
                 'y_train': local_train_y,
@@ -183,8 +214,8 @@ class FedImage:
                 'y_test': local_test_y,
             }
         else:
-            local_train_x, local_val_x = SplitData.split_data(local_x, self.train_val_test[:2])
-            local_train_y, local_val_y = SplitData.split_data(local_y, self.train_val_test[:2])
+            local_train_x, local_val_x = split_data(local_x, self.train_val_test[:2])
+            local_train_y, local_val_y = split_data(local_y, self.train_val_test[:2])
             result = {
                 'x_train': local_train_x,
                 'y_train': local_train_y,
@@ -208,8 +239,6 @@ class FedImage:
                 index_end = sum(self.identity[:i+1])
                 local_x = self.x[index_start: index_end]
                 local_y = self.y[index_start: index_end]
-                # Temporally Remove
-                # local_x, local_y = MiniBatchTrain.shuffle(local_x, local_y)
                 local_dataset.append(self.generate_local_data(local_x=local_x, local_y=local_y))
 
         else:

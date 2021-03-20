@@ -162,7 +162,6 @@
                                     <thead>
                                         <tr>
                                             <th style="text-align: center">Round</th>
-                                            <th style="text-align: center">Init</th>
                                             <th style="text-align: center">TrainReq</th>
                                             <th style="text-align: center">TrainRun</th>
                                             <th style="text-align: center">TrainSync</th>
@@ -177,7 +176,6 @@
                                     {% for v in time_record %}
                                          <tr>
                                             <td>{{ v.round }}</td>
-                                            <td>{{ v.check_res | round(5, 'floor') }}</td>
                                             <td>{{ v.update_send | round(5, 'floor') }}</td>
                                             <td>{{ v.update_run | round(5, 'floor') }}</td>
                                             <td>{{ v.update_receive | round(5, 'floor') }}</td>

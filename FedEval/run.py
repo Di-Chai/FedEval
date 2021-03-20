@@ -11,69 +11,35 @@ from .role import Client, Server
 
 def generate_data(data_config, model_config, runtime_config):
     data = FedImage(dataset=data_config['dataset'],
-                    data_dir=data_config['data_dir'],  # for saving
+                    output_dir=data_config['data_dir'],  # for saving
                     flatten=True if model_config['MLModel']['name'] == 'MLP' else False,
                     normalize=data_config['normalize'],
                     train_val_test=data_config['train_val_test'],
                     num_clients=runtime_config['server']['num_clients'])
 
-    if data_config['non-iid']:
+    if not data_config['non-iid']:
+        print('Generating IID data')
         data.iid_data(sample_size=data_config['sample_size'])
     else:
+        print('Generating Non-IID data')
         data.non_iid_data(non_iid_class=data_config['non-iid-class'],
                           strategy=data_config['non-iid-strategy'],
                           shared_data=data_config['shared_data'], sample_size=data_config['sample_size'])
 
 
 def run(role, data_config, model_config, runtime_config):
-    ml_model_name = model_config['MLModel']['name']
-    ml_model_configs = model_config['MLModel']
-    dataset_name = data_config['dataset']
-
-    # 2 Config Model
-    if ml_model_name == "MLP":
-        input_params = {
-            "inputs_shape": {'x': [np.prod(data_config['input_shape'][dataset_name]['image'])]},
-            "targets_shape": {'y': data_config['input_shape'][dataset_name]['label']},
-        }
-    else:
-        input_params = {
-            "inputs_shape": {'x': data_config['input_shape'][dataset_name]['image']},
-            "targets_shape": {'y': data_config['input_shape'][dataset_name]['label']},
-        }
-
-    ml_model_configs[ml_model_name].update(input_params)
-    model = eval(ml_model_name + "(**ml_model_configs[ml_model_name])")
 
     if role == 'client':
-        # 3 Config data
-        client_id = os.environ.get('CLIENT_ID', '0')
-        with open(os.path.join(data_config['data_dir'], 'client_%s.pkl' % client_id), 'rb') as f:
-            data = pickle.load(f)
-
-        # 4 Init the client
-        Client(server_host=runtime_config['server']['host'],
-               server_port=runtime_config['server']['port'],
-               model=model,
-               train_data={'x': data['x_train'], 'y': data['y_train']},
-               val_data={'x': data['x_val'], 'y': data['y_val']},
-               test_data={'x': data['x_test'], 'y': data['y_test']},
-               fed_model_name=model_config['FedModel']['name'],
-               train_strategy=model_config['FedModel']['train_strategy'],
-               upload_strategy=model_config['FedModel']['upload_strategy'],
-               client_name="Client_%s" % client_id)
+        Client(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
 
     if role == 'server':
         # 3 Init the server
-        server = Server(model=model, server_config=runtime_config['server'],
-                        fed_model_name=model_config['FedModel']['name'],
-                        train_strategy=model_config['FedModel']['train_strategy'],
-                        upload_strategy=model_config['FedModel']['upload_strategy'])
+        server = Server(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
         server.start()
 
 
 def generate_docker_compose_server(runtime_config, path):
-    
+
     project_path = os.path.abspath('./')
 
     server_template = {
@@ -192,7 +158,7 @@ if __name__ == '__main__':
     # 1 Load the configs
     with open(os.path.join(args.config, '1_data_config.yml'), 'r') as f:
         data_config = yaml.load(f)
-
+    
     with open(os.path.join(args.config, '2_model_config.yml'), 'r') as f:
         model_config = yaml.load(f)
 

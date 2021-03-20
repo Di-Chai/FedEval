@@ -39,23 +39,23 @@ class AttackModel:
                     dtype=tf.float32),
                     name=target_name)
                 target_tensor[target_name] = tf.nn.softmax(target_tensor_raw[target_name], axis=-1)
-                self.model.output[target_name] = target_tensor[target_name].name
+                self.model.output[target_name] = target_tensor[target_name].cid
 
             loss = self.model.forward(inputs=input_tensor, targets=target_tensor, trainable=False)
 
             assert loss is not None
 
             gradients = [[e, tf.gradients(loss, e)[0]] for e in tf.global_variables()
-                         if str_match_list(e.name, gradient_names)]
+                         if str_match_list(e.cid, gradient_names)]
 
             optimizer = tf.train.GradientDescentOptimizer(lr or self.model.lr)
 
             attack_loss = []
             for v, g in gradients:
-                tmp_g = tf.compat.v1.placeholder(tf.float32, g.shape, g.name.split(':')[0])
-                self.model.input[v.name] = tmp_g.name
-                self.model.output[v.name] = g.name
-                self.model.output[v.name + '_y'] = tf.gradients(tf.reduce_sum(tf.square(g)), target_tensor['y'])[0].name
+                tmp_g = tf.compat.v1.placeholder(tf.float32, g.shape, g.cid.split(':')[0])
+                self.model.input[v.cid] = tmp_g.cid
+                self.model.output[v.cid] = g.cid
+                self.model.output[v.cid + '_y'] = tf.gradients(tf.reduce_sum(tf.square(g)), target_tensor['y'])[0].cid
                 assert g.shape == tmp_g.shape
                 attack_loss.append(tf.reduce_sum(tf.square(g - tmp_g)))
 
@@ -68,12 +68,12 @@ class AttackModel:
                                        tf.ones([1] + list(self.model.targets_shape['y']))], axis=0)
 
             batch_index = tf.compat.v1.placeholder(tf.int32, [self.batch_size, ], name='batch_index')
-            self.model.input['batch_index'] = batch_index.name
+            self.model.input['batch_index'] = batch_index.cid
             update_mask_x = tf.gather(mask_tensor_x, batch_index, axis=0)
             update_mask_y = tf.gather(mask_tensor_y, batch_index, axis=0)
 
-            self.model.output['attack_loss'] = attack_loss.name
-            self.model.output['loss'] = loss.name
+            self.model.output['attack_loss'] = attack_loss.cid
+            self.model.output['loss'] = loss.cid
 
             optimizer_gradients = optimizer.compute_gradients(attack_loss, [input_tensor['x'], target_tensor_raw['y']])
             optimizer_gradients = [list(e) for e in optimizer_gradients]
@@ -82,12 +82,12 @@ class AttackModel:
             optimizer_gradients[1][0] = tf.multiply(update_mask_y, optimizer_gradients[1][0])
 
             attack_train_op = optimizer.apply_gradients(optimizer_gradients)
-            self.model.op['attack_train_op'] = attack_train_op.name
+            self.model.op['attack_train_op'] = attack_train_op.cid
 
             ########################
             # TMP
-            self.model.output['grad_x'] = tf.gradients(attack_loss, input_tensor['x'])[0].name
-            self.model.output['grad_y'] = tf.gradients(attack_loss, target_tensor['y'])[0].name
+            self.model.output['grad_x'] = tf.gradients(attack_loss, input_tensor['x'])[0].cid
+            self.model.output['grad_y'] = tf.gradients(attack_loss, target_tensor['y'])[0].cid
             ########################
 
             self.model.build_essential(init_vars=init_vars, max_to_keep=max_to_keep)

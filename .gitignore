@@ -132,6 +132,7 @@ dmypy.json
 .idea/
 
 # TMP dirs
+.vscode
 data
 FedEval/data
 configs
@@ -140,7 +141,7 @@ log
 *.jpg
 *.json
 develop
-scripts
-scripts_final
+develop/scripts
+develop/scripts_final
 sphinx
 docker/local
