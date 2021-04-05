@@ -6,6 +6,8 @@ import copy
 import argparse
 import requests
 
+from .role import NormalTrain
+
 
 def check_status(host):
     try:
@@ -90,6 +92,8 @@ def recursive_update_dict(target, update):
                 target[key] = recursive_update_dict(target[key], update[key])
             else:
                 target[key] = update[key]
+        else:
+            target[key] = update[key]
     return target
 
 
@@ -237,3 +241,17 @@ def run(exec, mode, config, new_config=None, **kwargs):
     if mode == 'server':
         server_stop(runtime_config)
 
+
+def local_central_trial(config, output_file=None, **kwargs):
+    data_config, model_config, runtime_config = load_config(config)
+    if 'data_config' in kwargs:
+        data_config = recursive_update_dict(data_config, kwargs['data_config'])
+    if 'model_config' in kwargs:
+        model_config = recursive_update_dict(model_config, kwargs['model_config'])
+    if 'runtime_config' in kwargs:
+        runtime_config = recursive_update_dict(runtime_config, kwargs['runtime_config'])
+    local_central_train = NormalTrain(
+        data_config=data_config, model_config=model_config, runtime_config=runtime_config
+    )
+    output_file = output_file or 'local_central_trial.csv'
+    local_central_train.run(output_file)

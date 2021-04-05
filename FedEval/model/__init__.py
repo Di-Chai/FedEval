@@ -6,4 +6,4 @@
 
 from .MLP import MLP
 from .LeNet import LeNet
-
+from .StackedLSTM import StackedLSTM

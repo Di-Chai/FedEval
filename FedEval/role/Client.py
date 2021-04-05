@@ -45,7 +45,7 @@ class Client(object):
             role=self, data_config=data_config, model_config=model_config, runtime_config=runtime_config
         )
 
-        server_host, server_port = self.fed_model.parse_server_addr()
+        server_host, server_port = self.fed_model.param_parser.parse_server_addr(self.name)
 
         self.weights_download_url = 'http://' + server_host + ':%s' % server_port + '/download/'
         self.local_train_round = 0

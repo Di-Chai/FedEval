@@ -136,12 +136,10 @@ dmypy.json
 data
 FedEval/data
 configs
-model_dir
 log
 *.jpg
 *.json
 develop
-develop/scripts
-develop/scripts_final
 sphinx
 docker/local
+docker/local_GPU

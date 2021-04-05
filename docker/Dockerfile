@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 
 # Install python
-RUN apt update && apt install -y python3 python3-pip iproute2 net-tools wget vim nload iftop --fix-missing
+RUN apt update && apt install -y python3 python3-pip iproute2 net-tools wget vim nload iftop unzip --fix-missing
 
 # build the tf-wrapper and FedEval
 RUN ln -s /usr/bin/python3 /usr/bin/python
@@ -11,9 +11,11 @@ RUN pip install --upgrade pip
 
 # Install python requirements (using douban image)
 RUN pip install setuptools matplotlib PyYAML pympler \
-                Flask-SocketIO Flask socketIO-client opencv-python-headless \
-                numpy keras tensorflow==1.14.0 scipy pillow opencv-python-headless \
-                paramiko psutil
+                Flask-SocketIO==4.3.1 Flask==1.1.2 socketIO-client==0.7.2 \
+                python-engineio==3.13.1 python-socketio==4.6.0 \
+                numpy keras tensorflow scipy \
+                pillow opencv-python-headless \
+                paramiko psutil torch==1.4.0 pandas nltk
 
 # Place the dataset in the docker image
 RUN mkdir -p /root/.keras
@@ -33,5 +35,12 @@ RUN wget "https://github.com/fchollet/deep-learning-models/releases/download/v0.
 RUN wget "https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5"
 RUN wget 'https://github.com/JonathanCMitchell/mobilenet_v2_keras/releases/download/v1.1/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_1.0_224_no_top.h5'
 RUN wget 'https://github.com/JonathanCMitchell/mobilenet_v2_keras/releases/download/v1.1/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_0.35_224_no_top.h5'
+
+# Install dependency for FetchSGD
+WORKDIR /root/
+RUN wget https://github.com/nikitaivkin/csh/archive/master.zip
+RUN unzip master.zip
+WORKDIR /root/csh-master/
+RUN pip install -e .
 
 WORKDIR /root/

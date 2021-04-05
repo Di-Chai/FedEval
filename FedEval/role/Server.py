@@ -47,7 +47,7 @@ class Server(object):
             role=self, data_config=data_config, model_config=model_config, runtime_config=runtime_config
         )
 
-        self.run_config = self.fed_model.parse_run_config()
+        self.run_config = self.fed_model.param_parser.parse_run_config()
         self.num_clients = self.run_config['num_clients']
         self.max_num_rounds = self.run_config['max_num_rounds']
         self.num_tolerance = self.run_config['num_tolerance']
@@ -57,7 +57,7 @@ class Server(object):
 
         self.ready_client_sids = set()
 
-        self.host, self.port = self.fed_model.parse_server_addr()
+        self.host, self.port = self.fed_model.param_parser.parse_server_addr(self.name)
         self.client_resource = {}
 
         self.time_send_train = None
@@ -150,6 +150,12 @@ class Server(object):
             m, s = divmod(current_used_time, 60)
             h, m = divmod(m, 60)
 
+            metrics = self.fed_model.model_config['MLModel'].get('metrics')
+            if metrics is not None and len(metrics) > 0:
+                test_accuracy_key = 'test_' + metrics[0]
+            else:
+                test_accuracy_key = 'test_accuracy'
+
             return render_template(
                 'dashboard.html',
                 status='Finish' if self.STOP else 'Running',
@@ -162,7 +168,7 @@ class Server(object):
                 avg_val_metric_keys=avg_val_metric_keys,
                 time_record=time_record,
                 current_used_time="%02d:%02d:%02d" % (h, m, s),
-                test_accuracy=self.best_test_metric.get('test_accuracy', 0),
+                test_accuracy=self.best_test_metric.get(test_accuracy_key, 0),
                 test_loss=self.best_test_metric.get('test_loss', 0),
                 server_send=self.server_send_bytes / (2 ** 30),
                 server_receive=self.server_receive_bytes/(2**30)

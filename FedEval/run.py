@@ -5,30 +5,38 @@ import argparse
 import numpy as np
 
 from .model import *
-from .dataset import FedImage
+from .dataset import *
 from .role import Client, Server
 
 
-def generate_data(data_config, model_config, runtime_config):
-    data = FedImage(dataset=data_config['dataset'],
-                    output_dir=data_config['data_dir'],  # for saving
-                    flatten=True if model_config['MLModel']['name'] == 'MLP' else False,
-                    normalize=data_config['normalize'],
-                    train_val_test=data_config['train_val_test'],
-                    num_clients=runtime_config['server']['num_clients'])
+def generate_data(data_config, model_config, runtime_config, save_file=True):
+    try:
+        data = eval(data_config['dataset'])(
+            output_dir=data_config['data_dir'],  # for saving
+            flatten=True if model_config['MLModel']['name'] == 'MLP' else False,
+            normalize=data_config['normalize'],
+            train_val_test=data_config['train_val_test'],
+            num_clients=runtime_config['server']['num_clients']
+        )
+    except ModuleNotFoundError:
+        print('Invalid dataset name', data_config['dataset'])
+        return None
 
     if not data_config['non-iid']:
         print('Generating IID data')
-        data.iid_data(sample_size=data_config['sample_size'])
+        clients_data = data.iid_data(sample_size=data_config['sample_size'], save_file=save_file)
     else:
         print('Generating Non-IID data')
-        data.non_iid_data(non_iid_class=data_config['non-iid-class'],
-                          strategy=data_config['non-iid-strategy'],
-                          shared_data=data_config['shared_data'], sample_size=data_config['sample_size'])
+        clients_data = data.non_iid_data(
+            non_iid_class=data_config['non-iid-class'],
+            strategy=data_config['non-iid-strategy'],
+            shared_data=data_config['shared_data'], sample_size=data_config['sample_size'],
+            save_file=save_file
+        )
+    return clients_data
 
 
 def run(role, data_config, model_config, runtime_config):
-
     if role == 'client':
         Client(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
 
@@ -39,7 +47,6 @@ def run(role, data_config, model_config, runtime_config):
 
 
 def generate_docker_compose_server(runtime_config, path):
-
     project_path = os.path.abspath('./')
 
     server_template = {
@@ -87,7 +94,7 @@ def generate_docker_compose_server(runtime_config, path):
             dc['services']['client_%s' % client_id] = tmp
 
         counter += min(remain_clients, machines[m_k]['capacity'])
-        remain_clients -= counter
+        remain_clients -= min(remain_clients, machines[m_k]['capacity'])
 
         with open("docker-compose-%s.yml" % m_k, 'w') as f:
             no_alias_dumper = yaml.dumper.SafeDumper
@@ -96,7 +103,6 @@ def generate_docker_compose_server(runtime_config, path):
 
 
 def generate_docker_compose_local(runtime_config, path):
-
     project_path = os.path.abspath('./')
 
     server_template = {
@@ -158,7 +164,7 @@ if __name__ == '__main__':
     # 1 Load the configs
     with open(os.path.join(args.config, '1_data_config.yml'), 'r') as f:
         data_config = yaml.load(f)
-    
+
     with open(os.path.join(args.config, '2_model_config.yml'), 'r') as f:
         model_config = yaml.load(f)
 
@@ -166,18 +172,13 @@ if __name__ == '__main__':
         runtime_config = yaml.load(f)
 
     if args.function == 'data':
-
         generate_data(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
 
     if args.function == 'run':
-
         run(role=args.role, data_config=data_config, model_config=model_config, runtime_config=runtime_config)
 
     if args.function == 'compose-local':
-
         generate_docker_compose_local(runtime_config, args.config)
 
     if args.function == 'compose-server':
-
         generate_docker_compose_server(runtime_config, args.config)
-
