@@ -3,6 +3,7 @@ import tensorflow as tf
 from .FedAvg import FedAvg
 from tensorflow.python.training import gen_training_ops
 from .utils import aggregate_weighted_average
+from ..utils import ParamParser
 
 
 class FedSCAOptimizer(tf.keras.optimizers.Optimizer):
@@ -36,10 +37,20 @@ class FedSCAOptimizer(tf.keras.optimizers.Optimizer):
         )
 
 
+class FedSCAParser(ParamParser):
+    def parse_model(self):
+        ml_model = super(FedSCAParser, self).parse_model()
+        # Customize the model optimizer
+        optimizer = FedSCAOptimizer(lr=self.model_config['MLModel']['optimizer']['lr'])
+        optimizer.create_slots(ml_model.variables)
+        ml_model.optimizer = optimizer
+        return ml_model
+
+
 class FedSCA(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config):
-        super().__init__(role, data_config, model_config, runtime_config)
+    def __init__(self, role, data_config, model_config, runtime_config, param_parser=ParamParser):
+        super().__init__(role, data_config, model_config, runtime_config, param_parser=param_parser)
 
         param_shapes = [e.shape for e in self.ml_model.get_weights()]
 
@@ -49,14 +60,6 @@ class FedSCA(FedAvg):
     def host_get_init_params(self):
         self.params = self.ml_model.get_weights()
         return self.params, self.server_c
-
-    def parse_model(self):
-        ml_model = super(FedSCA, self).parse_model()
-        # Customize the model optimizer
-        optimizer = FedSCAOptimizer(lr=self.model_config['MLModel']['lr'])
-        optimizer.create_slots(ml_model.variables)
-        ml_model.optimizer = optimizer
-        return ml_model
 
     def set_host_params_to_local(self, host_params, current_round):
         server_params, self.server_c = host_params

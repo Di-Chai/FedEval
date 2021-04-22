@@ -204,7 +204,5 @@ class semantic140(FedData):
             text_vectors.append(tmp_vector)
         x = np.array(text_vectors, dtype=np.float32)
 
-        print('debug')
-
         return x, y
 

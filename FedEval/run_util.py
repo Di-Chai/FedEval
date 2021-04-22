@@ -4,9 +4,9 @@ import time
 import yaml
 import copy
 import argparse
+import paramiko
 import requests
-
-from .role import NormalTrain
+import platform
 
 
 def check_status(host):
@@ -23,7 +23,7 @@ def local_stop():
 
 
 def server_stop(runtime_config):
-    import paramiko
+
     for m_name in runtime_config['machines']:
 
         ssh = paramiko.SSHClient()
@@ -51,18 +51,67 @@ def server_stop(runtime_config):
         print(''.join(stderr.readlines()))
 
 
-def upload_to_server(runtime_config, file_list=()):
-    if len(file_list) > 0:
-        scp_orders = ['scp -P {} -i {} -r ' + e + ' {}@{}:{}' for e in file_list]
+def recursive_ls(path):
+    files = os.listdir(path)
+    results = []
+    for file in files:
+        if os.path.isdir(os.path.join(path, file)):
+            results += recursive_ls(os.path.join(path, file))
+        else:
+            results.append(os.path.join(path, file))
+    return results
 
-        for m_name in runtime_config['machines']:
-            host = runtime_config['machines'][m_name]['host']
-            port = runtime_config['machines'][m_name]['port']
-            user_name = runtime_config['machines'][m_name]['user_name']
-            remote_path = runtime_config['machines'][m_name]['dir']
-            key_file = runtime_config['machines'][m_name]['key']
-            for instruction in scp_orders:
-                os.system(instruction.format(port, key_file, user_name, host, remote_path))
+
+def recursive_mkdir_remote(sftp, remote_path):
+    p = remote_path.split('/')
+    path = ''
+    for i in p[1:-1]:
+        path = path + '/'
+        dirs = sftp.listdir(path)
+        if i in dirs:
+            path = path + i
+        else:
+            path = path + i
+            sftp.mkdir(path)
+
+
+def upload_to_server(machines, file_list=(), upload_file_type=('.py', '.yml')):
+    files = []
+    for path in file_list:
+        files += recursive_ls(path)
+
+    def upload_check(file_name):
+        for ft in upload_file_type:
+            if file_name.endswith(ft):
+                return True
+        return False
+
+    files = [e for e in files if upload_check(e)]
+    if platform.system().lower() == 'windows':
+        files = [e.replace('\\', '/') for e in files]
+
+    host_record = []
+    for m_name in machines:
+        host = machines[m_name]['host']
+        port = machines[m_name]['port']
+        user_name = machines[m_name]['user_name']
+        remote_path = machines[m_name]['dir']
+        key_file = machines[m_name]['key']
+        if (host+str(port)) in host_record:
+            continue
+        private_key = paramiko.RSAKey.from_private_key_file(key_file)
+        trans = paramiko.Transport((host, port))
+        trans.connect(username=user_name, pkey=private_key)
+        sftp = paramiko.SFTPClient.from_transport(trans)
+        for file in files:
+            try:
+                sftp.put(localpath=file, remotepath=remote_path + '/' + file)
+            except FileNotFoundError:
+                recursive_mkdir_remote(sftp, remote_path + '/' + file)
+                sftp.put(localpath=file, remotepath=remote_path + '/' + file)
+            print('Uploaded', file, 'to', m_name)
+        trans.close()
+        host_record.append(host+str(port))
 
 
 def load_config(path):
@@ -99,6 +148,10 @@ def recursive_update_dict(target, update):
 
 def run(exec, mode, config, new_config=None, **kwargs):
 
+    print('*' * 40)
+    print(kwargs)
+    print('*' * 40)
+
     data_config, model_config, runtime_config = load_config(config)
 
     if exec == 'stop':
@@ -130,21 +183,20 @@ def run(exec, mode, config, new_config=None, **kwargs):
         current_path = os.path.abspath('./')
         os.system(
             'sudo docker run -it --rm -v {0}:{0} -w {0} '
-            '{1} python3 -m FedEval.run -f data -c {2}'
+            '{1} python3 -W ignore -m FedEval.run -f data -c {2}'
             .format(current_path, runtime_config['docker']['image'], new_config)
         )
         os.system(
             'sudo docker run -it --rm -v {0}:{0} -w {0} '
-            '{1} python3 -m FedEval.run -f compose-local -c {2}'
+            '{1} python3 -W ignore -m FedEval.run -f compose-local -c {2}'
             .format(current_path, runtime_config['docker']['image'], new_config)
         )
         os.system('sudo docker-compose up -d')
 
     if mode == 'server':
 
-        upload_to_server(runtime_config, file_list=('FedEval', 'configs'))
+        upload_to_server(runtime_config['machines'], file_list=('FedEval', 'configs'))
 
-        import paramiko
         machine_name_list = list(runtime_config['machines'].keys())
         machine_name_list.remove('server')
 
@@ -164,7 +216,7 @@ def run(exec, mode, config, new_config=None, **kwargs):
             if m_name != 'server':
                 _, stdout, stderr = ssh.exec_command(
                     'sudo docker run -i --rm -v {0}:{0} -w {0} '
-                    '{1} python3 -m FedEval.run -f data -c {2}'
+                    '{1} python3 -W ignore -m FedEval.run -f data -c {2}'
                     .format(remote_path, runtime_config['docker']['image'], new_config)
                 )
                 print(''.join(stdout.readlines()))
@@ -172,7 +224,7 @@ def run(exec, mode, config, new_config=None, **kwargs):
 
             _, stdout, stderr = ssh.exec_command(
                 'sudo docker run -i --rm -v {0}:{0} -w {0} '
-                '{1} python3 -m FedEval.run -f compose-server -c {2}'
+                '{1} python3 -W ignore -m FedEval.run -f compose-server -c {2}'
                 .format(remote_path, runtime_config['docker']['image'], new_config)
             )
             print(''.join(stdout.readlines()))
@@ -200,6 +252,7 @@ def run(exec, mode, config, new_config=None, **kwargs):
     port = runtime_config['server']['port']
 
     print('Starting to monitor at %s, check every 10 seconds' % ('http://{}/status'.format(host + ':' + str(port))))
+    print('Check the dashboard at %s' % ('http://{}/dashboard'.format(host + ':' + str(port))))
 
     check_status_result = check_status(host + ':' + str(port))
 
@@ -243,6 +296,7 @@ def run(exec, mode, config, new_config=None, **kwargs):
 
 
 def local_central_trial(config, output_file=None, **kwargs):
+    from .role import NormalTrain
     data_config, model_config, runtime_config = load_config(config)
     if 'data_config' in kwargs:
         data_config = recursive_update_dict(data_config, kwargs['data_config'])
@@ -255,3 +309,4 @@ def local_central_trial(config, output_file=None, **kwargs):
     )
     output_file = output_file or 'local_central_trial.csv'
     local_central_train.run(output_file)
+

@@ -143,3 +143,5 @@ develop
 sphinx
 docker/local
 docker/local_GPU
+trials
+id_rsa

@@ -5,6 +5,7 @@ from FedEval.run_util import local_central_trial
 config = '../../configs/workstation'
 repeat = 10
 output_name = __file__.split('/')[-1].replace('py', 'csv')
+output_name = 'tmp_' + output_name
 
 params = {
     'data_config': {
@@ -15,7 +16,7 @@ params = {
     },
     'model_config': {
         'MLModel': {
-            'name': 'StackedLSTM', 'embedding_dim': 0,
+            'name': 'StackedLSTM', 'embedding_dim': 0, 'hidden_units': 128,
             'loss': 'binary_crossentropy', 'metrics': ['binary_accuracy'],
             'optimizer': {
                 'name': 'sgd', 'lr': None, 'momentum': 0
@@ -34,8 +35,12 @@ params = {
 }
 
 for _ in range(repeat):
-    tune_client_lr = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0]
+    # tune_client_lr = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0]
+    tune_client_lr = [5e-1]
+    hidden_units = [64]
     for lr in tune_client_lr:
-        params['model_config']['MLModel']['optimizer']['lr'] = lr
-        local_central_trial(config=config, output_file=output_name, **params)
+        for h_u in hidden_units:
+            params['model_config']['MLModel']['optimizer']['lr'] = lr
+            params['model_config']['MLModel']['hidden_units'] = h_u
+            local_central_trial(config=config, output_file=output_name, **params)
 

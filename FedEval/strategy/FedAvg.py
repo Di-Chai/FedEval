@@ -11,14 +11,14 @@ from ..utils import ParamParser
 
 class FedAvg:
 
-    def __init__(self, role, data_config, model_config, runtime_config):
+    def __init__(self, role, data_config, model_config, runtime_config, param_parser=ParamParser):
 
         self.data_config = data_config
         self.model_config = model_config
         self.runtime_config = runtime_config
         self.role = role
 
-        self.param_parser = ParamParser(
+        self.param_parser = param_parser(
             data_config=data_config, model_config=model_config, runtime_config=runtime_config
         )
 
@@ -97,3 +97,6 @@ class FedAvg:
     # def get_leaked_gradients(self):
     #     pass
 
+
+class FedSGD(FedAvg):
+    pass

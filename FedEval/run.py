@@ -55,7 +55,7 @@ def generate_docker_compose_server(runtime_config, path):
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
-        'command': 'sh -c "python3 -m FedEval.run -f run -r server -c {}"'.format(path),
+        'command': 'sh -c "python3 -W ignore -m FedEval.run -f run -r server -c {}"'.format(path),
         'container_name': 'server'
     }
 
@@ -64,6 +64,8 @@ def generate_docker_compose_server(runtime_config, path):
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
+        # 'runtime': 'nvidia',
+        # 'environment': ['NVIDIA_VISIBLE_DEVICES=all']
     }
 
     with open('docker-compose-server.yml', 'w') as f:
@@ -89,7 +91,7 @@ def generate_docker_compose_server(runtime_config, path):
             tmp['command'] = 'sh -c ' \
                              '"export CLIENT_ID={} ' \
                              '&& tc qdisc add dev eth0 root tbf rate {} latency 10ms burst 60000kb ' \
-                             '&& python3 -m FedEval.run -f run -r client -c {}"'.format(
+                             '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
                 client_id, runtime_config['clients']['bandwidth'], path)
             dc['services']['client_%s' % client_id] = tmp
 
@@ -111,7 +113,7 @@ def generate_docker_compose_local(runtime_config, path):
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
-        'command': 'sh -c "python3 -m FedEval.run -f run -r server -c {}"'.format(path),
+        'command': 'sh -c "python3 -W ignore -m FedEval.run -f run -r server -c {}"'.format(path),
         'container_name': 'server',
         'networks': ['server-clients']
     }
@@ -121,7 +123,9 @@ def generate_docker_compose_local(runtime_config, path):
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
-        'networks': ['server-clients']
+        'networks': ['server-clients'],
+        # 'runtime': 'nvidia',
+        # 'environment': ['NVIDIA_VISIBLE_DEVICES=all']
     }
 
     dc = {
@@ -137,7 +141,7 @@ def generate_docker_compose_local(runtime_config, path):
         tmp['command'] = 'sh -c ' \
                          '"export CLIENT_ID={0} ' \
                          '&& tc qdisc add dev eth0 root tbf rate {1} latency 50ms burst 15kb ' \
-                         '&& python3 -m FedEval.run -f run -r client -c {2}"'.format(
+                         '&& python3 -W ignore -m FedEval.run -f run -r client -c {2}"'.format(
             client_id,
             runtime_config['clients']['bandwidth'],
             path)

@@ -32,3 +32,7 @@ class MFedAvg(FedAvg):
             for i in range(len(self.params))
         ]
         return self.params
+
+
+class MFedSGD(MFedAvg):
+    pass
