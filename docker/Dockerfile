@@ -11,7 +11,8 @@ RUN pip install --upgrade pip
 
 # Install python requirements (using douban image)
 RUN pip install setuptools matplotlib PyYAML pympler \
-                Flask-SocketIO Flask socketIO-client opencv-python-headless \
+                Flask-SocketIO==4.3.1 Flask==1.1.2 socketIO-client==0.7.2 opencv-python-headless \
+                python-engineio==3.13.1 python-socketio==4.6.0 \
                 numpy keras tensorflow==1.14.0 scipy pillow opencv-python-headless \
                 paramiko psutil
 
