@@ -14,6 +14,7 @@ from flask_socketio import SocketIO, emit
 
 from ..strategy import *
 from ..utils import pickle_string_to_obj, obj_to_pickle_string
+from ..run_util import save_config
 
 
 class Server(object):
@@ -26,7 +27,7 @@ class Server(object):
         time_str = time.strftime('%Y_%m%d_%H%M%S', time.localtime())
         self.logger = logging.getLogger("Server")
         self.logger.setLevel(logging.INFO)
-        self.log_dir = os.path.join('log', "Server", time_str)
+        self.log_dir = os.path.join(runtime_config.get('log_dir', 'log'), 'Server', time_str)
         self.log_file = os.path.join(self.log_dir, 'train.log')
         os.makedirs(self.log_dir, exist_ok=True)
         fh = logging.FileHandler(self.log_file, encoding='utf8')
@@ -42,6 +43,9 @@ class Server(object):
         self.logger.addHandler(fh)
         self.logger.addHandler(ch)
 
+        self.data_config = data_config
+        self.model_config = model_config
+        self.runtime_config = runtime_config
         fed_model = eval(model_config['FedModel']['name'])
         self.fed_model = fed_model(
             role=self, data_config=data_config, model_config=model_config, runtime_config=runtime_config
@@ -487,7 +491,7 @@ class Server(object):
                             self.logger.info('Server Send(GB): %s' % (self.server_send_bytes / (2 ** 30)))
                             self.logger.info('Server Receive(GB): %s' % (self.server_receive_bytes / (2 ** 30)))
                             # save data to file
-                            result_json = {
+                            self.result_json = {
                                 'best_metric': self.best_test_metric,
                                 'best_metric_full': self.best_test_metric_full,
                                 'total_time': '{}:{}:{}'.format(h, m, s),
@@ -498,11 +502,14 @@ class Server(object):
                                 'info_each_round': self.info_each_round
                             }
                             with open(os.path.join(self.log_dir, 'results.json'), 'w') as f:
-                                json.dump(result_json, f)
-                            # Server job finish
-                            self.server_job_finish = True
+                                json.dump(self.result_json, f)
+                            save_config(self.data_config, self.model_config, self.runtime_config, self.log_dir)
                             # Stop all the clients
                             emit('stop', broadcast=True)
+                            # Call the server exit job
+                            self.fed_model.host_exit_job(self)
+                            # Server job finish
+                            self.server_job_finish = True
                     else:
                         self.logger.info("start to next round...")
                         self.train_next_round()

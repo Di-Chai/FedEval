@@ -7,6 +7,7 @@ from .utils import *
 from ..model import *
 from ..dataset import get_data_shape
 from ..utils import ParamParser
+from ..callbacks import *
 
 
 class FedAvg:
@@ -35,6 +36,12 @@ class FedAvg:
             self.local_params_pre = None
             self.local_params_cur = None
 
+        # TODO: Add the callback modeler for implementing attacks
+        if self.model_config['FedModel'].get('callback') is not None:
+            self.callback = eval(self.model_config['FedModel']['callback'])()
+        else:
+            self.callback = None
+    
     # Testing Function, which is not used by any strategy
     def compute_gradients(self, x, y):
         with tf.GradientTape() as tape:
@@ -46,38 +53,51 @@ class FedAvg:
 
     # (1) Host functions
     def host_get_init_params(self):
-        self.params = self._retrieve_local_params()
+        self.params = self.ml_model.get_weights()
         return self.params
 
     # (1) Host functions
     def update_host_params(self, client_params, aggregate_weights):
+        if self.callback is not None:
+            client_params = self.callback.on_host_aggregate_begin(client_params)
         self.params = aggregate_weighted_average(client_params, aggregate_weights)
         return self.params
 
+    # (1) Host functions
+    def host_exit_job(self, host):
+        if self.callback is not None:
+            self.callback.on_host_exit()
+
     # (2) Client functions
     def set_host_params_to_local(self, host_params, current_round):
+        if self.callback is not None:
+            host_params = self.callback.on_setting_host_to_local(host_params)
         self.current_round = current_round
         self.ml_model.set_weights(host_params)
 
     # (2) Client functions
     def fit_on_local_data(self):
-        self.local_params_pre = self._retrieve_local_params()
+        if self.callback is not None:
+            self.train_data, model = self.callback.on_client_train_begin(
+                data=self.train_data, model=self.ml_model.get_weights()
+            )
+            self.ml_model.set_weights(model)
+        self.local_params_pre = self.ml_model.get_weights()
         train_log = self.ml_model.fit(
             x=self.train_data['x'], y=self.train_data['y'],
             epochs=self.model_config['FedModel']['E'],
             batch_size=self.model_config['FedModel']['B']
         )
         train_loss = train_log.history['loss'][-1]
-        self.local_params_cur = self._retrieve_local_params()
+        self.local_params_cur = self.ml_model.get_weights()
         return train_loss, self.train_data_size
-
-    # Will be used by both server and client
-    def _retrieve_local_params(self):
-        return self.ml_model.get_weights()
 
     # (2) Client functions
     def retrieve_local_upload_info(self):
-        return self._retrieve_local_params()
+        model = self.ml_model.get_weights()
+        if self.callback is not None:
+            model = self.callback.on_client_upload_begin(model)
+        return model
 
     # (2) Client functions
     def local_evaluate(self):
@@ -94,8 +114,10 @@ class FedAvg:
         evaluate.update({'test_size': self.test_data_size})
         return evaluate
 
-    # def get_leaked_gradients(self):
-    #     pass
+    # (2) Client functions
+    def client_exit_job(self, client):
+        if self.callback is not None:
+            self.callback.on_client_exit()
 
 
 class FedSGD(FedAvg):

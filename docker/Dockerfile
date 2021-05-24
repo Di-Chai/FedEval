@@ -10,12 +10,8 @@ RUN ln -s /usr/bin/pip3 /usr/bin/pip
 RUN pip install --upgrade pip
 
 # Install python requirements (using douban image)
-RUN pip install setuptools matplotlib PyYAML pympler \
-                Flask-SocketIO==4.3.1 Flask==1.1.2 socketIO-client==0.7.2 \
-                python-engineio==3.13.1 python-socketio==4.6.0 \
-                numpy keras tensorflow scipy \
-                pillow opencv-python-headless \
-                paramiko psutil torch==1.4.0 pandas nltk
+COPY requirements.txt /root/requirements.txt
+RUN pip install -r /root/requirements.txt --no-cache-dir
 
 # Place the dataset in the docker image
 RUN mkdir -p /root/.keras
@@ -30,11 +26,11 @@ RUN tar -zxvf cifar-100-python.tar.gz
 
 # Place the pre-train model in the docker image
 RUN mkdir -p /root/.keras/models
-WORKDIR /root/.keras/models
-RUN wget "https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_tf_dim_ordering_tf_kernels.h5"
-RUN wget "https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5"
-RUN wget 'https://github.com/JonathanCMitchell/mobilenet_v2_keras/releases/download/v1.1/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_1.0_224_no_top.h5'
-RUN wget 'https://github.com/JonathanCMitchell/mobilenet_v2_keras/releases/download/v1.1/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_0.35_224_no_top.h5'
+#WORKDIR /root/.keras/models
+#RUN wget "https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_tf_dim_ordering_tf_kernels.h5"
+#RUN wget "https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5"
+#RUN wget 'https://github.com/JonathanCMitchell/mobilenet_v2_keras/releases/download/v1.1/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_1.0_224_no_top.h5'
+#RUN wget 'https://github.com/JonathanCMitchell/mobilenet_v2_keras/releases/download/v1.1/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_0.35_224_no_top.h5'
 
 # Install dependency for FetchSGD
 WORKDIR /root/

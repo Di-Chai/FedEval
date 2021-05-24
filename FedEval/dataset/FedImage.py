@@ -74,6 +74,8 @@ class femnist(FedData):
         x = np.concatenate(x, axis=0).astype(np.float32).reshape([-1, 28, 28, 1])
         y = np.concatenate(y, axis=0).astype(np.int32)
         self.identity = identity
+        # [1000, 1500, 2000, ...]
+        # sum(self.identity) = x.shape[0]
 
         if len(y.shape) == 1 or y.shape[-1] == 1:
             self.num_class = np.max(y) + 1

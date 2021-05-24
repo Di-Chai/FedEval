@@ -25,7 +25,7 @@ class Client(object):
         time_str = time.strftime('%Y_%m%d_%H%M%S', time.localtime())
         self.logger = logging.getLogger("client")
         self.logger.setLevel(logging.INFO)
-        self.log_dir = os.path.join('log', 'Client' + self.cid, time_str)
+        self.log_dir = os.path.join(runtime_config.get('log_dir', 'log'), 'Client' + self.cid, time_str)
         os.makedirs(self.log_dir, exist_ok=True)
         self.fh = logging.FileHandler(os.path.join(self.log_dir, 'train.log'))
         self.fh.setLevel(logging.INFO)
@@ -170,6 +170,7 @@ class Client(object):
             self.logger.info("Emited...")
 
         def on_stop():
+            self.fed_model.client_exit_job(self)
             print("Federated training finished ...")
             exit(0)
 

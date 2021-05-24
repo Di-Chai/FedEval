@@ -1,0 +1,10 @@
+clients:
+  bandwidth: 100Mbit
+docker:
+  image: fedeval:v1
+server:
+  host: server
+  listen: server
+  num_clients: 10
+  port: 8080
+log_dir: log/quickstart

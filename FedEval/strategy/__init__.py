@@ -5,3 +5,4 @@ from .FedOpt import FedOpt
 # from .FetchSGD import FetchSGD
 from .FedSCA import FedSCA
 from .MFedAvg import MFedAvg, MFedSGD
+from .LocalCentral import LocalCentral
