@@ -1,0 +1,436 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>3.3. Get to know the three configurations &mdash; FedEval  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="3.4. Get to know the FedEval.run and FedEval.run_util" href="RunUtils.html" />
+    <link rel="prev" title="3.2. Running Multiple Experiments (using scripts)" href="Procedures.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FedEval
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Environment.html">2. Environment</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Tutorial.html">3. Tutorial</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="QuickStart.html">3.1. Quick Start (single experiment using terminal)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Procedures.html">3.2. Running Multiple Experiments (using scripts)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">3.3. Get to know the three configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data-config">3.3.1. Data Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-config">3.3.2. Model Config</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#fedmodel">3.3.2.1. FedModel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mlmodel">3.3.2.2. MLModel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#runtime-config">3.3.3. Runtime Config</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RunUtils.html">3.4. Get to know the FedEval.run and FedEval.run_util</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contribute.html">3.5. Customization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Documentation.html">4. Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FedEval</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="Tutorial.html"><span class="section-number">3. </span>Tutorial</a> &raquo;</li>
+        
+      <li><span class="section-number">3.3. </span>Get to know the three configurations</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/Configurations.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="get-to-know-the-three-configurations">
+<h1><span class="section-number">3.3. </span>Get to know the three configurations<a class="headerlink" href="#get-to-know-the-three-configurations" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="data-config">
+<h2><span class="section-number">3.3.1. </span>Data Config<a class="headerlink" href="#data-config" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">data_dir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">data</span>
+<span class="nt">dataset</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mnist</span>
+<span class="nt">non-iid</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="nt">non-iid-class</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span> <span class="c1"># Only work when non-iid = True</span>
+<span class="nt">non-iid-strategy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">average</span>
+<span class="nt">normalize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="nt">sample_size</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">300</span>
+<span class="nt">shared_data</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="nt">train_val_test</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">0.8</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">0.1</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">0.1</span>
+</pre></div>
+</div>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th align="center">Config Name</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">data_dir</td>
+<td align="left">The output directory of the clients' data</td>
+</tr>
+<tr>
+<td align="center">dataset</td>
+<td align="left">Dataset name, mnist / cifar10 / cifar100 / femnist / mnist</td>
+</tr>
+<tr>
+<td align="center">non-iid</td>
+<td align="left">Bool.</td>
+</tr>
+<tr>
+<td align="center">non-iid-class</td>
+<td align="left">The number of image classes hold by each client when non-iid is True</td>
+</tr>
+<tr>
+<td align="center">non-iid-strategy</td>
+<td align="left">"natural" strategy for femnist and celebA dataset<br />"average" for mnist, cifar10 and cifar100</td>
+</tr>
+<tr>
+<td align="center">normalize</td>
+<td align="left">Bool. If true, normalize the image to 0~1</td>
+</tr>
+<tr>
+<td align="center">sample_size</td>
+<td align="left">Number of Images hold by each client</td>
+</tr>
+<tr>
+<td align="center">shared_data</td>
+<td align="left">If shared_data &gt; 0, the system will choose the corresponding number of image from each client to build shard dataset for all the participants</td>
+</tr>
+<tr>
+<td align="center">train_val_test</td>
+<td align="left">Split the data to train, validation, and test. This list indicates the shares of each one</td>
+</tr>
+</tbody>
+</table></div>
+<div class="section" id="model-config">
+<h2><span class="section-number">3.3.2. </span>Model Config<a class="headerlink" href="#model-config" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">FedModel</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">FedSGD</span>
+  <span class="c1"># Shared params</span>
+  <span class="nt">B</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
+  <span class="nt">C</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1.0</span>
+  <span class="nt">E</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
+  <span class="nt">max_rounds</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
+  <span class="nt">num_tolerance</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">100</span>
+  <span class="nt">rounds_between_val</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
+  <span class="c1"># FedSTC</span>
+  <span class="nt">sparsity</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.01</span>
+  <span class="c1"># FedProx</span>
+  <span class="nt">mu</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.01</span>
+  <span class="c1"># FedOpt</span>
+  <span class="nt">tau</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.0001</span>
+  <span class="nt">beta1</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.9</span>
+  <span class="nt">beta2</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.99</span>
+  <span class="nt">opt_name</span><span class="p">:</span> <span class="s">&#39;fedyogi&#39;</span>
+  <span class="c1"># Server LR, used by FedOpt and FedSCA</span>
+  <span class="nt">eta</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1.0</span>
+<span class="nt">MLModel</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">MLP</span>
+  <span class="nt">activation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">relu</span>
+  <span class="nt">dropout</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.2</span>
+  <span class="nt">units</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">512</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">512</span>
+  <span class="nt">optimizer</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">sgd</span>
+    <span class="nt">lr</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.1</span>
+    <span class="nt">momentum</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0</span>
+  <span class="nt">loss</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">categorical_crossentropy</span>
+  <span class="nt">metrics</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">accuracy</span>
+</pre></div>
+</div>
+<p>Three models are placed inside the system: MLP, LeNet, and MobileNet. You can add your own model and put the config in this file.</p>
+<div class="section" id="fedmodel">
+<h3><span class="section-number">3.3.2.1. </span>FedModel<a class="headerlink" href="#fedmodel" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th align="center">Config Name</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">name</td>
+<td align="left">The name of federated strategy</td>
+</tr>
+<tr>
+<td align="center">num_tolerance</td>
+<td align="left">Early stopping patience</td>
+</tr>
+<tr>
+<td align="center">max_rounds</td>
+<td align="left">The maximum rounds that can be reached</td>
+</tr>
+<tr>
+<td align="center">rounds_between_val</td>
+<td align="left">The number of round between test or validation</td>
+</tr>
+<tr>
+<td align="center">B</td>
+<td align="left">The local minibatch size used for the client updates</td>
+</tr>
+<tr>
+<td align="center">C</td>
+<td align="left">The fraction of clients that perform computation on each round</td>
+</tr>
+<tr>
+<td align="center">E</td>
+<td align="left">The number of training passes each client makes over its local dataset on each round</td>
+</tr>
+<tr>
+<td align="center">To be done: strategy specific params</td>
+<td align="left"></td>
+</tr>
+</tbody>
+</table></div>
+<div class="section" id="mlmodel">
+<h3><span class="section-number">3.3.2.2. </span>MLModel<a class="headerlink" href="#mlmodel" title="Permalink to this headline">¶</a></h3>
+<p>To be done.</p>
+</div>
+</div>
+<div class="section" id="runtime-config">
+<h2><span class="section-number">3.3.3. </span>Runtime Config<a class="headerlink" href="#runtime-config" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">clients</span><span class="p">:</span>
+  <span class="nt">bandwidth</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">100Mbit</span>
+<span class="nt">docker</span><span class="p">:</span>
+  <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">fedeval:v4</span>
+<span class="nt">server</span><span class="p">:</span>
+  <span class="nt">host</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">server</span>
+  <span class="nt">listen</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">server</span>
+  <span class="nt">num_clients</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10</span>
+  <span class="nt">port</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
+<span class="nt">log_dir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">log/quickstart</span>
+</pre></div>
+</div>
+<p>The runtime config contains the parameters that will be used in the FL training, and it contains two parts: the client and server.</p>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th align="center">Config Name</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">bandwidth</td>
+<td align="left">Bandwidth for the clients in the uploading and downloading<br />We do not restrict the bandwidth for the server.</td>
+</tr>
+<tr>
+<td align="center">num_clients</td>
+<td align="left">The number of clients</td>
+</tr>
+<tr>
+<td align="center">docker image</td>
+<td align="left">The docker image that will be used for both client and server.</td>
+</tr>
+<tr>
+<td align="center">host</td>
+<td align="left">The IP address that clients connect to the server, could be set to host-name or 'server' (the name of the container network)</td>
+</tr>
+<tr>
+<td align="center">listen</td>
+<td align="left">The listen address for the server, could be set to 0.0.0.0 or 'server' (the name of the container network)</td>
+</tr>
+<tr>
+<td align="center">port</td>
+<td align="left">Port, e.g., 8080</td>
+</tr>
+<tr>
+<td align="center">log_dir</td>
+<td align="left">Path for saving the log and results</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="RunUtils.html" class="btn btn-neutral float-right" title="3.4. Get to know the FedEval.run and FedEval.run_util" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Procedures.html" class="btn btn-neutral float-left" title="3.2. Running Multiple Experiments (using scripts)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright .
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

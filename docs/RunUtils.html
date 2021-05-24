@@ -1,0 +1,302 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>3.4. Get to know the FedEval.run and FedEval.run_util &mdash; FedEval  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="3.5. Customization" href="Contribute.html" />
+    <link rel="prev" title="3.3. Get to know the three configurations" href="Configurations.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FedEval
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Environment.html">2. Environment</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Tutorial.html">3. Tutorial</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="QuickStart.html">3.1. Quick Start (single experiment using terminal)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Procedures.html">3.2. Running Multiple Experiments (using scripts)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Configurations.html">3.3. Get to know the three configurations</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">3.4. Get to know the FedEval.run and FedEval.run_util</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#fedeval-run-main">3.4.1. FedEval.run.__main__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fedeval-run-util-run">3.4.2. FedEval.run_util.run</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Contribute.html">3.5. Customization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Documentation.html">4. Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FedEval</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="Tutorial.html"><span class="section-number">3. </span>Tutorial</a> &raquo;</li>
+        
+      <li><span class="section-number">3.4. </span>Get to know the FedEval.run and FedEval.run_util</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/RunUtils.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="get-to-know-the-fedeval-run-and-fedeval-run-util">
+<h1><span class="section-number">3.4. </span>Get to know the FedEval.run and FedEval.run_util<a class="headerlink" href="#get-to-know-the-fedeval-run-and-fedeval-run-util" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="fedeval-run-main">
+<h2><span class="section-number">3.4.1. </span>FedEval.run.__main__<a class="headerlink" href="#fedeval-run-main" title="Permalink to this headline">¶</a></h2>
+<p>This function is a CLI interface, which is used to:</p>
+<ul class="simple">
+<li><p>prepare dataset according to 1_data_config.yml;</p></li>
+<li><p>compose dockerfile for both local and server(remote) mode;</p></li>
+<li><p>launch a single experiment;</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">FedEval.run.__main__</span></code>  is suitable for <em>small scale</em> experiments, such as prototype iteration, debug. You can directly use them in containers like this:</p>
+<p><img alt="docker run command" src="_images/docker_run_params.png" /></p>
+<p>where the dark part issues a new container using the image we build (tagged as fedeval:v4); the blue part are parameters of  <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">run</span></code> command, which maps the current directory to the same place in the container and sets working directory as this one; the red part is what we run in the container; and the orange part are parameters of <code class="docutils literal notranslate"><span class="pre">FedEval.run.__main__</span></code>.</p>
+<p>Here’s an example to launch a local experiment with the preset configurations in <code class="docutils literal notranslate"><span class="pre">FedEval/configs/quickstart</span></code>.</p>
+<ol>
+<li><p>Preprocess the dataset:</p>
+<p><code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">docker</span> <span class="pre">run</span> <span class="pre">-it</span> <span class="pre">--rm</span> <span class="pre">-v</span> <span class="pre">$(pwd):$(pwd)</span> <span class="pre">-w</span> <span class="pre">$(pwd)</span> <span class="pre">fedeval:v4</span> <span class="pre">python</span> <span class="pre">-m</span> <span class="pre">FedEval.run</span> <span class="pre">-c</span> <span class="pre">configs/quickstart</span> <span class="pre">-f</span> <span class="pre">data</span></code></p>
+</li>
+<li><p>Generate the local compose-file:</p>
+<p><code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">docker</span> <span class="pre">run</span> <span class="pre">-it</span> <span class="pre">--rm</span> <span class="pre">-v</span> <span class="pre">$(pwd):$(pwd)</span> <span class="pre">-w</span> <span class="pre">$(pwd)</span> <span class="pre">fedeval:v4</span> <span class="pre">python</span> <span class="pre">-m</span> <span class="pre">FedEval.run</span> <span class="pre">-c</span> <span class="pre">configs/quickstart</span> <span class="pre">-f</span> <span class="pre">compose-local</span></code></p>
+</li>
+<li><p>Start the experiment as a daemon (remove <code class="docutils literal notranslate"><span class="pre">-d</span></code> if you want to see logs from terminal):</p>
+<p><code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">docker-compose</span> <span class="pre">up</span> <span class="pre">-d</span></code></p>
+</li>
+<li><p>After a few seconds, visit <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8080/dashboard</span></code> on your browser to have an overview of the experiment’s status.</p></li>
+</ol>
+<p>For full details about this function, please refer to the <a class="reference external" href="#">documentation</a>.</p>
+</div>
+<div class="section" id="fedeval-run-util-run">
+<h2><span class="section-number">3.4.2. </span>FedEval.run_util.run<a class="headerlink" href="#fedeval-run-util-run" title="Permalink to this headline">¶</a></h2>
+<p>This function is a higher-level scheduler based on <code class="docutils literal notranslate"><span class="pre">FedEval.run</span></code>, ssh and scp. Specifically, it direct the whole lifecycle of each instances in an experiment, including:</p>
+<ol class="simple">
+<li><p>compose and dispatch dockerfile and configuration files;</p></li>
+<li><p>prepare the dataset for each client;</p></li>
+<li><p>launch train-val-test iterations;</p></li>
+<li><p>stop the experiment at any time you want;</p></li>
+</ol>
+<p>As it is exposed as a function interface, it can be coded in order to handle some large-scale operations, such as grid search, tuning, etc.</p>
+<p>Here’s an example which aimed at conducting a grid search for learning rate <code class="docutils literal notranslate"><span class="pre">lr</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">FedEval.run_util</span> <span class="kn">import</span> <span class="n">run</span>
+
+<span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;data_config&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;dataset&#39;</span><span class="p">:</span> <span class="s1">&#39;mnist&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;non-iid&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;sample_size&#39;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
+        <span class="s1">&#39;non-iid-class&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s1">&#39;non-iid-strategy&#39;</span><span class="p">:</span> <span class="s1">&#39;average&#39;</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;model_config&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;MLModel&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;MLP&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;optimizer&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;sgd&#39;</span><span class="p">,</span> <span class="s1">&#39;lr&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s1">&#39;momentum&#39;</span><span class="p">:</span> <span class="mi">0</span>
+            <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;FedModel&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;FedAvg&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+            <span class="s1">&#39;max_rounds&#39;</span><span class="p">:</span> <span class="mi">3000</span><span class="p">,</span> <span class="s1">&#39;num_tolerance&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;runtime_config&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;server&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;num_clients&#39;</span><span class="p">:</span> <span class="mi">10</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">for</span> <span class="n">lr</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+    <span class="n">params</span><span class="p">[</span><span class="s1">&#39;model_config&#39;</span><span class="p">][</span><span class="s1">&#39;MLModel&#39;</span><span class="p">][</span><span class="s1">&#39;optimizer&#39;</span><span class="p">][</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span> <span class="c1"># update learning rate in configuration</span>
+    <span class="n">run</span><span class="p">(</span><span class="n">exec</span><span class="o">=</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;local&#39;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="s1">&#39;configs/quickstart&#39;</span><span class="p">,</span> <span class="n">new_config</span><span class="o">=</span><span class="n">config</span> <span class="o">+</span> <span class="s1">&#39;_tmp&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Noted that the <code class="docutils literal notranslate"><span class="pre">params</span></code> passed into <code class="docutils literal notranslate"><span class="pre">run</span></code> in line 32 will override the configurations specified in <code class="docutils literal notranslate"><span class="pre">config='configs/quickstart'</span></code>. In another word, this interface will take in two configurations: One is saved in external YAML files as a default choice; the other one is an optional parameter of function <code class="docutils literal notranslate"><span class="pre">FedEval.run_util.run</span></code>. And the latter one has a higher priority.</p>
+<p>After run this script in terminal,  you can visit <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8080/dashboard</span></code> have an overview of the experiments’ status.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="Contribute.html" class="btn btn-neutral float-right" title="3.5. Customization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Configurations.html" class="btn btn-neutral float-left" title="3.3. Get to know the three configurations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright .
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

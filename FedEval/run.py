@@ -5,75 +5,48 @@ import argparse
 import numpy as np
 
 from .model import *
-from .dataset import FedImage
+from .dataset import *
 from .role import Client, Server
 
 
-def generate_data(data_config, model_config, runtime_config):
-    data = FedImage(dataset=data_config['dataset'],
-                    data_dir=data_config['data_dir'],  # for saving
-                    flatten=True if model_config['MLModel']['name'] == 'MLP' else False,
-                    normalize=data_config['normalize'],
-                    train_val_test=data_config['train_val_test'],
-                    num_clients=runtime_config['server']['num_clients'])
+def generate_data(data_config, model_config, runtime_config, save_file=True):
+    try:
+        data = eval(data_config['dataset'])(
+            output_dir=data_config['data_dir'],  # for saving
+            flatten=True if model_config['MLModel']['name'] == 'MLP' else False,
+            normalize=data_config['normalize'],
+            train_val_test=data_config['train_val_test'],
+            num_clients=runtime_config['server']['num_clients']
+        )
+    except ModuleNotFoundError:
+        print('Invalid dataset name', data_config['dataset'])
+        return None
 
-    if data_config['non-iid'] == 0:
-        data.iid_data(sample_size=data_config['sample_size'])
+    if not data_config['non-iid']:
+        print('Generating IID data')
+        clients_data = data.iid_data(sample_size=data_config['sample_size'], save_file=save_file)
     else:
-        data.non_iid_data(non_iid_class=data_config['non-iid'],
-                          strategy=data_config['non-iid-strategy'],
-                          shared_data=data_config['shared_data'], sample_size=data_config['sample_size'])
+        print('Generating Non-IID data')
+        clients_data = data.non_iid_data(
+            non_iid_class=data_config['non-iid-class'],
+            strategy=data_config['non-iid-strategy'],
+            shared_data=data_config['shared_data'], sample_size=data_config['sample_size'],
+            save_file=save_file
+        )
+    return clients_data
 
 
 def run(role, data_config, model_config, runtime_config):
-    ml_model_name = model_config['MLModel']['name']
-    ml_model_configs = model_config['MLModel']
-    dataset_name = data_config['dataset']
-
-    # 2 Config Model
-    if ml_model_name == "MLP":
-        input_params = {
-            "inputs_shape": {'x': [np.prod(data_config['input_shape'][dataset_name]['image'])]},
-            "targets_shape": {'y': data_config['input_shape'][dataset_name]['label']},
-        }
-    else:
-        input_params = {
-            "inputs_shape": {'x': data_config['input_shape'][dataset_name]['image']},
-            "targets_shape": {'y': data_config['input_shape'][dataset_name]['label']},
-        }
-
-    ml_model_configs[ml_model_name].update(input_params)
-    model = eval(ml_model_name + "(**ml_model_configs[ml_model_name])")
-
     if role == 'client':
-        # 3 Config data
-        client_id = os.environ.get('CLIENT_ID', '0')
-        with open(os.path.join(data_config['data_dir'], 'client_%s.pkl' % client_id), 'rb') as f:
-            data = pickle.load(f)
-
-        # 4 Init the client
-        Client(server_host=runtime_config['server']['host'],
-               server_port=runtime_config['server']['port'],
-               model=model,
-               train_data={'x': data['x_train'], 'y': data['y_train']},
-               val_data={'x': data['x_val'], 'y': data['y_val']},
-               test_data={'x': data['x_test'], 'y': data['y_test']},
-               fed_model_name=model_config['FedModel']['name'],
-               train_strategy=model_config['FedModel']['train_strategy'],
-               upload_strategy=model_config['FedModel']['upload_strategy'],
-               client_name="Client_%s" % client_id)
+        Client(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
 
     if role == 'server':
         # 3 Init the server
-        server = Server(model=model, server_config=runtime_config['server'],
-                        fed_model_name=model_config['FedModel']['name'],
-                        train_strategy=model_config['FedModel']['train_strategy'],
-                        upload_strategy=model_config['FedModel']['upload_strategy'])
+        server = Server(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
         server.start()
 
 
 def generate_docker_compose_server(runtime_config, path):
-    
     project_path = os.path.abspath('./')
 
     server_template = {
@@ -82,7 +55,7 @@ def generate_docker_compose_server(runtime_config, path):
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
-        'command': 'sh -c "python3 -m FedEval.run -f run -r server -c {}"'.format(path),
+        'command': 'sh -c "python3 -W ignore -m FedEval.run -f run -r server -c {}"'.format(path),
         'container_name': 'server'
     }
 
@@ -91,6 +64,8 @@ def generate_docker_compose_server(runtime_config, path):
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
+        # 'runtime': 'nvidia',
+        # 'environment': ['NVIDIA_VISIBLE_DEVICES=all']
     }
 
     with open('docker-compose-server.yml', 'w') as f:
@@ -116,12 +91,12 @@ def generate_docker_compose_server(runtime_config, path):
             tmp['command'] = 'sh -c ' \
                              '"export CLIENT_ID={} ' \
                              '&& tc qdisc add dev eth0 root tbf rate {} latency 10ms burst 60000kb ' \
-                             '&& python3 -m FedEval.run -f run -r client -c {}"'.format(
+                             '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
                 client_id, runtime_config['clients']['bandwidth'], path)
             dc['services']['client_%s' % client_id] = tmp
 
         counter += min(remain_clients, machines[m_k]['capacity'])
-        remain_clients -= counter
+        remain_clients -= min(remain_clients, machines[m_k]['capacity'])
 
         with open("docker-compose-%s.yml" % m_k, 'w') as f:
             no_alias_dumper = yaml.dumper.SafeDumper
@@ -130,7 +105,6 @@ def generate_docker_compose_server(runtime_config, path):
 
 
 def generate_docker_compose_local(runtime_config, path):
-
     project_path = os.path.abspath('./')
 
     server_template = {
@@ -139,7 +113,7 @@ def generate_docker_compose_local(runtime_config, path):
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
-        'command': 'sh -c "python3 -m FedEval.run -f run -r server -c {}"'.format(path),
+        'command': 'sh -c "python3 -W ignore -m FedEval.run -f run -r server -c {}"'.format(path),
         'container_name': 'server',
         'networks': ['server-clients']
     }
@@ -149,7 +123,9 @@ def generate_docker_compose_local(runtime_config, path):
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
-        'networks': ['server-clients']
+        'networks': ['server-clients'],
+        # 'runtime': 'nvidia',
+        # 'environment': ['NVIDIA_VISIBLE_DEVICES=all']
     }
 
     dc = {
@@ -165,7 +141,7 @@ def generate_docker_compose_local(runtime_config, path):
         tmp['command'] = 'sh -c ' \
                          '"export CLIENT_ID={0} ' \
                          '&& tc qdisc add dev eth0 root tbf rate {1} latency 50ms burst 15kb ' \
-                         '&& python3 -m FedEval.run -f run -r client -c {2}"'.format(
+                         '&& python3 -W ignore -m FedEval.run -f run -r client -c {2}"'.format(
             client_id,
             runtime_config['clients']['bandwidth'],
             path)
@@ -200,18 +176,13 @@ if __name__ == '__main__':
         runtime_config = yaml.load(f)
 
     if args.function == 'data':
-
         generate_data(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
 
     if args.function == 'run':
-
         run(role=args.role, data_config=data_config, model_config=model_config, runtime_config=runtime_config)
 
     if args.function == 'compose-local':
-
         generate_docker_compose_local(runtime_config, args.config)
 
     if args.function == 'compose-server':
-
         generate_docker_compose_server(runtime_config, args.config)
-

@@ -1,1 +1,1 @@
-from .gradients_attack import AttackModel
+from .gradients_attack import DLGAttack

@@ -1,44 +1,48 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>3. Quick Start &mdash; FedEval 1.0 documentation</title>
+  <title>3.1. Quick Start (single experiment using terminal) &mdash; FedEval  documentation</title>
   
-
-  
-  
-  
-  
-
-  
-  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
-  
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
 
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/my.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="4. Configs" href="Configs.html" />
-    <link rel="prev" title="2. Install" href="Install.html" /> 
+    <link rel="next" title="3.2. Running Multiple Experiments (using scripts)" href="Procedures.html" />
+    <link rel="prev" title="3. Tutorial" href="Tutorial.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -75,6 +79,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,23 +87,32 @@
               
             
             
-              <ul class="current">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Install.html">2. Install</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">3. Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#generate-the-data-and-docker-compose-file">3.1. Generate the data and docker-compose file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#start-the-experiment">3.2. Start the Experiment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#view-the-results">3.3. View the results</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#stop-the-experiment">3.4. Stop the Experiment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#dashboard-example">3.5. Dashboard Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Environment.html">2. Environment</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Tutorial.html">3. Tutorial</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">3.1. Quick Start (single experiment using terminal)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#generate-the-data-and-docker-compose-file">3.1.1. Generate the data and docker-compose file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#start-the-experiment">3.1.2. Start the Experiment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#view-the-results">3.1.3. View the results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-the-experiment">3.1.4. Stop the Experiment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dashboard-example">3.1.5. Dashboard Example</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Configs.html">4. Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Procedures.html">3.2. Running Multiple Experiments (using scripts)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Configurations.html">3.3. Get to know the three configurations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunUtils.html">3.4. Get to know the FedEval.run and FedEval.run_util</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contribute.html">3.5. Customization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Documentation.html">4. Documentation</a></li>
 </ul>
 
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -133,18 +147,22 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li>3. Quick Start</li>
+          <li><a href="Tutorial.html"><span class="section-number">3. </span>Tutorial</a> &raquo;</li>
+        
+      <li><span class="section-number">3.1. </span>Quick Start (single experiment using terminal)</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/QuickStart.md.txt" rel="nofollow"> View page source</a>
           
         
@@ -158,33 +176,33 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="quick-start">
-<h1>3. Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="quick-start-single-experiment-using-terminal">
+<h1><span class="section-number">3.1. </span>Quick Start (single experiment using terminal)<a class="headerlink" href="#quick-start-single-experiment-using-terminal" title="Permalink to this headline">¶</a></h1>
 <p>In this page, we will show how to start an experiment locally using the config fils in QucikStart dir. Please clone the project from Github, open a terminal from the project path and follow the next tutorial.</p>
 <div class="section" id="generate-the-data-and-docker-compose-file">
-<h2>3.1. Generate the data and docker-compose file<a class="headerlink" href="#generate-the-data-and-docker-compose-file" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">3.1.1. </span>Generate the data and docker-compose file<a class="headerlink" href="#generate-the-data-and-docker-compose-file" title="Permalink to this headline">¶</a></h2>
 <p>Generate the data for all the clients</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo docker run -it --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fedeval:v1 python -W ignore -m FedEval.run -c QuickStart -f data
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo docker run -it --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fedeval:v1 python -W ignore -m FedEval.run -c configs/quickstart -f data
 </pre></div>
 </div>
 <p>Generate the docker-compose file</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo docker run -it --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fedeval:v1 python -W ignore -m FedEval.run -c QuickStart -f compose-local
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo docker run -it --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fedeval:v1 python -W ignore -m FedEval.run -c configs/quickstart -f compose-local
 </pre></div>
 </div>
 </div>
 <div class="section" id="start-the-experiment">
-<h2>3.2. Start the Experiment<a class="headerlink" href="#start-the-experiment" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">3.1.2. </span>Start the Experiment<a class="headerlink" href="#start-the-experiment" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo docker-compose up -d
 </pre></div>
 </div>
 </div>
 <div class="section" id="view-the-results">
-<h2>3.3. View the results<a class="headerlink" href="#view-the-results" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">3.1.3. </span>View the results<a class="headerlink" href="#view-the-results" title="Permalink to this headline">¶</a></h2>
 <p>Go to http://127.0.0.1:8200/dashboard to see the results. The default port is 8200, and you can change the default settings in the <a class="reference external" href="Configs.html#runtime-config">Configs</a>.</p>
 <p>Here’s an example of the <a class="reference external" href="#dashboard-example">dashboard</a>.</p>
 </div>
 <div class="section" id="stop-the-experiment">
-<h2>3.4. Stop the Experiment<a class="headerlink" href="#stop-the-experiment" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">3.1.4. </span>Stop the Experiment<a class="headerlink" href="#stop-the-experiment" title="Permalink to this headline">¶</a></h2>
 <p>Stop and remove the containers using docker-compose (suggested)</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo docker-compose stop
 sudo docker-compose rm
@@ -197,7 +215,7 @@ sudo docker rm <span class="k">$(</span>sudo docker ps --filter <span class="nv"
 </div>
 </div>
 <div class="section" id="dashboard-example">
-<h2>3.5. Dashboard Example<a class="headerlink" href="#dashboard-example" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">3.1.5. </span>Dashboard Example<a class="headerlink" href="#dashboard-example" title="Permalink to this headline">¶</a></h2>
 <p><img alt="Dashboard Example" src="_images/dashboard.png" /></p>
 <hr class="docutils" />
 </div>
@@ -208,29 +226,29 @@ sudo docker rm <span class="k">$(</span>sudo docker ps --filter <span class="nv"
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="Configs.html" class="btn btn-neutral float-right" title="4. Configs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="Install.html" class="btn btn-neutral float-left" title="2. Install" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="Procedures.html" class="btn btn-neutral float-right" title="3.2. Running Multiple Experiments (using scripts)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Tutorial.html" class="btn btn-neutral float-left" title="3. Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2020, anonymous
+        &#169; Copyright .
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -238,7 +256,6 @@ sudo docker rm <span class="k">$(</span>sudo docker ps --filter <span class="nv"
 
   </div>
   
-
 
   <script type="text/javascript">
       jQuery(function () {

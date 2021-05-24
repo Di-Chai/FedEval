@@ -7,63 +7,25 @@ import requests
 import logging
 import numpy as np
 
-from ..model.BaseModel import parse_strategy_and_compress, recover_to_weights
 from socketIO_client import SocketIO
 from ..utils import pickle_string_to_obj, obj_to_pickle_string
 from ..strategy import *
 
 
-def load_json(filename):
-    with open(filename) as f:
-        return json.load(f)
-
-
 class Client(object):
+
     MAX_DATASET_SIZE_KEPT = 6000
 
-    def __init__(self,
-                 server_host,
-                 server_port,
-                 model,
-                 train_data,
-                 val_data,
-                 test_data,
-                 client_name,
-                 fed_model_name,
-                 train_strategy,
-                 upload_strategy,
-                 ignore_load=True, ):
+    def __init__(self, data_config, model_config, runtime_config):
 
-        self.ignore_load = ignore_load
-
-        self.local_model = None
-        self.dataset = None
-
-        self.train_data = train_data
-        self.val_data = val_data
-        self.test_data = test_data
-
-        self.name = client_name
-
-        fed_model = parse_strategy_name(fed_model_name)
-
-        self.fed_model = fed_model(
-            role='client', model=model, upload_strategy=upload_strategy,
-            train_strategy=train_strategy,
-            train_data=train_data, val_data=val_data, test_data=test_data
-        )
-
+        # (1) Name
+        self.name = 'client'
+        self.cid = os.environ.get('CLIENT_ID', '0')
+        # (2) Logger
         time_str = time.strftime('%Y_%m%d_%H%M%S', time.localtime())
-
-        self.weights_download_url = 'http://' + server_host + ':%s' % server_port + '/download/'
-        self.local_train_round = 0
-        self.host_params_round = -1
-        self.global_weights = None
-
-        # logger
         self.logger = logging.getLogger("client")
         self.logger.setLevel(logging.INFO)
-        self.log_dir = os.path.join(model.model_dir, self.name, time_str)
+        self.log_dir = os.path.join(runtime_config.get('log_dir', 'log'), 'Client' + self.cid, time_str)
         os.makedirs(self.log_dir, exist_ok=True)
         self.fh = logging.FileHandler(os.path.join(self.log_dir, 'train.log'))
         self.fh.setLevel(logging.INFO)
@@ -77,22 +39,25 @@ class Client(object):
         # add the handlers to the logger
         self.logger.addHandler(self.fh)
         self.logger.addHandler(self.ch)
+        
+        fed_model = eval(model_config['FedModel']['name'])
+        self.fed_model = fed_model(
+            role=self, data_config=data_config, model_config=model_config, runtime_config=runtime_config
+        )
+
+        server_host, server_port = self.fed_model.param_parser.parse_server_addr(self.name)
+
+        self.weights_download_url = 'http://' + server_host + ':%s' % server_port + '/download/'
+        self.local_train_round = 0
+        self.host_params_round = -1
+        self.global_weights = None
+
+        # Start the connection
         self.sio = SocketIO(server_host, server_port)
         self.register_handles()
         self.logger.info("sent wakeup")
         self.sio.emit('client_wake_up')
         self.sio.wait()
-
-    def load_stat(self):
-        loadavg = {}
-        with open("/proc/loadavg") as fin:
-            con = fin.read().split()
-            loadavg['lavg_1'] = con[0]
-            loadavg['lavg_5'] = con[1]
-            loadavg['lavg_15'] = con[2]
-            loadavg['nr'] = con[3]
-            loadavg['last_pid'] = con[4]
-        return loadavg['lavg_15']
 
     def register_handles(self):
 
@@ -134,11 +99,7 @@ class Client(object):
                 self.logger.info("train received model: %s" % weights_file_name)
 
             # 2 fit on local and retrieve new uploading params
-            train_loss, train_size = self.fed_model.fit_on_local_data(
-                train_data=self.train_data,
-                epochs=self.fed_model.train_strategy['E'],
-                batch_size=self.fed_model.train_strategy['B']
-            )
+            train_loss, train_data_size = self.fed_model.fit_on_local_data()
 
             upload_data = self.fed_model.retrieve_local_upload_info()
 
@@ -149,7 +110,7 @@ class Client(object):
                 'round_number': current_round,
                 'local_round_number': self.local_train_round,
                 'weights': obj_to_pickle_string(upload_data),
-                'train_size': train_size,
+                'train_size': train_data_size,
                 'train_loss': train_loss,
                 'time_finish_update': time_finish_update,
                 'time_receive_request': time_receive_request,
@@ -208,24 +169,8 @@ class Client(object):
                 self.logger.error(e)
             self.logger.info("Emited...")
 
-        def on_check_client_resource(*args):
-            req = args[0]
-            args[1]('Check Res', req['rid'])
-            print("check client resource.")
-            if self.ignore_load:
-                load_average = 0.15
-                print("Ignore load average")
-            else:
-                load_average = self.load_stat()
-                print("Load average:", load_average)
-
-            resp = {
-                'round_number': req['round_number'],
-                'load_rate': load_average
-            }
-            self.sio.emit('check_client_resource_done', resp)
-
         def on_stop():
+            self.fed_model.client_exit_job(self)
             print("Federated training finished ...")
             exit(0)
 
@@ -236,4 +181,3 @@ class Client(object):
         self.sio.on('request_update', on_request_update)
         self.sio.on('request_evaluate', on_request_evaluate)
         self.sio.on('stop', on_stop)
-        self.sio.on('check_client_resource', on_check_client_resource)
