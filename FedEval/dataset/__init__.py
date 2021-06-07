@@ -1,6 +1,8 @@
+from matplotlib.pyplot import imread
 from .FedImage import *
 from .Semantic140 import *
 from .Shakespeare import *
+from .IntelImage import *
 
 
 # Used by the server, because it cannot reach the raw data
@@ -26,6 +28,9 @@ def get_data_shape(dataset):
     elif dataset == 'semantic140':
         x_size = (None, 25, 200)
         y_size = (None, 1)
+    elif dataset == 'intel':
+        x_size = (None, 150, 150, 3)
+        y_size = (None, 6)
     else:
         raise ValueError('Unknown dataset', dataset)
     return x_size, y_size

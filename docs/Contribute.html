@@ -189,6 +189,7 @@
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">.FedDataBase</span> <span class="kn">import</span> <span class="n">FedData</span>
 
+<span class="c1"># Example of using data from tf.keras.datasets</span>
 <span class="k">class</span> <span class="nc">imdb</span><span class="p">(</span><span class="n">FedData</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># load the data</span>
@@ -204,11 +205,64 @@
                 <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">fixed_len</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="c1"># Set self.num_class (Required)</span>
+        <span class="c1"># Currently we only support classification tasks, because the simulation </span>
+        <span class="c1"># of non-IID data needs the class labels. The non-classification tasks will</span>
+        <span class="c1"># be supported in the future.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_class</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Shape of x: [50000, 176], i.e., [#samples, the frature dims]</span>
 <span class="sd">        Shape of y: [50000, 1], i.e., [#samples, the label dims]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+
+<span class="c1"># Example of using data from arbitary source</span>
+<span class="k">class</span> <span class="nc">intel</span><span class="p">(</span><span class="n">FedData</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="c1"># Step 1 : Put the data in $ProjectPath/FedEval/data</span>
+        <span class="c1"># For example, the data path is $ProjectPath/FedEval/data/intel_image_classification</span>
+        <span class="c1"># Data used in this example could be downloaded at : </span>
+        <span class="c1"># https://www.kaggle.com/puneet6060/intel-image-classification/version/2</span>
+        <span class="n">data_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_path</span><span class="p">),</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;intel_image_classification&#39;</span><span class="p">)</span>
+		
+        <span class="c1"># By default, we load all images in seg_train as training data</span>
+        <span class="n">train_image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">data_path</span><span class="p">,</span> <span class="s1">&#39;seg_train&#39;</span><span class="p">,</span> <span class="s1">&#39;seg_train&#39;</span><span class="p">)</span>
+        <span class="n">image_labels</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">train_image_path</span><span class="p">))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">image_label</span> <span class="ow">in</span> <span class="n">image_labels</span><span class="p">:</span>
+            <span class="n">curr_label</span> <span class="o">=</span> <span class="n">image_labels</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">image_label</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">image_file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">train_image_path</span><span class="p">,</span> <span class="n">image_label</span><span class="p">)):</span>
+                <span class="n">tmp_image_data</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">train_image_path</span><span class="p">,</span> <span class="n">image_label</span><span class="p">,</span> <span class="n">image_file</span><span class="p">))</span>
+                <span class="n">tmp_image_data</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">tmp_image_data</span><span class="p">,</span> <span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="mi">150</span><span class="p">),</span> <span class="n">interpolation</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">INTER_AREA</span><span class="p">)</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_image_data</span><span class="p">)</span>
+                <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">curr_label</span><span class="p">)</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        You may add image preprocessing steps here.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+		
+        <span class="c1"># Formatting the data into np.array</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">to_categorical</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_class</span><span class="p">)</span>
+
+        <span class="c1"># Shuffle the data</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">shuffle</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+        <span class="c1"># Set self.num_class (Required)</span>
+        <span class="c1"># Currently we only support classification tasks, because the simulation </span>
+        <span class="c1"># of non-IID data needs the class labels. The non-classification tasks will</span>
+        <span class="c1"># be supported in the future.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_class</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+    
 </pre></div>
 </div>
 <p><strong>Note (For Non-IID dataset)</strong>: The IMDB dataset are not original used for federated learning, thus we do not have the information of who generate the data samples in real-world. If such information is available, e.g., who generate the data for each sample, we can utilize these information by setting value to <code class="docutils literal notranslate"><span class="pre">self.identity</span></code>. For example, in the <code class="docutils literal notranslate"><span class="pre">load_data(self)</span></code> function, we have <code class="docutils literal notranslate"><span class="pre">self.identity</span> <span class="pre">=</span> <span class="pre">[10,</span> <span class="pre">9,</span> <span class="pre">10]</span></code>, then it means that the dataset is generated by three participants and they have 10, 9, and 10 samples respectively. Apart from setting <code class="docutils literal notranslate"><span class="pre">self.identity</span></code> properly, we need to sort the data samples (i.e., x) and labels (i.e., y) according to the identity, such that the <code class="docutils literal notranslate"><span class="pre">x[:10],y[:10]</span></code> are generated by the first participant in <code class="docutils literal notranslate"><span class="pre">self.identity</span></code>, <code class="docutils literal notranslate"><span class="pre">x[10:19],y[10:19]</span></code> are generated by the second one, and the last 10 samples in <code class="docutils literal notranslate"><span class="pre">x,y</span></code> are generated by the last participant.</p>
@@ -245,15 +299,18 @@
         <span class="n">x_size</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
         <span class="n">y_size</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="c1"># Step 2.2 Add the shape information</span>
-    <span class="k">elif</span> <span class="n">dataset</span> <span class="o">==</span> <span class="s1">&#39;imdb&#39;</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">dataset</span> <span class="o">==</span> <span class="s1">&#39;imdb&#39;</span><span class="p">:</span>  <span class="c1"># the name is the same with the class name, i.e., class imdb(FedData)</span>
         <span class="n">x_size</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">176</span><span class="p">)</span>
         <span class="n">y_size</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dataset</span> <span class="o">==</span> <span class="s1">&#39;intel&#39;</span><span class="p">:</span> <span class="c1"># the name is the same with the class name</span>
+        <span class="n">x_size</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">y_size</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown dataset&#39;</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span>
 </pre></div>
 </div>
-<p><strong>Finish:</strong>  Now the IMDB datasets is available in FedEval by setting <code class="docutils literal notranslate"><span class="pre">dataset</span></code> to <code class="docutils literal notranslate"><span class="pre">imdb</span></code> in the data config.</p>
+<p><strong>Finish:</strong>  Now the IMDB and Inter-Image-Classification datasets is available in FedEval by setting <code class="docutils literal notranslate"><span class="pre">dataset</span></code> to <code class="docutils literal notranslate"><span class="pre">imdb</span></code> or <code class="docutils literal notranslate"><span class="pre">intel</span></code> in the data config.</p>
 </div>
 <div class="section" id="customize-the-ml-model">
 <h2><span class="section-number">3.5.2. </span>Customize the ML model<a class="headerlink" href="#customize-the-ml-model" title="Permalink to this headline">¶</a></h2>

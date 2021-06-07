@@ -47,6 +47,8 @@ class FedData:
 
         self.x, self.y = self.load_data()
 
+        assert self.num_class is not None, 'Non-classification tasks will be supported in the future'
+
         if normalize:
             self.x = self.x / np.max(self.x)
 

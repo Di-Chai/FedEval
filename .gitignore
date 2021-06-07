@@ -142,3 +142,4 @@ develop
 docker_pre_downloaded
 trials/
 id_rsa
+configs/workstation
