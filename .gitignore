@@ -140,8 +140,6 @@ log
 *.jpg
 *.json
 develop
-sphinx
-docker/local
-docker/local_GPU
-trials
+docker_pre_downloaded
+trials/
 id_rsa

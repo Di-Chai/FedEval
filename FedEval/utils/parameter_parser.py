@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from ..dataset import get_data_shape
 from ..model import *
+from FedEval import model
 
 
 class ParamParser:
@@ -58,8 +59,12 @@ class ParamParser:
         ml_model = eval(ml_model_name)(target_shape=self.y_size, **ml_model_config)
         ml_model.compile(loss=loss, metrics=metrics, optimizer=optimizer)
         if ml_model_name == 'MLP':
-            self.x_size = (None, np.prod(self.x_size[1:]))
+            self.x_size = (None, int(np.prod(self.x_size[1:])))
         ml_model.build(input_shape=self.x_size)
+
+        # Run predict output, such that the model could be saved.
+        # And this should be a issue of TF
+        ml_model.compute_output_shape(self.x_size)
 
         return ml_model
 

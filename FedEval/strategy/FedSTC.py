@@ -52,7 +52,7 @@ class FedSTC(FedAvg):
 
         super().__init__(role, data_config, model_config, runtime_config)
 
-        if self.role.name == 'client':
+        if self.role == 'client':
             self.client_residual = self.init_residual()
         else:
             self.server_residual = self.init_residual()

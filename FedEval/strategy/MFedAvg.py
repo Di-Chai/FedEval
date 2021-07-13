@@ -15,7 +15,7 @@ class MFedAvg(FedAvg):
     def __init__(self, role, data_config, model_config, runtime_config):
         super().__init__(role, data_config, model_config, runtime_config)
 
-        if role.name == 'server':
+        if role == 'server':
             self.v = None
 
     def update_host_params(self, client_params, aggregate_weights):

@@ -14,6 +14,7 @@ from flask_socketio import SocketIO, emit
 
 from ..strategy import *
 from ..utils import pickle_string_to_obj, obj_to_pickle_string
+from ..run_util import save_config
 
 
 class Server(object):
@@ -26,7 +27,7 @@ class Server(object):
         time_str = time.strftime('%Y_%m%d_%H%M%S', time.localtime())
         self.logger = logging.getLogger("Server")
         self.logger.setLevel(logging.INFO)
-        self.log_dir = os.path.join('log', "Server", time_str)
+        self.log_dir = os.path.join(runtime_config.get('log_dir', 'log'), 'Server', time_str)
         self.log_file = os.path.join(self.log_dir, 'train.log')
         os.makedirs(self.log_dir, exist_ok=True)
         fh = logging.FileHandler(self.log_file, encoding='utf8')
@@ -42,9 +43,13 @@ class Server(object):
         self.logger.addHandler(fh)
         self.logger.addHandler(ch)
 
+        self.data_config = data_config
+        self.model_config = model_config
+        self.runtime_config = runtime_config
         fed_model = eval(model_config['FedModel']['name'])
         self.fed_model = fed_model(
-            role=self, data_config=data_config, model_config=model_config, runtime_config=runtime_config
+            role='server', data_config=data_config, model_config=model_config, runtime_config=runtime_config,
+            logger=self.logger
         )
 
         self.run_config = self.fed_model.param_parser.parse_run_config()
@@ -54,8 +59,10 @@ class Server(object):
         self.num_clients_contacted_per_round = self.run_config['num_clients_contacted_per_round']
         self.rounds_between_val = self.run_config['rounds_between_val']
         self.lazy_update = False
-
-        self.ready_client_sids = set()
+        
+        self.ready_container_sid_dict = {}
+        self.ready_container_id_dict = {}
+        self.ready_clients = []
 
         self.host, self.port = self.fed_model.param_parser.parse_server_addr(self.name)
         self.client_resource = {}
@@ -68,7 +75,7 @@ class Server(object):
         self.time_record = []
         self.server_send_bytes = 0
         self.server_receive_bytes = 0
-
+        
         self.thread_lock = threading.Lock()
 
         self.STOP = False
@@ -161,7 +168,7 @@ class Server(object):
                 status='Finish' if self.STOP else 'Running',
                 rounds="%s / %s" % (self.current_round, self.max_num_rounds),
                 num_online_clients="%s / %s / %s" % (self.num_clients_contacted_per_round,
-                                                     len(self.ready_client_sids), self.num_clients),
+                                                     len(self.ready_clients), self.num_clients),
                 avg_test_metric=self.avg_test_metrics,
                 avg_test_metric_keys=avg_test_metric_keys,
                 avg_val_metric=self.avg_val_metrics,
@@ -236,19 +243,22 @@ class Server(object):
         @self.socketio.on('connect')
         def handle_connect():
             print(request.sid, "connected")
-            # self.logger.info('%s connected' % request.sid)
+            self.logger.info('%s connected' % request.sid)
 
         @self.socketio.on('reconnect')
         def handle_reconnect():
             print(request.sid, "reconnected")
-            # self.logger.info('%s reconnected' % request.sid)
+            self.logger.info('%s reconnected' % request.sid)
 
         @self.socketio.on('disconnect')
         def handle_disconnect():
             print(request.sid, "disconnected")
-            # self.logger.info('%s disconnected' % request.sid)
-            if request.sid in self.ready_client_sids:
-                self.ready_client_sids.remove(request.sid)
+            self.logger.info('%s disconnected' % request.sid)
+            for container_id in self.ready_container_sid_dict:
+                if container_id == request.sid:
+                    self.ready_container_sid_dict.pop(container_id)
+                    offline_client_list = self.ready_container_id_dict.pop(container_id)
+                    self.ready_clients = list(set(self.ready_clients) - set(offline_client_list))
 
         @self.socketio.on('client_wake_up')
         def handle_wake_up():
@@ -256,14 +266,22 @@ class Server(object):
             emit('init')
 
         @self.socketio.on('client_ready')
-        def handle_client_ready():
-            print("client ready for training", request.sid)
-            self.ready_client_sids.add(request.sid)
-            if len(self.ready_client_sids) >= self.num_clients and self.current_round == 0:
+        def handle_client_ready(container_clients):
+
+            container_id = container_clients[0]
+            client_ids = container_clients[1:]
+
+            self.logger.info('Container %s, with clients %s are ready for training' % (container_id, str(client_ids)))
+            
+            self.ready_clients += client_ids
+            self.ready_container_id_dict[container_id] = client_ids
+            self.ready_container_sid_dict[container_id] = request.sid
+            
+            if len(self.ready_clients) >= self.num_clients and self.current_round == 0:
                 print("start to federated learning.....")
                 self.training_start_time = int(round(time.time()))
                 self.train_next_round()
-            elif len(self.ready_client_sids) < self.num_clients:
+            elif len(self.ready_clients) < self.num_clients:
                 print("not enough client worker running.....")
             else:
                 print("current_round is not equal to 0")
@@ -285,7 +303,7 @@ class Server(object):
                     self.logger.info("Received update from all clients")
 
                     receive_update_time = [e['time_receive_request'] - self.time_send_train for e in self.c_up]
-                    finish_update_time = [e['time_finish_update'] - e['time_receive_request'] for e in self.c_up]
+                    finish_update_time = [e['time_finish_update'] - e['time_start_update'] for e in self.c_up]
                     update_receive_time = [e['time_receive_update'] - e['time_finish_update'] for e in self.c_up]
 
                     self.time_record[-1]['update_send'] = np.mean(receive_update_time)
@@ -329,16 +347,8 @@ class Server(object):
                     # Collect the send and received bytes
                     self.server_receive_bytes, self.server_send_bytes = self.get_comm_in_and_out()
 
-                    # Prepare to the next round or evaluate
-                    self.client_sids_selected =\
-                        random.sample(list(self.ready_client_sids), self.num_clients_contacted_per_round)
-
                     if self.current_round % self.rounds_between_val == 0:
-                        # Evaluate on the selected or all the clients
-                        if self.lazy_update:
-                            self.evaluate(self.client_sids_selected)
-                        else:
-                            self.evaluate(self.ready_client_sids)
+                        self.evaluate()
                     else:
                         self.train_next_round()
 
@@ -370,8 +380,8 @@ class Server(object):
                     self.logger.info('Receive evaluate result form %s clients' % len(self.c_eval))
 
                     receive_eval_time = [e['time_receive_request'] - self.time_agg_train_end for e in self.c_eval]
-                    finish_eval_time = [e['time_finish_update'] - e['time_receive_request'] for e in self.c_eval]
-                    eval_receive_time = [e['time_receive_evaluate'] - e['time_finish_update'] for e in self.c_eval]
+                    finish_eval_time = [e['time_finish_evaluate'] - e['time_start_evaluate'] for e in self.c_eval]
+                    eval_receive_time = [e['time_receive_evaluate'] - e['time_finish_evaluate'] for e in self.c_eval]
 
                     self.logger.info(
                         'Update Run min %s max %s mean %s'
@@ -460,7 +470,7 @@ class Server(object):
                     if self.STOP:
                         # Another round of testing after the training is finished
                         if self.lazy_update and self.best_test_metric_full is None:
-                            self.evaluate(self.ready_client_sids, self.best_weight_filename)
+                            self.evaluate(self.ready_clients, self.best_weight_filename)
                         else:
                             self.logger.info("== done ==")
                             self.logger.info("Federated training finished ... ")
@@ -487,7 +497,7 @@ class Server(object):
                             self.logger.info('Server Send(GB): %s' % (self.server_send_bytes / (2 ** 30)))
                             self.logger.info('Server Receive(GB): %s' % (self.server_receive_bytes / (2 ** 30)))
                             # save data to file
-                            result_json = {
+                            self.result_json = {
                                 'best_metric': self.best_test_metric,
                                 'best_metric_full': self.best_test_metric_full,
                                 'total_time': '{}:{}:{}'.format(h, m, s),
@@ -498,11 +508,14 @@ class Server(object):
                                 'info_each_round': self.info_each_round
                             }
                             with open(os.path.join(self.log_dir, 'results.json'), 'w') as f:
-                                json.dump(result_json, f)
-                            # Server job finish
-                            self.server_job_finish = True
+                                json.dump(self.result_json, f)
+                            save_config(self.data_config, self.model_config, self.runtime_config, self.log_dir)
                             # Stop all the clients
                             emit('stop', broadcast=True)
+                            # Call the server exit job
+                            self.fed_model.host_exit_job(self)
+                            # Server job finish
+                            self.server_job_finish = True
                     else:
                         self.logger.info("start to next round...")
                         self.train_next_round()
@@ -511,10 +524,18 @@ class Server(object):
         self.check_list.append(cid)
         # self.logger.info('Response: ' + mode + ' %s' % cid)
 
+    def retrieval_session_information(self, selected_clients):
+        send_target = {}
+        for container in self.ready_container_id_dict:
+            for cid in self.ready_container_id_dict[container]:
+                if cid in selected_clients:
+                    send_target[container] = send_target.get(container, []) + [cid]
+        return send_target
+
     # Note: we assume that during training the #workers will be >= MIN_NUM_WORKERS
     def train_next_round(self):
 
-        self.client_sids_selected = random.sample(list(self.ready_client_sids), self.num_clients_contacted_per_round)
+        selected_clients = self.fed_model.host_select_train_clients(self.ready_clients)
 
         self.current_round += 1
 
@@ -527,16 +548,22 @@ class Server(object):
 
         # buffers all client updates
         self.c_up = []
+
+        # get the session information
+        actual_send = self.retrieval_session_information(selected_clients)
         
         # Start the update
-        data_send = {'round_number': self.current_round}
+        data_send = {'round_number': self.current_round, 'selected_clients': None}
 
-        self.logger.info('Sending train requests to %s clients' % len(self.client_sids_selected))
-        for rid in self.client_sids_selected:
-            emit('request_update', data_send, room=rid, callback=self.response)
-        self.logger.info('Waiting resp from clients')
+        for container_id, target_clients in actual_send.items():
+            self.logger.info('Sending train requests to container %s targeting clients %s' % (
+                container_id, str(target_clients)))
+            data_send['selected_clients'] = target_clients
+            emit('request_update', data_send, room=self.ready_container_sid_dict[container_id], callback=self.response)
 
-    def evaluate(self, client_sids_selected, specified_model_file=None):
+        self.logger.info('Finished sending update requests, waiting resp from clients')
+
+    def evaluate(self, selected_clients=None, specified_model_file=None):
         self.logger.info('Starting eval')
         self.c_eval = []
         if specified_model_file is not None and os.path.isfile(os.path.join(self.model_path, specified_model_file)):
@@ -544,11 +571,15 @@ class Server(object):
         else:
             data_send = {'round_number': self.current_round}
 
-        self.logger.info('Sending eval requests to %s clients' % len(self.ready_client_sids))
-        # TODO: lazy update
-        # for c_sid in self.ready_client_sids:
-        for rid in client_sids_selected:
-            emit('request_evaluate', data_send, room=rid, callback=self.response)
+        # retrieval send information
+        if selected_clients is None:
+            selected_clients = self.fed_model.host_select_evaluate_clients(self.ready_clients)
+        actual_send = self.retrieval_session_information(selected_clients)
+
+        self.logger.info('Sending eval requests to %s clients' % len(selected_clients))
+        for container_id, target_clients in actual_send.items():
+            data_send['selected_clients'] = target_clients
+            emit('request_evaluate', data_send, room=self.ready_container_sid_dict[container_id], callback=self.response)
         self.logger.info('Waiting resp from clients')
 
     def start(self):

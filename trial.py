@@ -1,4 +1,6 @@
 import argparse
+import os
+
 from FedEval.run_util import run
 
 args_parser = argparse.ArgumentParser()
@@ -81,10 +83,10 @@ model_config = {
     },
     'FedModel': {
         'name': args.strategy,
-        'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 10000, 'num_tolerance': 500
+        'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 3000, 'num_tolerance': 500
     }
 }
-runtime_config = {'server': {'num_clients': 100}}
+runtime_config = {'server': {'num_clients': 100}, 'log_dir': 'log/unit_test'}
 
 if args.strategy == 'MFedSGD' or args.strategy == 'MFedAvg':
     model_config['FedModel']['momentum'] = 0.9
@@ -97,11 +99,17 @@ if args.dataset == 'semantic140':
     model_config['MLModel']['embedding_dim'] = 0
     model_config['MLModel']['loss'] = 'binary_crossentropy'
     model_config['MLModel']['metrics'] = ['binary_accuracy']
+    model_config['FedModel']['max_rounds'] = 10000
+    model_config['FedModel']['num_tolerance'] = 500
 
 if args.dataset == 'shakespeare':
     data_config['normalize'] = False
     model_config['MLModel']['embedding_dim'] = 8
     tune_params['lr'] = [1e-1, 5e-1, 1.0]
+
+if args.dataset == 'femnist':
+    # runtime_config['server']['num_clients'] = 3500
+    runtime_config['server']['num_clients'] = 400
 
 params = {
     'data_config': data_config,
@@ -111,11 +119,11 @@ params = {
 
 for _ in range(repeat):
     if args.tune is None:
-            run(exec=execution, mode=mode, config=config, new_config=config + '_tmp', **params)
+            run(execution=execution, mode=mode, config=config, new_config=config + '_tmp', **params)
     else:
         if args.tune == 'lr':
             for lr in tune_params['lr']:
                 params['model_config']['MLModel']['optimizer']['lr'] = lr
-                run(exec=execution, mode=mode, config=config, new_config=config + '_tmp', **params)
+                run(execution=execution, mode=mode, config=config, new_config=config + '_tmp', **params)
         else:
             raise ValueError('Unknown tuning params', args.tune)
