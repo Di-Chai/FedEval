@@ -187,6 +187,8 @@ class Server(object):
             return json.dumps({
                 'finished': self.server_job_finish,
                 'rounds': self.current_round,
+                'val_result': self.avg_val_metrics,
+                'test_result': self.avg_test_metrics,
                 'log_dir': self.log_dir,
             })
 
