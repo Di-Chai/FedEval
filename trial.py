@@ -15,6 +15,7 @@ args_parser.add_argument('--repeat', '-r', type=int, default=1)
 args_parser.add_argument('--exec', '-e', type=str)
 args = args_parser.parse_args()
 
+"""
 fine_tuned_params = {
     'mnist': {
         'FedAvg': {'B': 16, 'C': 0.1, 'E': 10, 'lr': 0.1},
@@ -22,8 +23,37 @@ fine_tuned_params = {
         'model': 'MLP'
     },
     'femnist': {
-        'FedAvg': {'B': 8, 'C': 0.1, 'E': 10, 'lr': 0.01},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.01},
+        'FedAvg': {'B': 8, 'C': 0.1, 'E': 10, 'lr': 0.1},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
+        'model': 'LeNet'
+    },
+    'celeba': {
+        'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': 0.05},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
+        'model': 'LeNet'
+    },
+    "semantic140": {
+        'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': 0.0001},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.05},
+        'model': 'StackedLSTM'
+    },
+    "shakespeare": {
+        'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': None},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},
+        'model': 'StackedLSTM'
+    }
+}
+"""
+
+fine_tuned_params = {
+    'mnist': {
+        'FedAvg': {'B': 16, 'C': 0.1, 'E': 10, 'lr': 0.1},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.5},
+        'model': 'MLP'
+    },
+    'femnist': {
+        'FedAvg': {'B': 8, 'C': 0.1, 'E': 10, 'lr': 0.001},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.001},
         'model': 'LeNet'
     },
     'celeba': {

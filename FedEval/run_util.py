@@ -235,6 +235,9 @@ def local_recursive_mkdir(local_path):
 
 
 def upload_to_server(machines, local_dirs, file_type=('.py', '.yml', '.css', '.html', 'eot', 'svg', 'ttf', 'woff')):
+    
+    import paramiko
+    
     files = []
     for path in local_dirs:
         files += local_recursive_ls(path)
