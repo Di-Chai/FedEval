@@ -4,7 +4,6 @@ import time
 import yaml
 import copy
 import argparse
-import paramiko
 import requests
 import platform
 import numpy as np
@@ -157,6 +156,8 @@ def local_stop():
 
 def server_stop(runtime_config):
 
+    import paramiko
+
     for m_name in runtime_config['machines']:
 
         ssh = paramiko.SSHClient()
@@ -273,6 +274,8 @@ def upload_to_server(machines, local_dirs, file_type=('.py', '.yml', '.css', '.h
 
 
 def download_from_server(machines, remote_dirs, file_type):
+
+    import paramiko
 
     def download_check(file_name):
         for ft in file_type:
@@ -403,6 +406,8 @@ def run(execution, mode, config, new_config=None, **kwargs):
         os.system(sudo + 'docker-compose up -d')
 
     if mode == 'server':
+
+        import paramiko
 
         upload_to_server(runtime_config['machines'], local_dirs=('FedEval', 'configs'))
         # upload_to_server(runtime_config['machines'], local_dirs=(new_config,))
