@@ -9,6 +9,7 @@ import requests
 import platform
 import numpy as np
 
+sudo = ""
 
 class LogAnalysis:
 
@@ -151,7 +152,7 @@ def check_status(host):
 
 
 def local_stop():
-    os.system('sudo docker-compose stop')
+    os.system(sudo + 'docker-compose stop')
 
 
 def server_stop(runtime_config):
@@ -174,10 +175,10 @@ def server_stop(runtime_config):
         ssh.connect(hostname=host, port=port, username=user_name, key_filename=key_file)
         if m_name == 'server':
             stdin, stdout, stderr = ssh.exec_command('cd {};'.format(remote_path) +
-                                                     'sudo docker-compose -f docker-compose-server.yml stop')
+                                                     sudo + 'docker-compose -f docker-compose-server.yml stop')
         else:
             stdin, stdout, stderr = ssh.exec_command('cd {};'.format(remote_path) +
-                                                     'sudo docker-compose -f docker-compose-{}.yml stop'.format(m_name))
+                                                     sudo + 'docker-compose -f docker-compose-{}.yml stop'.format(m_name))
 
         print(''.join(stdout.readlines()))
         print(''.join(stderr.readlines()))
@@ -390,16 +391,16 @@ def run(execution, mode, config, new_config=None, **kwargs):
     if mode == 'local':
         current_path = os.path.abspath('./')
         os.system(
-            'sudo docker run -it --rm -v {0}:{0} -w {0} '
+            sudo + 'docker run -it --rm -v {0}:{0} -w {0} '
             '{1} python3 -W ignore -m FedEval.run -f data -c {2}'
             .format(current_path, runtime_config['docker']['image'], new_config)
         )
         os.system(
-            'sudo docker run -it --rm -v {0}:{0} -w {0} '
+            sudo + 'docker run -it --rm -v {0}:{0} -w {0} '
             '{1} python3 -W ignore -m FedEval.run -f compose-local -c {2}'
             .format(current_path, runtime_config['docker']['image'], new_config)
         )
-        os.system('sudo docker-compose up -d')
+        os.system(sudo + 'docker-compose up -d')
 
     if mode == 'server':
 
@@ -424,7 +425,7 @@ def run(execution, mode, config, new_config=None, **kwargs):
 
             if m_name != 'server':
                 _, stdout, stderr = ssh.exec_command(
-                    'sudo docker run -i --rm -v {0}:{0} -w {0} '
+                    sudo + 'docker run -i --rm -v {0}:{0} -w {0} '
                     '{1} python3 -W ignore -m FedEval.run -f data -c {2}'
                     .format(remote_path, runtime_config['docker']['image'], new_config)
                 )
@@ -432,7 +433,7 @@ def run(execution, mode, config, new_config=None, **kwargs):
                 print(''.join(stderr.readlines()))
 
             _, stdout, stderr = ssh.exec_command(
-                'sudo docker run -i --rm -v {0}:{0} -w {0} '
+                sudo + 'docker run -i --rm -v {0}:{0} -w {0} '
                 '{1} python3 -W ignore -m FedEval.run -f compose-server -c {2}'
                 .format(remote_path, runtime_config['docker']['image'], new_config)
             )
@@ -443,12 +444,12 @@ def run(execution, mode, config, new_config=None, **kwargs):
                 print('Start Server')
                 _, stdout, stderr = ssh.exec_command(
                     'cd {};'.format(remote_path) +
-                    'sudo docker-compose -f docker-compose-server.yml up -d')
+                    sudo + 'docker-compose -f docker-compose-server.yml up -d')
             else:
                 print('Start Clients', m_name)
                 _, stdout, stderr = ssh.exec_command(
                     'cd {};'.format(remote_path) +
-                    'sudo docker-compose -f docker-compose-{}.yml up -d'.format(m_name))
+                    sudo + 'docker-compose -f docker-compose-{}.yml up -d'.format(m_name))
 
             print(''.join(stdout.readlines()))
             print(''.join(stderr.readlines()))
