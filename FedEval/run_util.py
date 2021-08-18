@@ -470,11 +470,15 @@ def run(execution, mode, config, new_config=None, **kwargs):
     print('Check the dashboard at %s' % ('http://{}/dashboard'.format(host + ':' + str(port))))
 
     check_status_result = check_status(host + ':' + str(port))
+    current_round = None
 
     while True:
         if check_status_result['success']:
             if not check_status_result['data'].get('finished', False):
-                print('Running at Round %s' % check_status_result['data'].get('rounds', 'UnKnown'), 'Results', check_status_result['data'].get('results', 'UnKnown'))
+                received_round = check_status_result['data'].get('rounds')
+                if received_round is not None and (current_round is None or current_round < received_round):
+                    print('Running at Round %s' % received_round, 'Results', check_status_result['data'].get('results', 'unknown'))
+                    current_round = received_round
                 time.sleep(10)
             else:
                 break
