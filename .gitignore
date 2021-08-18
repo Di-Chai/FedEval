@@ -135,7 +135,6 @@ dmypy.json
 .vscode
 data
 FedEval/data
-configs
 log
 *.jpg
 *.json

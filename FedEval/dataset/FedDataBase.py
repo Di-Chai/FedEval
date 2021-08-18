@@ -56,7 +56,7 @@ class FedData:
     def load_data(self):
         raise NotImplementedError('Please implement the load_data function')
 
-    def iid_data(self, sample_size=300, save_file=True):
+    def iid_data(self, sample_size=np.inf, save_file=True):
         # Temporally use, to guarantee the test set in iid/non-iid setting are the same
         if self.identity is not None:
             local_dataset = self.non_iid_data(non_iid_class=1, strategy='natural', sample_size=sample_size,
@@ -108,7 +108,7 @@ class FedData:
             result.update(additional_test)
             return result
 
-    def non_iid_data(self, non_iid_class=2, strategy='average', sample_size=300, shared_data=0, save_file=True):
+    def non_iid_data(self, non_iid_class=2, strategy='average', sample_size=np.inf, shared_data=0, save_file=True):
 
         local_dataset = []
 
@@ -116,10 +116,13 @@ class FedData:
 
             if self.identity is None:
                 raise AttributeError('Selected dataset has no identity')
+            
+            num_entities = np.ones(self.num_clients) * int(len(self.identity)/self.num_clients)
+            num_entities[:len(self.identity)%self.num_clients] += 1
 
             for i in range(self.num_clients):
-                index_start = sum(self.identity[:i])
-                index_end = sum(self.identity[:i + 1])
+                index_start = sum(self.identity[:int(sum(num_entities[:i]))])
+                index_end = sum(self.identity[:int(sum(num_entities[:i+1]))])
                 local_x = self.x[index_start: index_end]
                 local_y = self.y[index_start: index_end]
                 local_x, local_y = shuffle(local_x, local_y)

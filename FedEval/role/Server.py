@@ -573,7 +573,8 @@ class Server(object):
 
         # retrieval send information
         if selected_clients is None:
-            selected_clients = self.fed_model.host_select_evaluate_clients(self.ready_clients)
+            # selected_clients = self.fed_model.host_select_evaluate_clients(self.ready_clients)
+            selected_clients = self.ready_clients
         actual_send = self.retrieval_session_information(selected_clients)
 
         self.logger.info('Sending eval requests to %s clients' % len(selected_clients))

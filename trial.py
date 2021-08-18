@@ -22,8 +22,8 @@ fine_tuned_params = {
         'model': 'MLP'
     },
     'femnist': {
-        'FedAvg': {'B': 8, 'C': 0.1, 'E': 10, 'lr': 0.1},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
+        'FedAvg': {'B': 8, 'C': 0.1, 'E': 10, 'lr': 0.01},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.01},
         'model': 'LeNet'
     },
     'celeba': {
@@ -72,7 +72,9 @@ tune_params = {
 }
 
 data_config = {
-    'dataset': args.dataset, 'non-iid': True if args.non_iid.lower() == 'true' else False, 'sample_size': 300,
+    'dataset': args.dataset, 'non-iid': True if args.non_iid.lower() == 'true' else False,
+    # INF sample size / client
+    'sample_size': 1000000000,
     'non-iid-strategy': 'average' if args.dataset == 'mnist' else 'natural', 'non-iid-class': args.non_iid_class
 }
 model_config = {
@@ -86,7 +88,7 @@ model_config = {
         'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 3000, 'num_tolerance': 500
     }
 }
-runtime_config = {'server': {'num_clients': 100}, 'log_dir': 'log/unit_test'}
+runtime_config = {'server': {'num_clients': 100}, 'log_dir': 'log/nips'}
 
 if args.strategy == 'MFedSGD' or args.strategy == 'MFedAvg':
     model_config['FedModel']['momentum'] = 0.9
@@ -108,8 +110,7 @@ if args.dataset == 'shakespeare':
     tune_params['lr'] = [1e-1, 5e-1, 1.0]
 
 if args.dataset == 'femnist':
-    # runtime_config['server']['num_clients'] = 3500
-    runtime_config['server']['num_clients'] = 400
+    pass
 
 params = {
     'data_config': data_config,

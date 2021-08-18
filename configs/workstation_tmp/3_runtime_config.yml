@@ -1,0 +1,25 @@
+clients:
+  bandwidth: 100Mbit
+docker:
+  image: fedeval:v1
+  num_containers: 100
+log_dir: log/nips
+machines:
+  m1:
+    capacity: 100
+    dir: /ldisk/chaidi/FedEval
+    host: 10.173.1.22
+    key: id_rsa
+    port: 22
+    user_name: ubuntu
+  server:
+    dir: /ldisk/chaidi/FedEval
+    host: 10.173.1.22
+    key: id_rsa
+    port: 22
+    user_name: ubuntu
+server:
+  host: 10.173.1.22
+  listen: 0.0.0.0
+  num_clients: 100
+  port: 8080
