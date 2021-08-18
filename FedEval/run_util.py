@@ -474,7 +474,7 @@ def run(execution, mode, config, new_config=None, **kwargs):
     while True:
         if check_status_result['success']:
             if not check_status_result['data'].get('finished', False):
-                print('Running at Round %s' % check_status_result['data'].get('rounds', -2))
+                print('Running at Round %s' % check_status_result['data'].get('rounds', 'UnKnown'), 'Results', check_status_result['data'].get('results', 'UnKnown'))
                 time.sleep(10)
             else:
                 break
