@@ -187,10 +187,13 @@ class Server(object):
             return json.dumps({
                 'finished': self.server_job_finish,
                 'rounds': self.current_round,
-                'results': [self.avg_val_metrics[-1], self.avg_test_metrics[-1]],
+                'results': [
+                    None if len(self.avg_val_metrics) == 0 else self.avg_val_metrics[-1], 
+                    None if len(self.avg_test_metrics) == 0 else self.avg_test_metrics[-1]
+                    ],
                 'log_dir': self.log_dir,
             })
-
+        
         @self.app.route("/download/<filename>", methods=['GET'])
         def download_file(filename):
             if os.path.isfile(os.path.join(self.model_path, filename)):
