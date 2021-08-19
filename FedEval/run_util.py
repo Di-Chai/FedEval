@@ -19,7 +19,11 @@ class LogAnalysis:
         self.configs = []
         self.results = []
         for log in self.logs:
-            c1, c2, c3 = load_config(os.path.join(log_dir, log))
+            try:
+                c1, c2, c3 = load_config(os.path.join(log_dir, log))
+            except FileNotFoundError:
+                print('Config not found in', log, 'skip to next')
+                continue
             self.configs.append({'data_config': c1, 'model_config': c2, 'runtime_config': c3})
             print('Get log', log)
             with open(os.path.join(log_dir, log, 'results.json'), 'r') as f:
