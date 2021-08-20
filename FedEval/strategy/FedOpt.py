@@ -15,7 +15,7 @@ class FedOpt(FedAvg):
             self.beta2 = self.model_config['FedModel']['beta2']
             self.eta = self.model_config['FedModel']['eta']
             self.params_shape = [e.shape for e in self.ml_model.get_weights()]
-            self.v = [np.zeros(e.shape) + self.tau**2 for e in self.params_shape]
+            self.v = [np.zeros(e) + self.tau**2 for e in self.params_shape]
             self.pre_delta_x = None
             self.cur_delta_x = None
 
