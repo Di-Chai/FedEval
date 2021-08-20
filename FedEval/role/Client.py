@@ -132,6 +132,10 @@ class Client(object):
                 self.logger.info("### Round {}, Cid {} ###".format(current_round, cid))
                 if self.curr_online_client != cid:
                     start = time.time()
+                    # Save before load
+                    self.fed_model = save_fed_model(
+                        self.fed_model, self.client_fed_model_fname % self.curr_online_client
+                    )
                     self.fed_model = load_fed_model(self.fed_model, self.client_fed_model_fname % cid)
                     self.curr_online_client = cid
                     self.logger.info("Loaded fed model of client %s using %s" % (cid, time.time()-start))
@@ -150,11 +154,6 @@ class Client(object):
                 upload_data = self.fed_model.retrieve_local_upload_info()
 
                 self.logger.info("Local train loss %s" % train_loss)
-
-                # Save current client
-                # self.fed_model = save_fed_model(
-                #     self.fed_model, self.client_fed_model_fname % self.curr_online_client
-                # )
 
                 # Mark the update finish time
                 time_finish_update = time.time()
@@ -199,6 +198,10 @@ class Client(object):
             for cid in selected_clients:
                 time_start_evaluate = time.time()
                 if self.curr_online_client != cid:
+                    # Save before load
+                    self.fed_model = save_fed_model(
+                        self.fed_model, self.client_fed_model_fname % self.curr_online_client
+                    )
                     start = time.time()
                     self.fed_model = load_fed_model(self.fed_model, self.client_fed_model_fname % cid)
                     self.curr_online_client = cid
@@ -220,11 +223,6 @@ class Client(object):
                 evaluate = self.fed_model.local_evaluate()
 
                 self.logger.info("Local Evaluate" + str(evaluate))
-
-                # Save current client
-                # self.fed_model = save_fed_model(
-                #     self.fed_model, self.client_fed_model_fname % self.curr_online_client
-                # )
 
                 time_finish_evaluate = time.time()
 
