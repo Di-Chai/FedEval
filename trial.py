@@ -93,7 +93,7 @@ model_config = {
         'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 3000, 'num_tolerance': 100
     }
 }
-runtime_config = {'server': {'num_clients': 100}, 'log_dir': 'log/nips'}
+runtime_config = {'server': {'num_clients': 100}, 'log_dir': 'log/nips', 'docker': {'num_containers': 100}}
 
 if args.strategy == 'MFedSGD' or args.strategy == 'MFedAvg':
     model_config['FedModel']['momentum'] = 0.9
