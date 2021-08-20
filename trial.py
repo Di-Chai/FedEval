@@ -101,11 +101,14 @@ if args.strategy == 'MFedSGD' or args.strategy == 'MFedAvg':
 if args.strategy == 'FedProx':
     model_config['FedModel']['mu'] = 0.01
 
-if args.startegy == 'FedOpt':
+if args.strategy == 'FedOpt':
     model_config['FedModel']['tau'] = 0.0001
     model_config['FedModel']['beta1'] = 0.9
     model_config['FedModel']['beta2'] = 0.99
     model_config['FedModel']['opt_name'] = 'fedadam'
+
+if args.strategy == 'FedSTC':
+    model_config['FedModel']['sparsity'] = 0.01
 
 if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
     model_config['MLModel']['hidden_units'] = 64
