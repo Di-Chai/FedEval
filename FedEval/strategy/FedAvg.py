@@ -28,7 +28,7 @@ class FedAvg:
         self.ml_model = self.param_parser.parse_model()
         
         self.current_round = None
-        if self.role == 'server':
+        if self.role.startswith('server'):
             self.params = None
             self.gradients = None
             # TMP
@@ -36,9 +36,10 @@ class FedAvg:
             self.num_clients_contacted_per_round = run_config['num_clients_contacted_per_round']
             self.train_selected_clients = None
         # only clients parse data
-        if self.role == 'client':
+        if self.role.startswith('client'):
+            cid = self.role.split('_')[-1]
             self.train_data, self.train_data_size, self.val_data, self.val_data_size, \
-            self.test_data, self.test_data_size = self.param_parser.parse_data()
+            self.test_data, self.test_data_size = self.param_parser.parse_data(client_id=cid)
             self.local_params_pre = None
             self.local_params_cur = None
 
@@ -105,6 +106,9 @@ class FedAvg:
         self.local_params_cur = self.ml_model.get_weights()
         return train_loss, self.train_data_size
 
+    def _retrieve_local_params(self):
+        return self.ml_model.get_weights()
+    
     # (2) Client functions
     def retrieve_local_upload_info(self):
         model = self.ml_model.get_weights()

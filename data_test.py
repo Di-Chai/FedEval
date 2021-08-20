@@ -1,9 +1,9 @@
 from FedEval.dataset import mnist, cifar10, femnist, celeba
 
 
-fed_data = femnist(6000, './')
+fed_data = mnist(100, 'data_test')
 
-fed_data.non_iid_data(save_file=False)
+fed_data.non_iid_data(save_file=True, non_iid_class=1, strategy='average')
 
 """
 mnist: 70000

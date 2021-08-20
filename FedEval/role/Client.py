@@ -64,7 +64,7 @@ class Client(object):
             if os.path.isdir(self.client_fed_model_fname % cid) is False:
                 os.makedirs(self.client_fed_model_fname % cid, exist_ok=True)
             self.fed_model = fed_model_class(
-                role='client', data_config=data_config, model_config=model_config, runtime_config=runtime_config
+                role='client_%s' % cid, data_config=data_config, model_config=model_config, runtime_config=runtime_config
             )
             self.fed_model = save_fed_model(self.fed_model, self.client_fed_model_fname % cid)
             if cid < (cid_start + num_clients_in_this_container - 1):
@@ -123,6 +123,8 @@ class Client(object):
             # Get the selected clients
             selected_clients = data_from_server['selected_clients']
 
+            self.logger.info('Debug: selected clients' + str(selected_clients))
+
             current_round = data_from_server['round_number']
 
             for cid in selected_clients:
@@ -135,6 +137,7 @@ class Client(object):
                     self.logger.info("Loaded fed model of client %s using %s" % (cid, time.time()-start))
                 self.local_train_round[cid] += 1
                 # Download the parameter if the local model is not the latest
+                self.logger.info('Debug: %s' % (current_round - self.host_params_round[cid]))
                 if (current_round - self.host_params_round[cid]) > 1:
                     weights_file_name = 'model_{}.pkl'.format(current_round - 1)
                     self.host_params_round[cid] = current_round - 1
@@ -145,6 +148,8 @@ class Client(object):
                 # fit on local and retrieve new uploading params
                 train_loss, train_data_size = self.fed_model.fit_on_local_data()
                 upload_data = self.fed_model.retrieve_local_upload_info()
+
+                self.logger.info("Local train loss %s" % train_loss)
 
                 # Save current client
                 # self.fed_model = save_fed_model(
@@ -213,6 +218,8 @@ class Client(object):
                     self.logger.info("eval received model: %s" % weights_file_name)
 
                 evaluate = self.fed_model.local_evaluate()
+
+                self.logger.info("Local Evaluate" + str(evaluate))
 
                 # Save current client
                 # self.fed_model = save_fed_model(

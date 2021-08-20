@@ -2,10 +2,10 @@ clients:
   bandwidth: 100Mbit
 docker:
   image: fedeval:v1
-  num_containers: 100
+  num_containers: 5
 server:
   host: server
   listen: server
-  num_clients: 100
+  num_clients: 5
   port: 8000
 log_dir: log/workstation

@@ -15,7 +15,7 @@ args_parser.add_argument('--repeat', '-r', type=int, default=1)
 args_parser.add_argument('--exec', '-e', type=str)
 args = args_parser.parse_args()
 
-"""
+
 fine_tuned_params = {
     'mnist': {
         'FedAvg': {'B': 16, 'C': 0.1, 'E': 10, 'lr': 0.1},
@@ -43,40 +43,15 @@ fine_tuned_params = {
         'model': 'StackedLSTM'
     }
 }
-"""
-
-fine_tuned_params = {
-    'mnist': {
-        'FedAvg': {'B': 16, 'C': 0.1, 'E': 10, 'lr': 0.1},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.5},
-        'model': 'MLP'
-    },
-    'femnist': {
-        'FedAvg': {'B': 8, 'C': 0.1, 'E': 10, 'lr': 0.001},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.001},
-        'model': 'LeNet'
-    },
-    'celeba': {
-        'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': 0.05},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
-        'model': 'LeNet'
-    },
-    "semantic140": {
-        'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': 0.0001},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.05},
-        'model': 'StackedLSTM'
-    },
-    "shakespeare": {
-        'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': None},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},
-        'model': 'StackedLSTM'
-    }
-}
 
 # Inherit
 parsed_strategy = {
     'MFedSGD': 'FedSGD',
+    'FedSTC': 'FedSGD',
     'MFedAvg': 'FedAvg',
+    'FedProx': 'FedAvg',
+    'FedOpt': 'FedAvg',
+    'FedSCA': 'FedAvg',
 }
 
 try:
@@ -104,7 +79,7 @@ tune_params = {
 data_config = {
     'dataset': args.dataset, 'non-iid': True if args.non_iid.lower() == 'true' else False,
     # INF sample size / client
-    'sample_size': 1000000000,
+    'sample_size': 300,
     'non-iid-strategy': 'average' if args.dataset == 'mnist' else 'natural', 'non-iid-class': args.non_iid_class
 }
 model_config = {
@@ -115,13 +90,16 @@ model_config = {
     },
     'FedModel': {
         'name': args.strategy,
-        'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 3000, 'num_tolerance': 500
+        'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 3000, 'num_tolerance': 100
     }
 }
 runtime_config = {'server': {'num_clients': 100}, 'log_dir': 'log/nips'}
 
 if args.strategy == 'MFedSGD' or args.strategy == 'MFedAvg':
     model_config['FedModel']['momentum'] = 0.9
+
+if args.strategy == 'FedProx':
+    model_config['FedModel']['mu'] = 0.01
 
 if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
     model_config['MLModel']['hidden_units'] = 64
@@ -140,7 +118,7 @@ if args.dataset == 'shakespeare':
     tune_params['lr'] = [1e-1, 5e-1, 1.0]
 
 if args.dataset == 'femnist':
-    pass
+    model_config['FedModel']['num_tolerance'] = 500
 
 params = {
     'data_config': data_config,

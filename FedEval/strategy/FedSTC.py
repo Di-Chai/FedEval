@@ -48,9 +48,9 @@ def sparse_mask(value_list, p=0.01):
 
 class FedSTC(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config):
+    def __init__(self, role, data_config, model_config, runtime_config, **kwags):
 
-        super().__init__(role, data_config, model_config, runtime_config)
+        super().__init__(role, data_config, model_config, runtime_config, **kwags)
 
         if self.role == 'client':
             self.client_residual = self.init_residual()

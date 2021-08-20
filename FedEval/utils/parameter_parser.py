@@ -57,7 +57,7 @@ class ParamParser:
         metrics = ml_model_config.get('metrics')
 
         ml_model = eval(ml_model_name)(target_shape=self.y_size, **ml_model_config)
-        ml_model.compile(loss=loss, metrics=metrics, optimizer=optimizer)
+        ml_model.compile(loss=loss, metrics=metrics, optimizer=optimizer, run_eagerly=True)
         if ml_model_name == 'MLP':
             self.x_size = (None, int(np.prod(self.x_size[1:])))
         ml_model.build(input_shape=self.x_size)
@@ -69,8 +69,7 @@ class ParamParser:
         return ml_model
 
     # Basic parse functions
-    def parse_data(self):
-        client_id = os.environ.get('CLIENT_ID', '0')
+    def parse_data(self, client_id):
         with open(os.path.join(self.data_config['data_dir'], 'client_%s.pkl' % client_id), 'rb') as f:
             data = pickle.load(f)
         train_data = {'x': data['x_train'], 'y': data['y_train']}

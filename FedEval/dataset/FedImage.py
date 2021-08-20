@@ -52,9 +52,8 @@ class femnist(FedData):
         data_files = [e for e in os.listdir(data_path) if e.endswith('.json')]
         data_files = sorted(data_files, key=lambda x: int(x.strip('.json').split('_')[-1]))
 
-        # num_required_files = min(int(np.ceil(self.num_clients / 100)), 35)
-        # required_file = data_files[:num_required_files]
-        required_file = data_files
+        num_required_files = int(np.ceil(self.num_clients / 100))
+        required_file = data_files[:num_required_files]
 
         data = []
         for file in required_file:
@@ -70,8 +69,8 @@ class femnist(FedData):
                 x.append(tmp_x)
                 y.append(tmp_y)
                 identity.append(len(xy['x']))
-                # if len(identity) >= self.num_clients:
-                #     break
+                if len(identity) >= self.num_clients:
+                    break
         x = np.concatenate(x, axis=0).astype(np.float32).reshape([-1, 28, 28, 1])
         y = np.concatenate(y, axis=0).astype(np.int32)
         self.identity = identity
@@ -117,8 +116,7 @@ class celeba(FedData):
         x = []
         y = []
         self.identity = []
-        # for si in selected_identity[:self.num_clients]:
-        for si in selected_identity:
+        for si in selected_identity[:self.num_clients]:
             local_images = all_identity_dict[si]
             np.random.shuffle(local_images)
             for img in local_images:

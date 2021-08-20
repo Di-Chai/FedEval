@@ -1,0 +1,25 @@
+clients:
+  bandwidth: 100Mbit
+docker:
+  image: fedeval:v1
+  num_containers: 100
+server:
+  host: 210.3.29.222
+  listen: 0.0.0.0
+  num_clients: 100
+  port: 8000
+machines:
+  server:
+    host: 210.3.29.222
+    port: 30041
+    user_name: chaidi
+    dir: /home/chaidi/FedEval
+    key: id_rsa
+  m1:
+    host: 210.3.29.222
+    port: 30041
+    capacity: 100
+    user_name: chaidi
+    dir: /home/chaidi/FedEval
+    key: id_rsa
+log_dir: log/workstation

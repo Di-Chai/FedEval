@@ -6,8 +6,8 @@ from .FedAvg import FedAvg
 
 class FedOpt(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config):
-        super().__init__(role, data_config, model_config, runtime_config)
+    def __init__(self, role, data_config, model_config, runtime_config, **kwags):
+        super().__init__(role, data_config, model_config, runtime_config, **kwags)
 
         if self.role == 'server':
             self.tau = self.model_config['FedModel']['tau']
