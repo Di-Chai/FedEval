@@ -9,7 +9,7 @@ class FedOpt(FedAvg):
     def __init__(self, role, data_config, model_config, runtime_config, **kwags):
         super().__init__(role, data_config, model_config, runtime_config, **kwags)
 
-        if self.role == 'server':
+        if self.role.startswith('server'):
             self.tau = self.model_config['FedModel']['tau']
             self.beta1 = self.model_config['FedModel']['beta1']
             self.beta2 = self.model_config['FedModel']['beta2']
