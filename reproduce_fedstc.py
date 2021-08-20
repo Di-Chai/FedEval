@@ -38,11 +38,11 @@ import os
 
 
 # FedSTC
-os.system("python -W ignore trial.py -d mnist -s FedSTC -c configs/local -m local -i false -r 5 -e run")
-os.system("python -W ignore trial.py -d mnist -s FedSTC -c configs/local -m local -i true -n 1 -r 5 -e run")
-os.system("python -W ignore trial.py -d femnist -s FedSTC -c configs/local -m local -i false -r 5 -e run")
-os.system("python -W ignore trial.py -d femnist -s FedSTC -c configs/local -m local -i true -r 5 -e run")
-os.system("python -W ignore trial.py -d celeba -s FedSTC -c configs/local -m local -i false -r 5 -e run")
-os.system("python -W ignore trial.py -d celeba -s FedSTC -c configs/local -m local -i true -r 5 -e run")
-os.system("python -W ignore trial.py -d semantic140 -s FedSTC -c configs/local -m local -i false -r 5 -e run")
-os.system("python -W ignore trial.py -d semantic140 -s FedSTC -c configs/local -m local -i true -r 5 -e run")
+os.system("python3 -W ignore trial.py -d mnist -s FedSTC -c configs/local -m local -i false -r 5 -e run")
+os.system("python3 -W ignore trial.py -d mnist -s FedSTC -c configs/local -m local -i true -n 1 -r 5 -e run")
+os.system("python3 -W ignore trial.py -d femnist -s FedSTC -c configs/local -m local -i false -r 5 -e run")
+os.system("python3 -W ignore trial.py -d femnist -s FedSTC -c configs/local -m local -i true -r 5 -e run")
+os.system("python3 -W ignore trial.py -d celeba -s FedSTC -c configs/local -m local -i false -r 5 -e run")
+os.system("python3 -W ignore trial.py -d celeba -s FedSTC -c configs/local -m local -i true -r 5 -e run")
+os.system("python3 -W ignore trial.py -d semantic140 -s FedSTC -c configs/local -m local -i false -r 5 -e run")
+os.system("python3 -W ignore trial.py -d semantic140 -s FedSTC -c configs/local -m local -i true -r 5 -e run")
