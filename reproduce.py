@@ -38,7 +38,7 @@ import os
 
 
 # FedProx on different datasets
-os.system("python -W ignore trial.py -d mnist -s FedProx -c configs/workstation -m server -i true -n 1 -r 5 -e run")
+# os.system("python -W ignore trial.py -d mnist -s FedProx -c configs/workstation -m server -i true -n 1 -r 5 -e run")
 os.system("python -W ignore trial.py -d femnist -s FedProx -c configs/workstation -m server -i true -r 5 -e run")
 os.system("python -W ignore trial.py -d celeba -s FedProx -c configs/workstation -m server -i true -r 5 -e run")
 os.system("python -W ignore trial.py -d semantic140 -s FedProx -c configs/workstation -m server -i true -r 5 -e run")
