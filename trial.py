@@ -99,13 +99,18 @@ if args.strategy == 'MFedSGD' or args.strategy == 'MFedAvg':
     model_config['FedModel']['momentum'] = 0.9
 
 if args.strategy == 'FedProx':
-    model_config['FedModel']['mu'] = 0.01
+    model_config['FedModel']['mu'] = 0.1
 
 if args.strategy == 'FedOpt':
-    model_config['FedModel']['tau'] = 0.0001
+    model_config['FedModel']['tau'] = 1
     model_config['FedModel']['beta1'] = 0.9
     model_config['FedModel']['beta2'] = 0.99
+    model_config['FedModel']['eta'] = 0.1
     model_config['FedModel']['opt_name'] = 'fedadam'
+
+    # TODO: remove the client constraints
+    runtime_config['server']['num_clients'] = 10
+    runtime_config['docker']['num_containers'] = 10
 
 if args.strategy == 'FedSTC':
     model_config['FedModel']['sparsity'] = 0.01
