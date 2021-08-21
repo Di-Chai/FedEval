@@ -102,7 +102,7 @@ if args.strategy == 'FedProx':
     model_config['FedModel']['mu'] = 0.1
 
 if args.strategy == 'FedOpt':
-    model_config['FedModel']['tau'] = 1
+    model_config['FedModel']['tau'] = 0.01
     model_config['FedModel']['beta1'] = 0.9
     model_config['FedModel']['beta2'] = 0.99
     model_config['FedModel']['eta'] = 1
