@@ -109,8 +109,8 @@ if args.strategy == 'FedOpt':
     model_config['FedModel']['opt_name'] = 'fedadam'
 
     # TODO: remove the client constraints
-    runtime_config['server']['num_clients'] = 10
-    runtime_config['docker']['num_containers'] = 10
+    # runtime_config['server']['num_clients'] = 10
+    # runtime_config['docker']['num_containers'] = 10
 
 if args.strategy == 'FedSTC':
     model_config['FedModel']['sparsity'] = 0.01
