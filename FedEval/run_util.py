@@ -6,7 +6,6 @@ import copy
 import argparse
 import requests
 import platform
-import numpy as np
 
 sudo = ""
 
@@ -122,6 +121,7 @@ class LogAnalysis:
         return results
 
     def take_average(self):
+        import numpy as np
         average_results = {}
         for i in range(len(self.configs_diff)):
             key = '$$'.join([str(e) for e in self.configs_diff[i]])
