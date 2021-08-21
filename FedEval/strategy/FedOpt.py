@@ -19,7 +19,7 @@ class FedOpt(FedAvg):
             self.pre_delta_x = [np.zeros(e) + self.tau**2 for e in self.params_shape]
             self.cur_delta_x = None
 
-            # Clients' upload info
+    # Clients' upload info
     def retrieve_local_upload_info(self):
         delta_x = [self.local_params_cur[i] - self.local_params_pre[i] for i in range(len(self.local_params_cur))]
         return delta_x
@@ -45,7 +45,7 @@ class FedOpt(FedAvg):
             self.v = [self.beta2 * self.v[i] + (1 - self.beta2) * delta_x_agg[i]**2
                       for i in range(len(self.cur_delta_x))]
 
-        self.params = [
+        self.params = [pass
             self.params[i] + self.eta * self.cur_delta_x[i] / (np.sqrt(self.v[i]) + self.tau)
             for i in range(len(self.params))
         ]

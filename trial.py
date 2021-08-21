@@ -105,7 +105,7 @@ if args.strategy == 'FedOpt':
     model_config['FedModel']['tau'] = 1
     model_config['FedModel']['beta1'] = 0.9
     model_config['FedModel']['beta2'] = 0.99
-    model_config['FedModel']['eta'] = 0.1
+    model_config['FedModel']['eta'] = 1
     model_config['FedModel']['opt_name'] = 'fedadam'
 
     # TODO: remove the client constraints
