@@ -16,7 +16,7 @@ class FedOpt(FedAvg):
             self.eta = self.model_config['FedModel']['eta']
             self.params_shape = [e.shape for e in self.ml_model.get_weights()]
             self.v = [np.zeros(e) + self.tau**2 for e in self.params_shape]
-            self.pre_delta_x = [np.zeros(e) + self.tau**2 for e in self.params_shape]
+            self.pre_delta_x = [np.zeros(e) for e in self.params_shape]
             self.cur_delta_x = None
 
     # Clients' upload info
@@ -42,7 +42,7 @@ class FedOpt(FedAvg):
                 for i in range(len(self.cur_delta_x))
             ]
         elif self.model_config['FedModel']['opt_name'].lower == 'fedadam':
-            self.v = [self.beta2 * self.v[i] + (1 - self.beta2) * delta_x_agg[i]**2
+            self.v = [self.beta2 * self.v[i] + (1 - self.beta2) * self.cur_delta_x[i]**2
                       for i in range(len(self.cur_delta_x))]
 
         self.params = [
