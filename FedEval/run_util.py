@@ -9,6 +9,7 @@ import platform
 
 sudo = ""
 
+
 class LogAnalysis:
 
     def __init__(self, log_dir=os.path.join('log', 'server')):

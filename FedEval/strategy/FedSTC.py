@@ -126,7 +126,7 @@ class FedSTC(FedAvg):
             for i in range(len(self.server_residual))
         ]
         # Compress the stc(delta_w + R) and return
-        result = [self.compress(e) for e in delta_W_plus_r]
+        result = [self.compress(e.reshape([-1, ])) for e in delta_W_plus_r]
         del delta_W
         del delta_W_plus_r
         del client_params
