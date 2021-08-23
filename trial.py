@@ -110,6 +110,8 @@ if args.strategy == 'FedOpt':
 
 if args.strategy == 'FedSTC':
     model_config['FedModel']['sparsity'] = 0.01
+    if args.dateset == 'femnist':
+        model_config['FedModel']['sparsity'] = 0.1
 
 if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
     model_config['MLModel']['hidden_units'] = 64
