@@ -105,10 +105,10 @@ if args.strategy == 'FedProx':
 if args.strategy == 'FedOpt':
     model_config['FedModel']['tau'] = 1
     model_config['FedModel']['beta1'] = 0.9
-    # model_config['FedModel']['beta2'] = 0.99
+    model_config['FedModel']['beta2'] = 0.99
     model_config['FedModel']['eta'] = 1
-    # model_config['FedModel']['opt_name'] = 'fedadam'
-    model_config['FedModel']['opt_name'] = 'fedadagrad'
+    model_config['FedModel']['opt_name'] = 'fedadam'
+    # model_config['FedModel']['opt_name'] = 'fedadagrad'
 
 if args.strategy == 'FedSTC':
     model_config['FedModel']['sparsity'] = 0.1
