@@ -1,9 +1,9 @@
 data_dir: data
-dataset: semantic140
+dataset: mnist
 non-iid: false
 non-iid-class: null
-non-iid-strategy: natural
-normalize: false
+non-iid-strategy: average
+normalize: true
 sample_size: 300
 shared_data: 0
 train_val_test:

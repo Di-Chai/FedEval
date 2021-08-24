@@ -7,7 +7,7 @@ services:
     - NET_ADMIN
     command: sh -c "export CONTAINER_ID=0 && tc qdisc add dev eth0 root tbf rate 100Mbit
       latency 50ms burst 15kb && python3 -W ignore -m FedEval.run -f run -r client
-      -c configs/quickstart"
+      -c configs/local_tmp"
     container_name: container0
     image: fedeval:v1
     networks:
@@ -20,8 +20,112 @@ services:
     - NET_ADMIN
     command: sh -c "export CONTAINER_ID=1 && tc qdisc add dev eth0 root tbf rate 100Mbit
       latency 50ms burst 15kb && python3 -W ignore -m FedEval.run -f run -r client
-      -c configs/quickstart"
+      -c configs/local_tmp"
     container_name: container1
+    image: fedeval:v1
+    networks:
+    - server-clients
+    volumes:
+    - /Users/derek/Documents/Nutstore/FedEval/FedEval-Code-WithData:/FML
+    working_dir: /FML
+  container_2:
+    cap_add:
+    - NET_ADMIN
+    command: sh -c "export CONTAINER_ID=2 && tc qdisc add dev eth0 root tbf rate 100Mbit
+      latency 50ms burst 15kb && python3 -W ignore -m FedEval.run -f run -r client
+      -c configs/local_tmp"
+    container_name: container2
+    image: fedeval:v1
+    networks:
+    - server-clients
+    volumes:
+    - /Users/derek/Documents/Nutstore/FedEval/FedEval-Code-WithData:/FML
+    working_dir: /FML
+  container_3:
+    cap_add:
+    - NET_ADMIN
+    command: sh -c "export CONTAINER_ID=3 && tc qdisc add dev eth0 root tbf rate 100Mbit
+      latency 50ms burst 15kb && python3 -W ignore -m FedEval.run -f run -r client
+      -c configs/local_tmp"
+    container_name: container3
+    image: fedeval:v1
+    networks:
+    - server-clients
+    volumes:
+    - /Users/derek/Documents/Nutstore/FedEval/FedEval-Code-WithData:/FML
+    working_dir: /FML
+  container_4:
+    cap_add:
+    - NET_ADMIN
+    command: sh -c "export CONTAINER_ID=4 && tc qdisc add dev eth0 root tbf rate 100Mbit
+      latency 50ms burst 15kb && python3 -W ignore -m FedEval.run -f run -r client
+      -c configs/local_tmp"
+    container_name: container4
+    image: fedeval:v1
+    networks:
+    - server-clients
+    volumes:
+    - /Users/derek/Documents/Nutstore/FedEval/FedEval-Code-WithData:/FML
+    working_dir: /FML
+  container_5:
+    cap_add:
+    - NET_ADMIN
+    command: sh -c "export CONTAINER_ID=5 && tc qdisc add dev eth0 root tbf rate 100Mbit
+      latency 50ms burst 15kb && python3 -W ignore -m FedEval.run -f run -r client
+      -c configs/local_tmp"
+    container_name: container5
+    image: fedeval:v1
+    networks:
+    - server-clients
+    volumes:
+    - /Users/derek/Documents/Nutstore/FedEval/FedEval-Code-WithData:/FML
+    working_dir: /FML
+  container_6:
+    cap_add:
+    - NET_ADMIN
+    command: sh -c "export CONTAINER_ID=6 && tc qdisc add dev eth0 root tbf rate 100Mbit
+      latency 50ms burst 15kb && python3 -W ignore -m FedEval.run -f run -r client
+      -c configs/local_tmp"
+    container_name: container6
+    image: fedeval:v1
+    networks:
+    - server-clients
+    volumes:
+    - /Users/derek/Documents/Nutstore/FedEval/FedEval-Code-WithData:/FML
+    working_dir: /FML
+  container_7:
+    cap_add:
+    - NET_ADMIN
+    command: sh -c "export CONTAINER_ID=7 && tc qdisc add dev eth0 root tbf rate 100Mbit
+      latency 50ms burst 15kb && python3 -W ignore -m FedEval.run -f run -r client
+      -c configs/local_tmp"
+    container_name: container7
+    image: fedeval:v1
+    networks:
+    - server-clients
+    volumes:
+    - /Users/derek/Documents/Nutstore/FedEval/FedEval-Code-WithData:/FML
+    working_dir: /FML
+  container_8:
+    cap_add:
+    - NET_ADMIN
+    command: sh -c "export CONTAINER_ID=8 && tc qdisc add dev eth0 root tbf rate 100Mbit
+      latency 50ms burst 15kb && python3 -W ignore -m FedEval.run -f run -r client
+      -c configs/local_tmp"
+    container_name: container8
+    image: fedeval:v1
+    networks:
+    - server-clients
+    volumes:
+    - /Users/derek/Documents/Nutstore/FedEval/FedEval-Code-WithData:/FML
+    working_dir: /FML
+  container_9:
+    cap_add:
+    - NET_ADMIN
+    command: sh -c "export CONTAINER_ID=9 && tc qdisc add dev eth0 root tbf rate 100Mbit
+      latency 50ms burst 15kb && python3 -W ignore -m FedEval.run -f run -r client
+      -c configs/local_tmp"
+    container_name: container9
     image: fedeval:v1
     networks:
     - server-clients
@@ -31,13 +135,13 @@ services:
   server:
     cap_add:
     - NET_ADMIN
-    command: sh -c "python3 -W ignore -m FedEval.run -f run -r server -c configs/quickstart"
+    command: sh -c "python3 -W ignore -m FedEval.run -f run -r server -c configs/local_tmp"
     container_name: server
     image: fedeval:v1
     networks:
     - server-clients
     ports:
-    - 8080:8080
+    - 8000:8000
     volumes:
     - /Users/derek/Documents/Nutstore/FedEval/FedEval-Code-WithData:/FML
     working_dir: /FML

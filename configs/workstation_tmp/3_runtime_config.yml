@@ -22,4 +22,4 @@ server:
   host: 10.173.1.22
   listen: 0.0.0.0
   num_clients: 100
-  port: 8080
+  port: 8000

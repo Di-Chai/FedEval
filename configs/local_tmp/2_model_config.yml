@@ -1,0 +1,29 @@
+FedModel:
+  B: 16
+  C: 0.1
+  E: 10
+  beta1: 0.9
+  beta2: 0.99
+  eta: 0.1
+  max_rounds: 3000
+  mu: 0.01
+  name: FedOpt
+  num_tolerance: 100
+  opt_name: fedadam
+  rounds_between_val: 1
+  sparsity: 0.01
+  tau: 1
+MLModel:
+  activation: relu
+  dropout: 0.2
+  loss: categorical_crossentropy
+  metrics:
+  - accuracy
+  name: MLP
+  optimizer:
+    lr: 0.1
+    momentum: 0
+    name: sgd
+  units:
+  - 512
+  - 512
