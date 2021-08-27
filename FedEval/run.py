@@ -80,7 +80,7 @@ def generate_docker_compose_server(runtime_config, path):
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
         'runtime': 'nvidia',
-        'environment': ['NVIDIA_VISIBLE_DEVICES=%s']
+        'environment': []
     }
 
     with open('docker-compose-server.yml', 'w') as f:
@@ -114,7 +114,7 @@ def generate_docker_compose_server(runtime_config, path):
                              '&& tc qdisc add dev eth0 root tbf rate {} latency 10ms burst 60000kb ' \
                              '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
                 container_id, runtime_config['clients']['bandwidth'], path)
-            tmp['environment'][0] = tmp['environment'][0] % (container_id % runtime_config['docker']['num_gpu'])
+            tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=%s' % (container_id % runtime_config['docker']['num_gpu']))
             dc['services']['container_%s' % container_id] = tmp
 
         counter += min(remain_clients, num_container_curr_machine)
@@ -147,7 +147,7 @@ def generate_docker_compose_local(runtime_config, path):
         'cap_add': ['NET_ADMIN'],
         'networks': ['server-clients'],
         'runtime': 'nvidia',
-        'environment': ['NVIDIA_VISIBLE_DEVICES=%s']
+        'environment': []
     }
 
     dc = {
@@ -166,7 +166,7 @@ def generate_docker_compose_local(runtime_config, path):
             container_id,
             runtime_config['clients']['bandwidth'],
             path)
-        tmp['environment'][0] = tmp['environment'][0] % (container_id % runtime_config['docker']['num_gpu'])
+        tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=%s' % (container_id % runtime_config['docker']['num_gpu']))
         dc['services']['container_%s' % container_id] = tmp
     
     with open("docker-compose.yml", 'w') as f:
