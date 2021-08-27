@@ -32,9 +32,6 @@ if __name__ == '__main__':
         non_iid = '1' if record[0]['non-iid'] else '0'
         fl_model = record[1]['FedModel']['name']
 
-        if fl_model == 'FedOpt':
-            print('debug')
-
         if dataset == 'semantic140':
             test_acc_key = 'test_binary_accuracy'
         else:
@@ -45,18 +42,19 @@ if __name__ == '__main__':
         ]
         best_index = val_loss_list.index(min(val_loss_list))
 
+        # TODO : Del
+        # best_index = len(val_loss_list)
+
         if best_index == 0:
             continue
-
-        print(best_index)
 
         test_acc_list = [
             record[3]['info_each_round'][str(e+1)][test_acc_key] for e in range(len(record[3]['info_each_round']))
         ]
         test_acc_list = test_acc_list[:best_index]
         
-        if non_iid == '1':
-            print(dataset, fl_model, record[3]['best_metric'][test_acc_key], np.mean(record[3]['best_metric_full'][test_acc_key]))
+        # if non_iid == '1':
+        #     print(dataset, fl_model, record[3]['best_metric'][test_acc_key], np.mean(record[3]['best_metric_full'][test_acc_key]))
 
         # CommRound to Accuracy
         cr_to_acc = [
@@ -78,20 +76,28 @@ if __name__ == '__main__':
 
         data_id = ' '.join([dataset, non_iid, fl_model])
 
+        assert len(cr_to_acc[0]) == len(cr_to_acc[1])
+        assert len(ca_to_acc[0]) == len(ca_to_acc[1])
+        assert len(time_to_acc[0]) == len(time_to_acc[1])
+
         cr_to_acc_list[data_id] = cr_to_acc_list.get(data_id, []) + [cr_to_acc]
         ca_to_acc_list[data_id] = ca_to_acc_list.get(data_id, []) + [ca_to_acc]
         time_to_acc_list[data_id] = time_to_acc_list.get(data_id, []) + [time_to_acc]
 
     def multi_to_single(multi_data):
         max_length = max([len(e[0]) for e in multi_data])
+        max_length_index = [len(e[0]) for e in multi_data].index(max_length)
         for i in range(len(multi_data)):
             try:
-                multi_data[i][0] = multi_data[i][0] + [multi_data[i][0][-1]] * (max_length - len(multi_data[i][0]))
-                multi_data[i][1] = multi_data[i][1] + [multi_data[i][1][-1]] * (max_length - len(multi_data[i][1]))
+                if i != max_length_index:
+                    multi_data[i][0] = multi_data[i][0] + \
+                                       multi_data[max_length_index][0][-(max_length-len(multi_data[i][0])):]
+                    multi_data[i][1] = multi_data[i][1] + [multi_data[i][1][-1]] * (max_length - len(multi_data[i][1]))
             except:
-                print('debug')
-        multi_data = np.mean(multi_data, axis=0)
-        return multi_data
+                print('debug 1')
+        print(np.array(multi_data).shape)
+        single_data = np.mean(multi_data, axis=0)
+        return single_data
     
     datasets = ['mnist', 'femnist', 'celeba', 'semantic140']
     metrics = [cr_to_acc_list, ca_to_acc_list, time_to_acc_list]
@@ -104,12 +110,15 @@ if __name__ == '__main__':
     for i in range(len(metrics)):
         for data_id in metrics[i]:
             dataset, non_iid, fl_model = data_id.split()
+            print(dataset, non_iid, fl_model)
             if non_iid == '0':
                 plot_data = multi_to_single(metrics[i][data_id])
                 ax[i][datasets.index(dataset)].plot(
                     plot_data[0], plot_data[1],
                     # label=(fl_model + '-NonIID') if non_iid == '1' else (fl_model + '-IID'),
                     label=fl_model,
+                    # linewidth=2.0,
+                    alpha=0.8
                 )
 
     for i in range(len(ax)):
@@ -126,7 +135,7 @@ if __name__ == '__main__':
     # ax.set_xticklabels(['10k', '20k', '30k', '40k', '50k'])
     # ax[0].set_ylabel('Accuracy')
     # ax.yaxis.set_major_formatter(ticker.PercentFormatter(decimals=6))
-
+    
     fig.tight_layout()
-    plt.savefig(os.path.join('log/images', 'to_acc_lines.png'), type="png", dpi=300)
+    plt.savefig(os.path.join('log/images', 'to_acc_lines.png'), type="png", dpi=400)
     plt.show()

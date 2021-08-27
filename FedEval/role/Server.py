@@ -231,6 +231,28 @@ class Server(object):
             if self.current_round - int(matched_model.group(1)) >= 5:
                 os.remove(os.path.join(self.model_path, matched_model.group(0)))
 
+    def save_result_to_json(self):
+        m, s = divmod(int(round(time.time())) - self.training_start_time, 60)
+        h, m = divmod(m, 60)
+        avg_time_records = []
+        keys = ['update_send', 'update_run', 'update_receive', 'agg_server',
+                'eval_send', 'eval_run', 'eval_receive', 'server_eval']
+        for key in keys:
+            avg_time_records.append(np.mean([e.get(key, 0) for e in self.time_record]))
+        self.result_json = {
+            'best_metric': self.best_test_metric,
+            'best_metric_full': self.best_test_metric_full,
+            'total_time': '{}:{}:{}'.format(h, m, s),
+            'time_detail': str(avg_time_records),
+            'total_rounds': self.current_round,
+            'server_send': self.server_send_bytes / (2 ** 30),
+            'server_receive': self.server_receive_bytes / (2 ** 30),
+            'info_each_round': self.info_each_round
+        }
+        with open(os.path.join(self.log_dir, 'results.json'), 'w') as f:
+            json.dump(self.result_json, f)
+        save_config(self.data_config, self.model_config, self.runtime_config, self.log_dir)
+
     @staticmethod
     def get_comm_in_and_out():
         eth0_info = psutil.net_io_counters(pernic=True).get('eth0')
@@ -521,6 +543,7 @@ class Server(object):
                             # Server job finish
                             self.server_job_finish = True
                     else:
+                        self.save_result_to_json()
                         self.logger.info("start to next round...")
                         self.train_next_round()
 
