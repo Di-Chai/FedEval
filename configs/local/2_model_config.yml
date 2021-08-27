@@ -2,7 +2,7 @@ FedModel:
   name: FedAvg
   # Shared params
   B: 32
-  C: 1
+  C: 0.1
   E: 1
   max_rounds: 10000
   num_tolerance: 300
