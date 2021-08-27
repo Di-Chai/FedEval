@@ -1,4 +1,6 @@
 import os
+import copy
+from numpy.lib.function_base import copy
 import yaml
 import pickle
 import argparse
@@ -107,7 +109,7 @@ def generate_docker_compose_server(runtime_config, path):
         ))
         for i in range(min(remain_clients, num_container_curr_machine)):
             container_id = counter + i
-            tmp = client_template.copy()
+            tmp = copy.deepcopy(client_template)
             tmp['container_name'] = 'container%s' % container_id
             tmp['command'] = 'sh -c ' \
                              '"export CONTAINER_ID={} ' \
@@ -157,7 +159,7 @@ def generate_docker_compose_local(runtime_config, path):
     }
 
     for container_id in range(runtime_config['docker']['num_containers']):
-        tmp = client_template.copy()
+        tmp = copy.deepcopy(client_template)
         tmp['container_name'] = 'container%s' % container_id
         tmp['command'] = 'sh -c ' \
                          '"export CONTAINER_ID={0} ' \
