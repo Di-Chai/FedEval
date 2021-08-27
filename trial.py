@@ -125,10 +125,10 @@ if args.dataset == 'semantic140':
     model_config['FedModel']['num_tolerance'] = 500
 
     runtime_config['docker']['image'] = 'fedeval:gpu'
-    runtime_config['docker']['enable_gpu'] = True   
+    runtime_config['docker']['enable_gpu'] = True
     runtime_config['docker']['num_gpu'] = 8
-    runtime_config['docker']['num_containers'] = 40
-    
+    runtime_config['docker']['num_containers'] = 100
+
 if args.dataset == 'shakespeare':
     data_config['normalize'] = False
     model_config['MLModel']['embedding_dim'] = 8
