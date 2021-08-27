@@ -1,6 +1,5 @@
 import os
 import copy
-from numpy.lib.function_base import copy
 import yaml
 import pickle
 import argparse
