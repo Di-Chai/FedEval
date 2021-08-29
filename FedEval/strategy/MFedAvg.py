@@ -8,14 +8,14 @@ from ..model import *
 from ..dataset import get_data_shape
 from ..utils import ParamParser
 from .FedAvg import FedAvg
-
+from ..role import Role
 
 class MFedAvg(FedAvg):
 
     def __init__(self, role, data_config, model_config, runtime_config):
         super().__init__(role, data_config, model_config, runtime_config)
 
-        if role == 'server':
+        if self.role == Role.Server:
             self.v = None
 
     def update_host_params(self, client_params, aggregate_weights):

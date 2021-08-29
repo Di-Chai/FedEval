@@ -2,14 +2,15 @@ import copy
 import numpy as np
 from .utils import aggregate_weighted_average
 from .FedAvg import FedAvg
+from ..role import Role
 
 
 class FedOpt(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config):
+    def __init__(self, role: Role, data_config, model_config, runtime_config):
         super().__init__(role, data_config, model_config, runtime_config)
 
-        if self.role == 'server':
+        if self.role == Role.Server:
             self.tau = self.model_config['FedModel']['tau']
             self.beta1 = self.model_config['FedModel']['beta1']
             self.beta2 = self.model_config['FedModel']['beta2']
@@ -18,6 +19,8 @@ class FedOpt(FedAvg):
             self.v = [np.zeros(e.shape) + self.tau**2 for e in self.params_shape]
             self.pre_delta_x = None
             self.cur_delta_x = None
+        elif self.role != Role.Client:
+            raise NotImplementedError
 
             # Clients' upload info
     def retrieve_local_upload_info(self):

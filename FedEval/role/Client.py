@@ -1,97 +1,121 @@
 import os
-import gc
 import time
-import json
-import pickle
-import requests
-import logging
-import numpy as np
-import joblib
+from typing import Dict, List
 
 from socketIO_client import SocketIO
-from ..utils import obj_to_pickle_string
+from utils.utils import obj_to_pickle_string
+
 from ..strategy import *
+from .flask_node import FlaskNode
+from .role import Role
+from .service_interface import ServerFlaskInterface
+from .model_weights_io import ModelWeightsFlaskHandler, ModelWeightsIoInterface, weights_filename_pattern
 
-
-class Client(object):
+class Client(FlaskNode):
+    """a client node implementation based on FlaskNode."""
 
     MAX_DATASET_SIZE_KEPT = 6000
 
-    def __init__(self, data_config, model_config, runtime_config):
+    def _init_control_states(self):
+        ''' allocate cid for the clients hold by this container and
+        initiate round counters.
+        
+        client_cids allocation examples:
+        # case 0: Given: container_num: 2, client_num: 13
+        Thus:
+        num_clients_in_each_container -> 6
+        num_clients % num_containers -> 1
+        # container_0
+        client_cids: [0..=6]
+        # container_1
+        client_cids: [7..=12]
 
-        # (1) Name
-        self.name = 'client'
-        # self.cid = os.environ.get('CLIENT_ID', '0')
-        self.container_id = os.environ.get('CONTAINER_ID', '0')
-        # (2) Logger
-        time_str = time.strftime('%Y_%m%d_%H%M%S', time.localtime())
-        self.logger = logging.getLogger("container")
-        self.logger.setLevel(logging.INFO)
-        self.log_dir = os.path.join(runtime_config.get('log_dir', 'log'), 'Container' + self.container_id, time_str)
-        os.makedirs(self.log_dir, exist_ok=True)
-        self.fh = logging.FileHandler(os.path.join(self.log_dir, 'train.log'))
-        self.fh.setLevel(logging.INFO)
-        # create console handler with a higher log level
-        self.ch = logging.StreamHandler()
-        self.ch.setLevel(logging.ERROR)
-        # create formatter and add it to the handlers
-        self.formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        self.fh.setFormatter(self.formatter)
-        self.ch.setFormatter(self.formatter)
-        # add the handlers to the logger
-        self.logger.addHandler(self.fh)
-        self.logger.addHandler(self.ch)
-        
-        # Initialize the fed model for all the clients in this container
-        num_containers = runtime_config['docker']['num_containers']
-        num_clients = runtime_config['server']['num_clients']
-        num_clients_in_this_container = int(num_clients / num_containers)
-        cid_start = int(self.container_id) * num_clients_in_this_container
-        if num_clients % num_containers != 0:
-            if num_clients % num_containers > int(self.container_id):
+        # case 1: Given: container_num: 3, client_num: 13
+        Thus:
+        num_clients_in_each_container -> 4
+        num_clients % num_containers -> 1
+        # container_0
+        client_cids: [0..=4]
+        # container_1
+        client_cids: [5..=8]
+        # container_2
+        client_cids: [9..=12]
+        '''
+        num_containers = self.runtime_config['docker']['num_containers']
+        num_clients = self.runtime_config['server']['num_clients']
+        num_clients_in_this_container = num_clients // num_containers
+        cid_start = int(self._container_id) * num_clients_in_this_container
+
+        num_clients_remainder = num_clients % num_containers
+        if num_clients_remainder != 0:
+            if num_clients_remainder > int(self._container_id):
                 num_clients_in_this_container += 1
-                cid_start += int(self.container_id)
+                cid_start += int(self._container_id)
             else:
-                cid_start += num_clients % num_containers
-        
-        fed_model_class = eval(model_config['FedModel']['name'])
+                cid_start += num_clients_remainder
+
+        self._cid_list: List[ContainerId] = list(range(cid_start, cid_start + num_clients_in_this_container))
+        self._local_train_round: Dict[ContainerId, int] = { cid: 0 for cid in self._cid_list }
+        self._host_params_round: Dict[ContainerId, int] = { cid: -1 for cid in self._cid_list }
+
+    def __init__(self, data_config, model_config, runtime_config):
+        super().__init__('client', data_config, model_config, runtime_config, role=Role.Client)
+        self._cid = os.environ.get('CLIENT_ID', '0') # TODO remove self._cid
+        self._container_id = os.environ.get('CONTAINER_ID', '0')
+        self._init_control_states()
+        self._init_container()
+        self._init_no_use()
+
+        self._init_logger()
+        self.start()
+
+    def _init_no_use(self):
+        self.global_weights = None
+
+    def start(self):
+        self._register_handles()
+        self.sio.emit('client_wake_up')
+        self.logger.info("sent wakeup")
+        self.sio.wait()
+
+    def _init_flask_service(self):
+        server_host, server_port = self.fed_model.param_parser.parse_server_addr(self.name)
+        weights_download_url = f'http://{server_host}:{server_port}{ServerFlaskInterface.DownloadPattern}'
+        self._model_weights_io_handler: ModelWeightsIoInterface = ModelWeightsFlaskHandler(
+            weights_download_url)
+        self.sio = SocketIO(server_host, server_port)
+        self._register_handles()
+
+    def _init_logger(self):
+        super()._init_logger('container', 'Container' + self._container_id)
+
+    def _init_container(self):
+        # Initialize the fed model for all the clients in this container
+        # This method should be called after self._init_control_states()
+        fed_model_class: type = eval(self.model_config['FedModel']['name'])
         self.client_fed_model_fname = os.path.join(self.log_dir, 'client_%s_fed_model')
-        self.local_train_round = {}
-        self.host_params_round = {}
-        self.cid_list = []
-        for cid in range(cid_start, cid_start + num_clients_in_this_container):
+        biggest_cid_in_this_container = max(self._cid_list)
+        for cid in self._cid_list:
             start = time.time()
-            if os.path.isdir(self.client_fed_model_fname % cid) is False:
-                os.makedirs(self.client_fed_model_fname % cid, exist_ok=True)
+            client_fed_model_fpath = self.client_fed_model_fname % cid
             self.fed_model = fed_model_class(
-                role='client', data_config=data_config, model_config=model_config, runtime_config=runtime_config
+                role=Role.Client, data_config=self.data_config, model_config=self.model_config, runtime_config=self.runtime_config
             )
-            self.fed_model = save_fed_model(self.fed_model, self.client_fed_model_fname % cid)
-            if cid < (cid_start + num_clients_in_this_container - 1):
-                del self.fed_model
-            self.local_train_round[cid] = 0
-            self.host_params_round[cid] = -1
-            self.cid_list.append(cid)
-            self.logger.info('Save model using %s' % (time.time() - start))
+            self.fed_model = save_fed_model(self.fed_model, client_fed_model_fpath)
+            if cid != biggest_cid_in_this_container:
+                del self.fed_model  # Q(fgh): 这里已经留下了最后一个初始化的fed_model了，为什么还要在后面再加载一个fed_model呢？
+                # self.curr_online_client = biggest_cid_in_this_container
+            self.logger.info('Saving model costs %s(s)' % (time.time() - start))
 
         # Load arbitrary fed model
         start = time.time()
-        self.curr_online_client = self.cid_list[0]
+        self.curr_online_client = self._cid_list[0]
         self.fed_model = load_fed_model(self.fed_model, self.client_fed_model_fname % self.curr_online_client)
         print('#' * 30)
-        print('Load fed model costing', time.time() - start)
-        server_host, server_port = self.fed_model.param_parser.parse_server_addr(self.name)
+        print('Loading federated model costs %s(s)' % (time.time() - start))
 
-        self.weights_download_url = 'http://' + server_host + ':%s' % server_port + '/download/'
-
-        # Start the connection
-        self.sio = SocketIO(server_host, server_port)
-        self.register_handles()
-        self.logger.info("sent wakeup")
-        self.sio.emit('client_wake_up')
-        self.sio.wait()
-
-    def register_handles(self):
+    def _register_handles(self):
+        from . import ClientSocketIOEvents
 
         def on_connect():
             print('connect')
@@ -108,17 +132,17 @@ class Client(object):
         def on_init():
             self.logger.info('on init')
             self.logger.info("local model initialized done.")
-            self.sio.emit('client_ready', [self.container_id] + self.cid_list)
-        
+            self.sio.emit('client_ready', [self._container_id] + self._cid_list)
+
         def on_request_update(*args):
-            
+
             # Mark the receive time
             time_receive_request = time.time()
 
-            data_from_server, callback = args[0], args[1]
+            data_from_server, response_with = args[0], args[1]
 
             # Call backs for debug, could be removed in the future
-            callback('Train Received by', self.container_id)
+            response_with('Train Received by', self._container_id)
 
             # Get the selected clients
             selected_clients = data_from_server['selected_clients']
@@ -133,13 +157,13 @@ class Client(object):
                     self.fed_model = load_fed_model(self.fed_model, self.client_fed_model_fname % cid)
                     self.curr_online_client = cid
                     self.logger.info("Loaded fed model of client %s using %s" % (cid, time.time()-start))
-                self.local_train_round[cid] += 1
+                self._local_train_round[cid] += 1
                 # Download the parameter if the local model is not the latest
-                if (current_round - self.host_params_round[cid]) > 1:
-                    weights_file_name = 'model_{}.pkl'.format(current_round - 1)
-                    self.host_params_round[cid] = current_round - 1
-                    response = requests.get(self.weights_download_url + weights_file_name, timeout=600)
-                    self.fed_model.set_host_params_to_local(pickle.loads(response.content), current_round=current_round)
+                if (current_round - self._host_params_round[cid]) > 1:
+                    self._host_params_round[cid] = current_round - 1
+                    weights_file_name = weights_filename_pattern.format(self._host_params_round[cid])
+                    weights = self._model_weights_io_handler.fetch_params(weights_file_name)
+                    self.fed_model.set_host_params_to_local(weights, current_round=current_round)
                     self.logger.info("train received model: %s" % weights_file_name)
 
                 # fit on local and retrieve new uploading params
@@ -155,7 +179,7 @@ class Client(object):
                 time_finish_update = time.time()
 
                 response = {
-                    'cid': os.environ.get('CLIENT_ID'),
+                    'cid': self._cid,
                     'round_number': current_round,
                     'local_round_number': self.local_train_round[cid],
                     'weights': obj_to_pickle_string(upload_data),
@@ -178,13 +202,13 @@ class Client(object):
                 self.logger.info("Client %s Emited update" % cid)
 
         def on_request_evaluate(*args):
-            
+
             time_receive_evaluate = time.time()
 
-            data_from_server, callback = args[0], args[1]
+            data_from_server, response_with = args[0], args[1]
 
             # Call backs
-            callback('Evaluate Received by', self.container_id)
+            response_with('Evaluate Received by', self._container_id)
 
             # Get the selected clients
             selected_clients = data_from_server['selected_clients']
@@ -199,17 +223,14 @@ class Client(object):
                     self.curr_online_client = cid
                     self.logger.info("Loaded fed model of client %s using %s" % (cid, time.time()-start))
                 # Download the latest weights
-                if data_from_server.get('weights_file_name'):
-                    weights_file_name = data_from_server['weights_file_name']
-                elif (current_round - self.host_params_round[cid]) > 0:
-                    weights_file_name = 'model_{}.pkl'.format(current_round)
-                else:
-                    weights_file_name = None
+                weights_file_name = data_from_server.get('weights_file_name')
+                if weights_file_name is None and current_round > self._host_params_round[cid]:
+                    weights_file_name = weights_filename_pattern.format(current_round)
 
                 if weights_file_name:
-                    self.host_params_round[cid] = current_round
-                    response = requests.get(self.weights_download_url + weights_file_name, timeout=600)
-                    self.fed_model.set_host_params_to_local(pickle.loads(response.content), current_round=current_round)
+                    self._host_params_round[cid] = current_round
+                    weights = self._model_weights_io_handler.fetch_params(weights_file_name)
+                    self.fed_model.set_host_params_to_local(weights, current_round=current_round)
                     self.logger.info("eval received model: %s" % weights_file_name)
 
                 evaluate = self.fed_model.local_evaluate()
@@ -222,7 +243,7 @@ class Client(object):
                 time_finish_evaluate = time.time()
 
                 response = {
-                    'cid': os.environ.get('CLIENT_ID'),
+                    'cid': self._cid,
                     'round_number': current_round,
                     'local_round_number': self.local_train_round,
                     'time_start_evaluate': time_start_evaluate,
@@ -244,10 +265,10 @@ class Client(object):
             print("Federated training finished ...")
             exit(0)
 
-        self.sio.on('connect', on_connect)
-        self.sio.on('disconnect', on_disconnect)
-        self.sio.on('reconnect', on_reconnect)
-        self.sio.on('init', on_init)
-        self.sio.on('request_update', on_request_update)
-        self.sio.on('request_evaluate', on_request_evaluate)
-        self.sio.on('stop', on_stop)
+        self.sio.on(ClientSocketIOEvents.Connect.value, on_connect)
+        self.sio.on(ClientSocketIOEvents.Disconnect.value, on_disconnect)
+        self.sio.on(ClientSocketIOEvents.Reconnect.value, on_reconnect)
+        self.sio.on(ClientSocketIOEvents.Init.value, on_init)
+        self.sio.on(ClientSocketIOEvents.RequestUpdate.value, on_request_update)
+        self.sio.on(ClientSocketIOEvents.RequestEvaluate.value, on_request_evaluate)
+        self.sio.on(ClientSocketIOEvents.Stop.value, on_stop)

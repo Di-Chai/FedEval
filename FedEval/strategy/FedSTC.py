@@ -5,7 +5,7 @@ import numpy as np
 from scipy.sparse import lil_matrix
 from .utils import aggregate_weighted_average
 from .FedAvg import FedAvg
-
+from ..role import Role
 
 def sparse_mask(value_list, p=0.01):
 
@@ -48,14 +48,15 @@ def sparse_mask(value_list, p=0.01):
 
 class FedSTC(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config):
-
+    def __init__(self, role: Role, data_config, model_config, runtime_config):
         super().__init__(role, data_config, model_config, runtime_config)
 
-        if self.role == 'client':
+        if self.role == Role.Client:
             self.client_residual = self.init_residual()
-        else:
+        elif self.role == Role.Server:
             self.server_residual = self.init_residual()
+        else:
+            raise NotImplementedError
 
     @staticmethod
     def stc(input_tensor, sparsity=0.01):

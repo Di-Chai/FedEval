@@ -64,7 +64,7 @@ def run(role, data_config, model_config, runtime_config):
 def generate_docker_compose_server(runtime_config, path):
     project_path = os.path.abspath('./')
 
-    server_template = { 
+    server_template = {
         'image': runtime_config['docker']['image'],
         'ports': ['{0}:{0}'.format(runtime_config['server']['port'])],
         'volumes': ['%s:/FML' % project_path],
@@ -105,7 +105,8 @@ def generate_docker_compose_server(runtime_config, path):
         num_container_curr_machine = int(np.ceil(
             (machines[m_k]['capacity'] / machine_capacity_sum) * runtime_config['docker']['num_containers']
         ))
-        for i in range(min(remain_clients, num_container_curr_machine)):
+        num_container_curr_machine = min(remain_clients, num_container_curr_machine)
+        for i in range(num_container_curr_machine):
             container_id = counter + i
             tmp = client_template.copy()
             tmp['container_name'] = 'container%s' % container_id
@@ -116,8 +117,8 @@ def generate_docker_compose_server(runtime_config, path):
                 container_id, runtime_config['clients']['bandwidth'], path)
             dc['services']['container_%s' % container_id] = tmp
 
-        counter += min(remain_clients, num_container_curr_machine)
-        remain_clients -= min(remain_clients, num_container_curr_machine)
+        counter += num_container_curr_machine
+        remain_clients -= num_container_curr_machine
 
         with open("docker-compose-%s.yml" % m_k, 'w') as f:
             no_alias_dumper = yaml.dumper.SafeDumper
@@ -166,7 +167,7 @@ def generate_docker_compose_local(runtime_config, path):
             runtime_config['clients']['bandwidth'],
             path)
         dc['services']['container_%s' % container_id] = tmp
-    
+
     with open("docker-compose.yml", 'w') as f:
         no_alias_dumper = yaml.dumper.SafeDumper
         no_alias_dumper.ignore_aliases = lambda self, data: True

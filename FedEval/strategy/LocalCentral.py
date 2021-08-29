@@ -4,14 +4,15 @@ import pickle
 import numpy as np
 import tensorflow as tf
 from .FedAvg import FedAvg
+from ..role import Role
 
 
 class LocalCentral(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config):
+    def __init__(self, role: Role, data_config, model_config, runtime_config):
         super().__init__(role, data_config, model_config, runtime_config)
 
-        if role == 'server':
+        if self.role == Role.Server:
             x_train = []
             y_train = []
             x_val = []

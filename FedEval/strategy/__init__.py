@@ -1,3 +1,4 @@
+from .FederatedStrategy import FedStrategy, FedStrategyInterface, Sid, ContainerId
 from .FedAvg import FedAvg, FedSGD
 from .FedSTC import FedSTC
 from .FedProx import FedProx

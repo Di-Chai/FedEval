@@ -1,6 +1,5 @@
 import os
-import re
-import numpy as np
+
 import tensorflow as tf
 
 from ..utils import obj_to_pickle_string, pickle_string_to_obj
@@ -28,6 +27,8 @@ def aggregate_weighted_average(client_params, aggregate_weights):
 
 
 def save_fed_model(fed_model, path):
+    if not os.path.isdir(path):
+        os.makedirs(path, exist_ok=True)
     # Save ML-Model Weights
     ml_model = fed_model.ml_model
     ml_model.save_weights(os.path.join(path, 'ml_model.h5'), save_format='h5')
