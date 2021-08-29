@@ -108,7 +108,6 @@ if args.strategy == 'FedOpt':
     model_config['FedModel']['beta2'] = 0.99
     model_config['FedModel']['eta'] = 1
     model_config['FedModel']['opt_name'] = 'fedadam'
-    # model_config['FedModel']['opt_name'] = 'fedadagrad'
 
 if args.strategy == 'FedSTC':
     model_config['FedModel']['sparsity'] = 0.1
@@ -124,10 +123,11 @@ if args.dataset == 'semantic140':
     model_config['FedModel']['max_rounds'] = 10000
     model_config['FedModel']['num_tolerance'] = 500
 
-    runtime_config['docker']['image'] = 'fedeval:gpu'
-    runtime_config['docker']['enable_gpu'] = True
-    runtime_config['docker']['num_gpu'] = 8
-    runtime_config['docker']['num_containers'] = 100
+    # TODO : Add GPU support in the future
+    # runtime_config['docker']['image'] = 'fedeval:gpu'
+    # runtime_config['docker']['enable_gpu'] = True
+    # runtime_config['docker']['num_gpu'] = 8
+    # runtime_config['docker']['num_containers'] = 100
 
 if args.dataset == 'shakespeare':
     data_config['normalize'] = False

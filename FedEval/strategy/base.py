@@ -31,7 +31,7 @@ class CallBack:
 
     def on_setting_host_to_local(self, host_params, **kwargs):
         return host_params
-    
+
     def on_client_train_begin(self, data, model, **kwargs):
         # Do : Data Poisoning Attacks
         return data, model
@@ -52,3 +52,5 @@ class CallBack:
     def on_host_exit(self):
         # Do : Model Inversion Attacks
         pass
+
+
