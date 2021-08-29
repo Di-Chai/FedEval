@@ -6,15 +6,14 @@ import threading
 import time
 
 import numpy as np
-from flask import request, Flask, render_template, send_file
-from flask_socketio import SocketIO, emit
+from flask import request, render_template, send_file
 
 from ..strategy import *
 from ..utils import pickle_string_to_obj, obj_to_pickle_string
 from ..run_util import save_config
 
-from typing import Any, Dict, List, Optional
-from .flask_node import FlaskNode
+from typing import Any, Dict, List, Mapping, Optional
+from .flask_node import ClientSocketIOEvent, FlaskNode
 from .role import Role
 from .service_interface import ServerFlaskInterface
 from .model_weights_io import weights_filename_pattern, server_best_weight_filename
@@ -27,6 +26,8 @@ class Server(FlaskNode):
         super().__init__('server', data_config, model_config, runtime_config, role=Role.Server)
         self._init_states()
         self._init_logger()
+        self._register_handles()
+        self._register_services()
         self.logger.info(self._run_config)
         self.logger.info(self.get_model_description())
         self.save_weight(weights_filename_pattern)   # save the init weights
@@ -97,25 +98,14 @@ class Server(FlaskNode):
         self._bind_run_configs()
         self._lazy_update = False
 
-        self._host, self._port = self.fed_model.param_parser.parse_server_addr()
         self._init_statistical_states()
         self._init_control_states()
         self._current_params = self.fed_model.host_get_init_params()
         self._init_metric_states()
         self._init_model_io_configs()
 
-    def _init_flask_service(self):
-        current_path = os.path.dirname(os.path.abspath(__file__))
-        self.app = Flask(__name__, template_folder=os.path.join(current_path, 'templates'),
-                         static_folder=os.path.join(current_path, 'static'))
-        self.app.config['SECRET_KEY'] = 'secret!'   # TODO(fgh) move into configuration files
-        self.socketio = SocketIO(self.app, max_http_buffer_size=10 ** 20, async_handlers=True,
-                                 ping_timeout=3600, ping_interval=1800, cors_allowed_origins='*')
-
-        # socket io messages
-        self._register_handles()
-
-        @self.app.route(ServerFlaskInterface.Dashboard.value)
+    def _register_services(self):
+        @self.route(ServerFlaskInterface.Dashboard.value)
         def dashboard():
             """for performance illustration and monitoring.
 
@@ -167,7 +157,7 @@ class Server(FlaskNode):
             )
 
         # TMP use
-        @self.app.route(ServerFlaskInterface.Status.value)
+        @self.route(ServerFlaskInterface.Status.value)
         def status_page():
             return json.dumps({
                 'finished': self._server_job_finish,
@@ -175,7 +165,7 @@ class Server(FlaskNode):
                 'log_dir': self.log_dir,
             })
 
-        @self.app.route(ServerFlaskInterface.DownloadPattern.value.format(f'<filename>'), methods=['GET'])
+        @self.route(ServerFlaskInterface.DownloadPattern.value.format(f'<filename>'), methods=['GET'])
         def download_file(filename):
             if os.path.isfile(os.path.join(self._model_path, filename)):
                 return send_file(os.path.join(self._model_path, filename), as_attachment=True)
@@ -213,20 +203,20 @@ class Server(FlaskNode):
                 os.remove(os.path.join(self._model_path, matched_model.group(0)))
 
     def _register_handles(self):
-        from . import ServerSocketIOEvents
+        from . import ServerSocketIOEvent
         # single-threaded async, no need to lock
 
-        @self.socketio.on(ServerSocketIOEvents.Connect.value)
+        @self.on(ServerSocketIOEvent.Connect)
         def handle_connect():
             print(request.sid, "connected")
             self.logger.info('%s connected' % request.sid)
 
-        @self.socketio.on(ServerSocketIOEvents.Reconnect.value)
+        @self.on(ServerSocketIOEvent.Reconnect)
         def handle_reconnect():
             print(request.sid, "reconnected")
             self.logger.info('%s reconnected' % request.sid)
 
-        @self.socketio.on(ServerSocketIOEvents.Disconnect.value)
+        @self.on(ServerSocketIOEvent.Disconnect)
         def handle_disconnect():
             print(request.sid, "disconnected")
             self.logger.info('%s disconnected' % request.sid)
@@ -236,12 +226,12 @@ class Server(FlaskNode):
                 ready_clients = set(self._ready_clients) - set(offline_clients)
                 self._ready_clients = list(ready_clients)
 
-        @self.socketio.on(ServerSocketIOEvents.WakeUp.value)
+        @self.on(ServerSocketIOEvent.WakeUp)
         def handle_wake_up():
             print("client wake_up: ", request.sid)
-            emit('init')
+            self.invoke(ClientSocketIOEvent.Init)
 
-        @self.socketio.on(ServerSocketIOEvents.Ready.value)
+        @self.on(ServerSocketIOEvent.Ready)
         def handle_client_ready(container_clients):
 
             container_id = container_clients[0]
@@ -262,8 +252,8 @@ class Server(FlaskNode):
             else:
                 print("current_round is not equal to 0")
 
-        @self.socketio.on(ServerSocketIOEvents.ResponseUpdate.value)
-        def handle_client_update(data):
+        @self.on(ServerSocketIOEvent.ResponseUpdate)
+        def handle_client_update(data: Mapping[str, Any]):
 
             if data['round_number'] == self._current_round:
 
@@ -330,8 +320,8 @@ class Server(FlaskNode):
 
                     cur_round_info['round_finish_time'] = time.time()
 
-        @self.socketio.on(ServerSocketIOEvents.ResponseEvaluate.value)
-        def handle_client_evaluate(data):
+        @self.on(ServerSocketIOEvent.ResponseEvaluate)
+        def handle_client_evaluate(data: Mapping[str, Any]):
 
             if data['round_number'] == self._current_round:
 
@@ -486,7 +476,7 @@ class Server(FlaskNode):
                                 json.dump(self.result_json, f)
                             save_config(self.data_config, self.model_config, self.runtime_config, self.log_dir)
                             # Stop all the clients
-                            emit('stop', broadcast=True)
+                            self.invoke(ClientSocketIOEvent.Stop, broadcast=True)
                             # Call the server exit job
                             self.fed_model.host_exit_job(self)
                             # Server job finish
@@ -532,7 +522,7 @@ class Server(FlaskNode):
             self.logger.info('Sending train requests to container %s targeting clients %s' % (
                 container_id, str(target_clients)))
             data_send['selected_clients'] = target_clients
-            emit('request_update', data_send, room=self._ready_container_sid_dict[container_id], callback=self.response)
+            self.invoke(ClientSocketIOEvent.RequestUpdate, data_send, room=self._ready_container_sid_dict[container_id], callback=self.response)
 
         self.logger.info('Finished sending update requests, waiting resp from clients')
 
@@ -551,8 +541,10 @@ class Server(FlaskNode):
         self.logger.info('Sending eval requests to %s clients' % len(selected_clients))
         for container_id, target_clients in actual_send.items():
             data_send['selected_clients'] = target_clients
-            emit('request_evaluate', data_send, room=self._ready_container_sid_dict[container_id], callback=self.response)
+            self.invoke(ClientSocketIOEvent.RequestEvaluate, data_send,
+                        room=self._ready_container_sid_dict[container_id], callback=self.response)
         self.logger.info('Waiting resp from clients')
 
     def start(self):
-        self.socketio.run(self.app, host=self._host, port=self._port)
+        # start to provide services
+        self._run_server()

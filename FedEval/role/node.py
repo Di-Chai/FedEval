@@ -1,7 +1,8 @@
-from ..strategy import *
-
 from abc import ABCMeta
+
+from ..strategy import *
 from .role import Role
+
 
 class Node(metaclass=ABCMeta):
     """the basic of a node in federated learning network.

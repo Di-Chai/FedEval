@@ -1,15 +1,13 @@
 import os
 import time
-from typing import Dict, List
+from typing import Any, Callable, Dict, List, Mapping
 
-from socketIO_client import SocketIO
 from utils.utils import obj_to_pickle_string
 
 from ..strategy import *
-from .flask_node import FlaskNode
+from .flask_node import FlaskNode, ServerSocketIOEvent
 from .role import Role
-from .service_interface import ServerFlaskInterface
-from .model_weights_io import ModelWeightsFlaskHandler, ModelWeightsIoInterface, weights_filename_pattern
+from .model_weights_io import weights_filename_pattern
 
 class Client(FlaskNode):
     """a client node implementation based on FlaskNode."""
@@ -60,31 +58,19 @@ class Client(FlaskNode):
 
     def __init__(self, data_config, model_config, runtime_config):
         super().__init__('client', data_config, model_config, runtime_config, role=Role.Client)
-        self._cid = os.environ.get('CLIENT_ID', '0') # TODO remove self._cid
+        self._cid = os.environ.get('CLIENT_ID', '0') # TODO(fgh) remove self._cid
         self._container_id = os.environ.get('CONTAINER_ID', '0')
         self._init_control_states()
         self._init_container()
-        self._init_no_use()
 
         self._init_logger()
+        self._register_handles()
         self.start()
 
-    def _init_no_use(self):
-        self.global_weights = None
-
     def start(self):
-        self._register_handles()
-        self.sio.emit('client_wake_up')
+        self.invoke(ServerSocketIOEvent.WakeUp)
         self.logger.info("sent wakeup")
-        self.sio.wait()
-
-    def _init_flask_service(self):
-        server_host, server_port = self.fed_model.param_parser.parse_server_addr(self.name)
-        weights_download_url = f'http://{server_host}:{server_port}{ServerFlaskInterface.DownloadPattern}'
-        self._model_weights_io_handler: ModelWeightsIoInterface = ModelWeightsFlaskHandler(
-            weights_download_url)
-        self.sio = SocketIO(server_host, server_port)
-        self._register_handles()
+        self.wait()
 
     def _init_logger(self):
         super()._init_logger('container', 'Container' + self._container_id)
@@ -115,31 +101,34 @@ class Client(FlaskNode):
         print('Loading federated model costs %s(s)' % (time.time() - start))
 
     def _register_handles(self):
-        from . import ClientSocketIOEvents
+        from . import ClientSocketIOEvent
 
+        @self.on(ClientSocketIOEvent.Connect)
         def on_connect():
             print('connect')
             self.logger.info('connect')
 
+        @self.on(ClientSocketIOEvent.Disconnect)
         def on_disconnect():
             print('disconnect')
             self.logger.info('disconnect')
 
+        @self.on(ClientSocketIOEvent.Reconnect)
         def on_reconnect():
             print('reconnect')
             self.logger.info('reconnect')
 
+        @self.on(ClientSocketIOEvent.Init)
         def on_init():
             self.logger.info('on init')
             self.logger.info("local model initialized done.")
-            self.sio.emit('client_ready', [self._container_id] + self._cid_list)
+            self.invoke(ClientSocketIOEvent.Ready, [self._container_id] + self._cid_list)
 
-        def on_request_update(*args):
+        @self.on(ClientSocketIOEvent.RequestUpdate)
+        def on_request_update(data_from_server: Mapping[str, Any], response_with: Callable):
 
             # Mark the receive time
             time_receive_request = time.time()
-
-            data_from_server, response_with = args[0], args[1]
 
             # Call backs for debug, could be removed in the future
             response_with('Train Received by', self._container_id)
@@ -195,17 +184,16 @@ class Client(FlaskNode):
 
                 self.logger.info("Emit client_update")
                 try:
-                    self.sio.emit('client_update', response)
+                    self.invoke(ClientSocketIOEvent.ResponseUpdate, response)
                     self.logger.info("sent trained model to server")
                 except Exception as e:
                     self.logger.error(e)
                 self.logger.info("Client %s Emited update" % cid)
 
-        def on_request_evaluate(*args):
+        @self.on(ClientSocketIOEvent.RequestEvaluate)
+        def on_request_evaluate(data_from_server: Mapping[str, Any], response_with: Callable):
 
             time_receive_evaluate = time.time()
-
-            data_from_server, response_with = args[0], args[1]
 
             # Call backs
             response_with('Evaluate Received by', self._container_id)
@@ -254,21 +242,14 @@ class Client(FlaskNode):
 
                 self.logger.info("Emit client evaluate")
                 try:
-                    self.sio.emit('client_evaluate', response)
+                    self.invoke(ClientSocketIOEvent.ResponseEvaluate, response)
                     self.logger.info("sent evaluation results to server")
                 except Exception as e:
                     self.logger.error(e)
                 self.logger.info("Client %s Emited evaluate" % cid)
 
+        @self.on(ClientSocketIOEvent.Stop)
         def on_stop():
             self.fed_model.client_exit_job(self)
             print("Federated training finished ...")
             exit(0)
-
-        self.sio.on(ClientSocketIOEvents.Connect.value, on_connect)
-        self.sio.on(ClientSocketIOEvents.Disconnect.value, on_disconnect)
-        self.sio.on(ClientSocketIOEvents.Reconnect.value, on_reconnect)
-        self.sio.on(ClientSocketIOEvents.Init.value, on_init)
-        self.sio.on(ClientSocketIOEvents.RequestUpdate.value, on_request_update)
-        self.sio.on(ClientSocketIOEvents.RequestEvaluate.value, on_request_evaluate)
-        self.sio.on(ClientSocketIOEvents.Stop.value, on_stop)

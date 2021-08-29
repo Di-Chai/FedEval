@@ -1,25 +1,29 @@
 import logging
 import os
 import time
-from abc import abstractmethod
 from enum import Enum
-import psutil
-from typing import Tuple
+from functools import wraps
+from typing import Callable, Tuple
 
-from .node import Node
-from .role import Role
+import psutil
+from flask import Flask
+from flask_socketio import SocketIO, emit
 
 from ..strategy import *
+from .model_weights_io import ModelWeightsFlaskHandler, ModelWeightsIoInterface
+from .node import Node
+from .role import Role
+from .service_interface import ServerFlaskInterface
 
 
-class SocketIOEvents(Enum):
+class SocketIOEvent(Enum):
     """basic SocketIO life-cycle event names."""
     Connect = 'connect'
     Disconnect = 'disconnect'
     Reconnect = 'reconnect'
 
 
-class ServerSocketIOEvents(SocketIOEvents, Enum):
+class ServerSocketIOEvent(SocketIOEvent, Enum):
     """server-side SocketIO event handles' name."""
     WakeUp = 'client_wake_up'
     Ready = 'client_ready'
@@ -27,7 +31,7 @@ class ServerSocketIOEvents(SocketIOEvents, Enum):
     ResponseEvaluate = 'client_evaluate'
 
 
-class ClientSocketIOEvents(SocketIOEvents, Enum):
+class ClientSocketIOEvent(SocketIOEvent, Enum):
     """client-side SocketIO event handles' name."""
     Init = 'init'
     RequestUpdate = 'request_update'
@@ -45,9 +49,66 @@ class FlaskNode(Node):
         logger: a logger with INFO-lv threshold in file side
             and ERROR-lv threshold in terminal side.
     """
-    @abstractmethod
-    def _init_flask_service(self):
-        raise NotImplementedError
+
+    def __init__(self, name: str, data_config, model_config, runtime_config, role: Role) -> None:
+        super().__init__(name, data_config, model_config, runtime_config, role)
+
+        if self.role == Role.Client:
+            server_host, server_port = self.fed_model.param_parser.parse_server_addr(self.name)
+            weights_download_url = f'http://{server_host}:{server_port}{ServerFlaskInterface.DownloadPattern}'
+            self._model_weights_io_handler: ModelWeightsIoInterface = ModelWeightsFlaskHandler(
+                weights_download_url)
+            self._sio = SocketIO(server_host, server_port)
+
+            self.on = FlaskNode._con(self._sio.on) # client-side handler register
+            self.invoke = self._cinvoke
+            self.wait = self._sio.wait
+        elif self.role == Role.Server:
+            self._host, self._port = self.fed_model.param_parser.parse_server_addr()
+            current_path = os.path.dirname(os.path.abspath(__file__))
+            self._app = Flask(__name__, template_folder=os.path.join(current_path, 'templates'),
+                            static_folder=os.path.join(current_path, 'static'))
+            self._app.config['SECRET_KEY'] = 'secret!' # TODO(fgh) move into configurations
+            self._socketio = SocketIO(self._app, max_http_buffer_size=10 ** 20, async_handlers=True,
+                                     ping_timeout=3600, ping_interval=1800, cors_allowed_origins='*')
+
+            self.on = FlaskNode._son(self._socketio.on) # server-side handler register
+            self.invoke = self._sinvoke
+            self.route = self._app.route # server-side router
+        else:
+            raise NotImplementedError
+
+    def _run_server(self) -> None:
+        if self._role == Role.Server:
+            self._socketio.run(self._app, host=self._host, port=self._port)
+        else:
+            raise TypeError("This is not a central server.")
+
+    @staticmethod
+    def __event2message(event: SocketIOEvent) -> str:
+        return event.value
+
+    @classmethod
+    def _con(cls, func: Callable):
+        @wraps(func)
+        def wrapper(event: ClientSocketIOEvent, *args, **kwargs):
+            return func(FlaskNode.__event2message(event), *args, **kwargs)
+        return wrapper
+
+    @classmethod
+    def _son(cls, func: Callable):
+        @wraps(func)
+        def wrapper(event: ServerSocketIOEvent, *args, **kwargs):
+            return func(FlaskNode.__event2message(event), *args, **kwargs)
+        return wrapper
+
+    @staticmethod
+    def _cinvoke(event: ServerSocketIOEvent, *args, **kwargs):
+        return emit(FlaskNode.__event2message(event), *args, **kwargs)
+
+    @staticmethod
+    def _sinvoke(event: ClientSocketIOEvent, *args, **kwargs):
+        return emit(FlaskNode.__event2message(event), *args, **kwargs)
 
     def _init_logger(self, logger_name: str, log_dir_name: str):
         self.logger = logging.getLogger(logger_name)
@@ -75,10 +136,6 @@ class FlaskNode(Node):
         self.logger.addHandler(fh)
         self.logger.addHandler(ch)
         self.fed_model.set_logger(self.logger)
-
-    def __init__(self, name: str, data_config, model_config, runtime_config, role: Role) -> None:
-        super().__init__(name, data_config, model_config, runtime_config, role)
-        self._init_flask_service()
 
     @staticmethod
     def _get_comm_in_and_out() -> Tuple[int, int]:
