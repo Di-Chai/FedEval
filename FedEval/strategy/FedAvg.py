@@ -1,12 +1,11 @@
 import tensorflow as tf
 
 from .utils import *
-from ..model import *
-from ..dataset import get_data_shape
-from ..utils import ParamParser
-from ..callbacks import *
+from model import *
+from utils import ParamParser
+from callbacks import *
 from . import FedStrategy
-from ..role.role import Role
+from role import Role
 
 class FedAvg(FedStrategy):
 

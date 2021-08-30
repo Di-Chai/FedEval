@@ -3,7 +3,7 @@ import tensorflow as tf
 from .FedAvg import FedAvg
 from tensorflow.python.training import gen_training_ops
 from .utils import aggregate_weighted_average
-from ..utils import ParamParser
+from utils import ParamParser
 
 
 class FedSCAOptimizer(tf.keras.optimizers.Optimizer):

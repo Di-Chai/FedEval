@@ -1,14 +1,10 @@
-import os
-import pickle
 import numpy as np
-import tensorflow as tf
 
-from .utils import *
-from ..model import *
-from ..dataset import get_data_shape
-from ..utils import ParamParser
+from model import *
+from role import Role
 from .FedAvg import FedAvg
-from ..role import Role
+from .utils import *
+
 
 class MFedAvg(FedAvg):
 

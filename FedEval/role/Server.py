@@ -8,16 +8,15 @@ import time
 import numpy as np
 from flask import request, render_template, send_file
 
-from ..strategy import *
-from ..utils import pickle_string_to_obj, obj_to_pickle_string
-from ..run_util import save_config
+from utils import pickle_string_to_obj, obj_to_pickle_string
+from run_util import save_config
 
 from typing import Any, Dict, List, Mapping, Optional
-from .flask_node import ClientSocketIOEvent, FlaskNode
+from .flask_node import ClientSocketIOEvent, FlaskNode, Sid
 from .role import Role
 from .service_interface import ServerFlaskInterface
 from .model_weights_io import weights_filename_pattern, server_best_weight_filename
-from ..strategy import Sid, ContainerId
+from . import ContainerId
 
 class Server(FlaskNode):
     """a central server implementation based on FlaskNode."""

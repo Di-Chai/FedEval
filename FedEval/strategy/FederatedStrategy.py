@@ -1,19 +1,15 @@
 import random
-from FedEval.utils import parameter_parser
-from typing import Any, List, Mapping, Optional
-from FedEval.callbacks.call_back_base import CallBack
 from abc import ABCMeta, abstractmethod, abstractproperty
+from typing import Any, List, Mapping, Optional
+
+from callbacks import *
+from model import *
+from role import ContainerId, Role
+
+from utils import ParamParser, ParamParserInterface
 
 from .utils import aggregate_weighted_average
-from ..model import *
-from ..utils import ParamParser, ParamParserInterface
-from ..callbacks import *
-from ..role import Role
 
-from typing import Any
-
-Sid = Any           # from SocketIO
-ContainerId = int   # to identify container
 ModelWeights = Any  # weights of DL model
 
 class FedStrategyInterface(metaclass=ABCMeta):

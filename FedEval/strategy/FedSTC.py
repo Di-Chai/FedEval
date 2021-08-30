@@ -5,7 +5,7 @@ import numpy as np
 from scipy.sparse import lil_matrix
 from .utils import aggregate_weighted_average
 from .FedAvg import FedAvg
-from ..role import Role
+from role import Role
 
 def sparse_mask(value_list, p=0.01):
 

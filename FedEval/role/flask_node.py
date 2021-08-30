@@ -3,18 +3,19 @@ import os
 import time
 from enum import Enum
 from functools import wraps
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Any
 
 import psutil
 from flask import Flask
 from flask_socketio import SocketIO, emit
 
-from ..strategy import *
 from .model_weights_io import ModelWeightsFlaskHandler, ModelWeightsIoInterface
 from .node import Node
 from .role import Role
 from .service_interface import ServerFlaskInterface
 
+Sid = Any           # from SocketIO
+ContainerId = int   # to identify container
 
 class SocketIOEvent(Enum):
     """basic SocketIO life-cycle event names."""

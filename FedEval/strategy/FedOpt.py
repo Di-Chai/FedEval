@@ -2,7 +2,7 @@ import copy
 import numpy as np
 from .utils import aggregate_weighted_average
 from .FedAvg import FedAvg
-from ..role import Role
+from role import Role
 
 
 class FedOpt(FedAvg):

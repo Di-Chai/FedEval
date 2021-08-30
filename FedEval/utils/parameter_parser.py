@@ -1,16 +1,16 @@
 import os
 import pickle
-from typing import Any, Mapping, Tuple, TypeVar
+from typing import Any, Mapping, Tuple
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
 import tensorflow as tf
 
-from ..dataset import get_data_shape
-from ..model import *
-from ..role import Role
+from dataset import get_data_shape
+from model import *
+from role import Role
 
-Data = TypeVar("Data", Any)
+Data = Any
 XYData = Mapping[str, Data] # {'x': Data, 'y': Data}
 
 class ParamParserInterface(metaclass=ABCMeta):

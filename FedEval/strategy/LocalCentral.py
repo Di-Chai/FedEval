@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 import tensorflow as tf
 from .FedAvg import FedAvg
-from ..role import Role
+from role import Role
 
 
 class LocalCentral(FedAvg):

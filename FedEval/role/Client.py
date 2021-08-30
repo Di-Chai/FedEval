@@ -2,12 +2,13 @@ import os
 import time
 from typing import Any, Callable, Dict, List, Mapping
 
+from strategy import *
 from utils.utils import obj_to_pickle_string
 
-from ..strategy import *
 from .flask_node import FlaskNode, ServerSocketIOEvent
-from .role import Role
 from .model_weights_io import weights_filename_pattern
+from .role import Role
+
 
 class Client(FlaskNode):
     """a client node implementation based on FlaskNode."""
@@ -19,24 +20,26 @@ class Client(FlaskNode):
         initiate round counters.
         
         client_cids allocation examples:
-        # case 0: Given: container_num: 2, client_num: 13
+        # case 0:
+        Given: container_num: 2, client_num: 13
         Thus:
         num_clients_in_each_container -> 6
         num_clients % num_containers -> 1
-        # container_0
+        ## container_0
         client_cids: [0..=6]
-        # container_1
+        ## container_1
         client_cids: [7..=12]
 
-        # case 1: Given: container_num: 3, client_num: 13
+        # case 1:
+        Given: container_num: 3, client_num: 13
         Thus:
         num_clients_in_each_container -> 4
         num_clients % num_containers -> 1
-        # container_0
+        ## container_0
         client_cids: [0..=4]
-        # container_1
+        ## container_1
         client_cids: [5..=8]
-        # container_2
+        ## container_2
         client_cids: [9..=12]
         '''
         num_containers = self.runtime_config['docker']['num_containers']
