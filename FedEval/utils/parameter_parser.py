@@ -29,7 +29,6 @@ class ParamParser:
         
         # (0) Test, Config the GPU
         if self.runtime_config['docker'].get('enable_gpu'):
-            import tensorflow as tf
             gpus = tf.config.list_physical_devices('GPU')
             if gpus:
                 try:
