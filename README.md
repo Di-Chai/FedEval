@@ -1,8 +1,8 @@
 ## Benchmark Results Released!
 
-Link to benchmark results: 
+Link to benchmark results: https://di-chai.github.io/FedEval/BenchmarkResults.html
 
-Link to reproduction guidelines: 
+Link to reproduction guidelines: https://di-chai.github.io/FedEval/Reproduce.html
 
 ## FedEval (iSpree Model)
 
