@@ -1,4 +1,4 @@
-## Quick Start (single experiment using terminal)
+### Quick Start (single experiment using terminal)
 
 In this page, we will show how to start an experiment locally using the config fils in QucikStart dir. Please clone the project from Github, open a terminal from the project path and follow the next tutorial.
 

@@ -122,7 +122,7 @@ if args.dataset == 'semantic140':
     model_config['MLModel']['metrics'] = ['binary_accuracy']
     model_config['FedModel']['max_rounds'] = 10000
     model_config['FedModel']['num_tolerance'] = 500
-
+    
     # TODO : Add GPU support in the future
     # runtime_config['docker']['image'] = 'fedeval:gpu'
     # runtime_config['docker']['enable_gpu'] = True

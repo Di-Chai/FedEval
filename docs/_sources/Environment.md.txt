@@ -16,20 +16,11 @@ Recommended memory sizes for different dataset and models are shown in the follo
 |  MNIST  |  LeNet   | 80 GB / 100 Clients  |
 | FEMNIST |  LeNet   | 60 GB / 100 Clients  |
 | CelebA  |  LeNet   | 200 GB / 100 Clients |
+| Sent140 |  LSTM    | 200 GB / 100 Clients |
 
-#### sudo without password
+#### Docker & Docker Compose (without sudo)
 
-Because there are some operations that need root permissions in scripts, we have to permit the current Linux user to execute commands without root password. In Debian/Ubuntu, we can add the use into `sudoers`. Modify the configuration file by:
-
-```shell
-$ sudo visudo
-```
-
-Add `username ALL=(ALL) NOPASSWD: ALL` as a new line (replace `username` with your username). Then save and exit.
-
-#### Docker & Docker Compose
-
-[Docker](https://www.docker.com/) is an indispensable component to virtualize the software and network environment in order to isolate each instance. Follow these [instructions](https://docs.docker.com/engine/install/) to install Docker on your machine and execute the following command. Docker has been successfully installed if you got a similar output like this:
+[Docker](https://www.docker.com/) is an indispensable component to virtualize the software and network environment in order to isolate each instance. Follow these [instructions](https://docs.docker.com/engine/install/) to install Docker on your machine. Follow the guideline on [Link](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) to manage docker as non-root user. Docker has been successfully installed if you got a similar output like this:
 
 ```shell
 $ docker --version
@@ -88,8 +79,8 @@ sudo docker image ls
 And you'll got something like these if nothing goes wrong. It's okay if the image ID is different.
 
 ```
-REPOSITORY	TAG	IMAGE ID		CREATED				SIZE
-fedeval		v4	f0d3332e9aa9	About a minute ago	7.73GB
+REPOSITORY     TAG     IMAGE ID       CREATED         SIZE
+fedeval        v1      2386be014ab5   3 months ago    4.39GB
 ```
 
 ### Download the dataset
@@ -103,4 +94,3 @@ mv data.tar.gz FedEval
 cd FedEval
 tar -zxvf data.tar.gz
 ```
-

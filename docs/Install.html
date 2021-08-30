@@ -90,7 +90,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Environment.html">2. Environment</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Tutorial.html">Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Documentation.html">3. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BenchmarkResults.html">3. Benchmarking Results</a></li>
 </ul>
 
             
@@ -191,13 +191,14 @@
 <td align="center">200 GB / 100 Clients</td>
 </tr>
 </tbody>
-</table><p>If your compute does not have enough memory, increasing the swap space is a good solution.</p>
+</table>
+<p>If your compute does not have enough memory, increasing the swap space is a good solution.</p>
 </div>
 <div class="section" id="build-docker-image">
 <h2>Build docker image<a class="headerlink" href="#build-docker-image" title="Permalink to this headline">¶</a></h2>
 <p>Firstly, please make sure that docker and docker-compose are properly installed, and the <code class="docutils literal notranslate"><span class="pre">sudo</span></code> commend can run without password.</p>
 <p>Then We build the docker image that is used by the server and clients. It may take about 30 minutes, which depends on your network.</p>
-<div class="highlight-shell script notranslate"><div class="highlight"><pre><span></span>sudo docker build . -t fedeval:v1
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sudo docker build . -t fedeval:v1
 </pre></div>
 </div>
 </div>

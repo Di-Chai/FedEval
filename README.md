@@ -1,4 +1,4 @@
-## FedEval (iSpree)
+## FedEval (iSpree Model)
 
 FedEval is a benchmarking platform with comprehensive evaluation model (i.e., iSpree model) for federated learning. The arxiv paper is available at: https://arxiv.org/abs/2011.09655
 

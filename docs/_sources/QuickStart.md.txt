@@ -1,4 +1,4 @@
-## Quick Start (single experiment using terminal)
+### Quick Start (single experiment using terminal)
 
 In this page, we will show how to start an experiment locally using the config fils in QucikStart dir. Please clone the project from Github, open a terminal from the project path and follow the next tutorial.
 
@@ -7,13 +7,13 @@ In this page, we will show how to start an experiment locally using the config f
 Generate the data for all the clients
 
 ```bash
-sudo docker run -it --rm -v $(pwd):$(pwd) -w $(pwd) fedeval:v1 python -W ignore -m FedEval.run -c QuickStart -f data
+sudo docker run -it --rm -v $(pwd):$(pwd) -w $(pwd) fedeval:v1 python -W ignore -m FedEval.run -c configs/quickstart -f data
 ```
 
 Generate the docker-compose file
 
 ```bash
-sudo docker run -it --rm -v $(pwd):$(pwd) -w $(pwd) fedeval:v1 python -W ignore -m FedEval.run -c QuickStart -f compose-local
+sudo docker run -it --rm -v $(pwd):$(pwd) -w $(pwd) fedeval:v1 python -W ignore -m FedEval.run -c configs/quickstart -f compose-local
 ```
 
 #### Start the Experiment

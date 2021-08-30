@@ -1,4 +1,4 @@
-## Running Multiple Experiments (using scripts)
+### Running Multiple Experiments (using scripts)
 
 #### Start the experiments
 
