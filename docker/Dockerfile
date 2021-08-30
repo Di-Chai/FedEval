@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM tensorflow/tensorflow:2.2.3-gpu-py3
 
 # Install python
 RUN apt update && apt install -y python3 python3-pip iproute2 net-tools wget vim nload iftop unzip --fix-missing
@@ -12,7 +12,6 @@ RUN pip install --upgrade pip
 # Install python requirements (using douban image)
 COPY requirements.txt /root/requirements.txt
 RUN pip install -r /root/requirements.txt --no-cache-dir
-RUN pip install -y tensorflow==2.4.0
 
 # Place the dataset in the docker image
 RUN mkdir -p /root/.keras
