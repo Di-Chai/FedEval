@@ -189,7 +189,7 @@
 </ol>
 <p>Here’s an example which aimed at conducting a grid search for learning rate <code class="docutils literal notranslate"><span class="pre">lr</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">FedEval.run_util</span> <span class="kn">import</span> <span class="n">run</span>
-
+  
 <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;data_config&#39;</span><span class="p">:</span> <span class="p">{</span>
         <span class="s1">&#39;dataset&#39;</span><span class="p">:</span> <span class="s1">&#39;mnist&#39;</span><span class="p">,</span>
@@ -215,20 +215,21 @@
     <span class="p">}</span>
 <span class="p">}</span>
 
+<span class="n">config</span> <span class="o">=</span> <span class="s1">&#39;configs/quickstart&#39;</span>
+
 <span class="k">for</span> <span class="n">lr</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
     <span class="c1"># update learning rate in configuration</span>
-    <span class="n">params</span><span class="p">[</span><span class="s1">&#39;model_config&#39;</span><span class="p">][</span><span class="s1">&#39;MLModel&#39;</span><span class="p">][</span><span class="s1">&#39;optimizer&#39;</span><span class="p">][</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span> 
-    <span class="n">run</span><span class="p">(</span><span class="n">exec</span><span class="o">=</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;local&#39;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="s1">&#39;configs/quickstart&#39;</span><span class="p">,</span> <span class="n">new_config</span><span class="o">=</span><span class="n">config</span> <span class="o">+</span> <span class="s1">&#39;_tmp&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">params</span><span class="p">[</span><span class="s1">&#39;model_config&#39;</span><span class="p">][</span><span class="s1">&#39;MLModel&#39;</span><span class="p">][</span><span class="s1">&#39;optimizer&#39;</span><span class="p">][</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span>
+    <span class="n">run</span><span class="p">(</span><span class="n">execution</span><span class="o">=</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;local&#39;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">new_config</span><span class="o">=</span><span class="n">config</span> <span class="o">+</span> <span class="s1">&#39;_tmp&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Noted that the <code class="docutils literal notranslate"><span class="pre">params</span></code> passed into <code class="docutils literal notranslate"><span class="pre">run</span></code>  will override the configurations specified in <code class="docutils literal notranslate"><span class="pre">config='configs/quickstart'</span></code>. And the new configurations will be saved to <code class="docutils literal notranslate"><span class="pre">new_config=config</span> <span class="pre">+</span> <span class="pre">'_tmp'</span></code>, i.e., keeping the original file untouched.</p>
-<p>After run this script in terminal,  you can visit <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8080/dashboard</span></code> have an overview of the experiments’ status.</p>
 </div>
 <div class="section" id="check-the-results">
 <h2><span class="section-number">3.2.2. </span>Check the results<a class="headerlink" href="#check-the-results" title="Permalink to this headline">¶</a></h2>
 <p>Logs, results and model weight records are stored under <code class="docutils literal notranslate"><span class="pre">log</span></code> directory, classified by their names and time when they run the experiments.</p>
 <p>Using the following commend to collect the results from the logs:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo docker run -it --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fedeval:v1 python -W ignore -m FedEval.run_util -e log -p log/quickstart/Server
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker run -it --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> -w <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> fedeval:v1 python -W ignore -m FedEval.run_util -e log -p log/quickstart/Server
 </pre></div>
 </div>
 </div>

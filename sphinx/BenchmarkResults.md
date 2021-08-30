@@ -6,7 +6,7 @@ Here we report a benchmarking study on five most well-known FL mechanisms using 
 
 **Benchmarking FL mechanisms**: We have chosen the following five FL mechanisms which target different issues in the benchmarking:
 
-- FedSGD [1]: FedSGD inherits the settings of large-batch synchronous SGD in data centers [], and it is the one of the most fundamental FL mechanisms.
+- FedSGD [1]: FedSGD inherits the settings of large-batch synchronous SGD in data centers, and it is the one of the most fundamental FL mechanisms.
 
 - FedAvg [1]: FedAvg is a communication efficient mechanism, which aggregates the parameters trained by multiple rounds clients' local training.
 
@@ -28,7 +28,7 @@ Here we report a benchmarking study on five most well-known FL mechanisms using 
 |  CelebA  |   100   |   24    |    LeNet     | (FedSGD, FedSTC) -> LR=0.1<br /> (FedAvg, FedProx, FedOpt) -> B=4,LR=0.05 |
 | Sent140  |   100   |   140   | 2-layer LSTM | (FedSGD, FedSTC) -> LR=0.05<br />(FedAvg, FedProx, FedOpt) -> B=4,LR=0.0001 |
 
-Table 1 shows the four benchmarking datasets that we used in the experiments, and the corresponding finetuned parameters. We use 100 clients in all the experiments. We set $B=\infty,C=1$, and $E=1$ for FedSGD, empirically chose B and E for FdAvg, then perform a fine-grained search on learning rates from $0.0001 \sim 1.0$. The best hyperparameters are shown in \Cref{tab:dataset}. The parameter-searching results (e.g., tuning learning rates) are presented in the appendix \ref{appendix:params_tune}. For datasets that are not collected in FL style (e.g., MNIST), we simulate the non-IID data by restricting the number of clients' local image classes. For example, The experiments of clients have 1 class of MNIST images are reported in robustness benchmarks. For datasets collected in FL manner (i.e., the samples are organized by who generated them), we partition the data naturally based on the identity and randomly shuffle the data between clients to create an ideal IID data setting. To simplify the comparison, we only present the non-IID data results in the robustness evaluation and use the IID setting in other experiments.
+Table 1 shows the four benchmarking datasets that we used in the experiments, and the corresponding finetuned parameters. We use 100 clients in all the experiments. We set $B=\infty,C=1$, and $E=1$ for FedSGD, empirically chose B and E for FdAvg, then perform a fine-grained search on learning rates from $0.0001 \sim 1.0$. The best hyperparameters are shown in Table 1. For datasets that are not collected in FL style (e.g., MNIST), we simulate the non-IID data by restricting the number of clients' local image classes. For example, The experiments of clients have 1 class of MNIST images are reported in robustness benchmarks. For datasets collected in FL manner (i.e., the samples are organized by who generated them), we partition the data naturally based on the identity and randomly shuffle the data between clients to create an ideal IID data setting. To simplify the comparison, we only present the non-IID data results in the robustness evaluation and use the IID setting in other experiments.
 
 All the experiments run on a Linux server with 8-core 3.7GHz CPU, 128GB RAM. We limit the clients' bandwidth to 100Mb/s and do not restrict the server's bandwidth. We set the network latency to 50ms.
 
@@ -71,15 +71,15 @@ $$
 | Dataset |  Data   |  $Psi$  |  Local  | Central | FedSGD  | FedAvg  | FedProx | FedSTC  | FedOpt  |
 | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: |
 |  MNIST  |   IID   | 0.00603 | 0.86944 | 0.98483 | 0.98185 | 0.98282 | 0.98500 | 0.98467 | 0.98520 |
-|  MNIST  | Non-IID | 0.01925 |   $-$   |   $-$   | 0.98220 | 0.96863 | 0.97200 | 0.98443 | 0.96067 |
+|  MNIST  | Non-IID | 0.01925 |   --   |   --   | 0.98220 | 0.96863 | 0.97200 | 0.98443 | 0.96067 |
 | FEMNIST |   IID   | 0.00316 | 0.43593 | 0.85121 | 0.85556 | 0.85201 | 0.81286 | 0.82213 | 0.79803 |
-| FEMNIST | Non-IID | 0.00729 |   $-$   |   $-$   | 0.83617 | 0.81918 | 0.78459 | 0.76264 | 0.77092 |
+| FEMNIST | Non-IID | 0.00729 |   --   |   --   | 0.83617 | 0.81918 | 0.78459 | 0.76264 | 0.77092 |
 | CelebA  |   IID   | 0.03025 | 0.61757 | 0.88818 | 0.88033 | 0.88454 | 0.87000 | 0.86333 | 0.84533 |
-| CelebA  | Non-IID | 0.04213 |   $-$   |   $-$   | 0.87300 | 0.84667 | 0.85533 | 0.72333 | 0.83167 |
+| CelebA  | Non-IID | 0.04213 |   --   |   --   | 0.87300 | 0.84667 | 0.85533 | 0.72333 | 0.83167 |
 | Sent140 |   IID   | 0.01099 | 0.71453 | 0.77850 | 0.77297 | 0.76818 | 0.74775 | 0.76918 | 0.75466 |
-| Sent140 | Non-IID | 0.01740 |   $-$   |   $-$   | 0.76178 | 0.75651 | 0.75236 | 0.76987 | 0.74153 |
-| Average |   IID   |   $-$   | 0.65936 | 0.87568 | 0.87267 | 0.87188 | 0.85390 | 0.85985 | 0.84580 |
-| Average | Non-IID |   $-$   |   $-$   |   $-$   | 0.86329 | 0.84774 | 0.84107 | 0.81006 | 0.82619 |
+| Sent140 | Non-IID | 0.01740 |   --   |   --   | 0.76178 | 0.75651 | 0.75236 | 0.76987 | 0.74153 |
+| Average |   IID   |   --   | 0.65936 | 0.87568 | 0.87267 | 0.87188 | 0.85390 | 0.85985 | 0.84580 |
+| Average | Non-IID |   --   |   --   |   --   | 0.86329 | 0.84774 | 0.84107 | 0.81006 | 0.82619 |
 
 Table 2 shows the robustness evaluation on five FL mechanisms. Currently, we mainly focus on evaluating non-IID data problems. The evaluation of system uncertainties will be done in the future. Briefly, the non-IID data brings negative impact to all FL mechanisms. We have calculated the average accuracy on four datasets. FedSGD achieves the best performance and only brings 0.9% accuracy loss. The efficacy of FedAvg and FedProx are very close under non-IID setting, thus they have similar performance. FedSTC has the lowest accuracy, thus has the worst performance regarding the non-IID issue. We also reported the average data distribution divergence (i.e., $\Psi$) in Table 2. $\Psi$ is significantly larger in non-IID data compared with the IID setting, which shows the reason for the efficacy loss. Following equation shows the comparison regarding the robustness between five mechanisms.
 

@@ -183,7 +183,7 @@
 <h2><span class="section-number">4.1. </span>Experiment Settings<a class="headerlink" href="#experiment-settings" title="Permalink to this headline">¶</a></h2>
 <p><strong>Benchmarking FL mechanisms</strong>: We have chosen the following five FL mechanisms which target different issues in the benchmarking:</p>
 <ul class="simple">
-<li><p>FedSGD [1]: FedSGD inherits the settings of large-batch synchronous SGD in data centers [], and it is the one of the most fundamental FL mechanisms.</p></li>
+<li><p>FedSGD [1]: FedSGD inherits the settings of large-batch synchronous SGD in data centers, and it is the one of the most fundamental FL mechanisms.</p></li>
 <li><p>FedAvg [1]: FedAvg is a communication efficient mechanism, which aggregates the parameters trained by multiple rounds clients’ local training.</p></li>
 <li><p>FedProx [2]: FedProx targets the non-IID data problem, and tries to improve the FedAvg using a regularization on the distance between the global model and local model, such that the negative impact caused by the non-IID data is reduced. We fix the regularization’s weight to 0.01
 in the benchmark.</p></li>
@@ -233,7 +233,7 @@ in the benchmark.</p></li>
 </tr>
 </tbody>
 </table>
-<p>Table 1 shows the four benchmarking datasets that we used in the experiments, and the corresponding finetuned parameters. We use 100 clients in all the experiments. We set <span class="math notranslate nohighlight">\(B=\infty,C=1\)</span>, and <span class="math notranslate nohighlight">\(E=1\)</span> for FedSGD, empirically chose B and E for FdAvg, then perform a fine-grained search on learning rates from <span class="math notranslate nohighlight">\(0.0001 \sim 1.0\)</span>. The best hyperparameters are shown in \Cref{tab:dataset}. The parameter-searching results (e.g., tuning learning rates) are presented in the appendix \ref{appendix:params_tune}. For datasets that are not collected in FL style (e.g., MNIST), we simulate the non-IID data by restricting the number of clients’ local image classes. For example, The experiments of clients have 1 class of MNIST images are reported in robustness benchmarks. For datasets collected in FL manner (i.e., the samples are organized by who generated them), we partition the data naturally based on the identity and randomly shuffle the data between clients to create an ideal IID data setting. To simplify the comparison, we only present the non-IID data results in the robustness evaluation and use the IID setting in other experiments.</p>
+<p>Table 1 shows the four benchmarking datasets that we used in the experiments, and the corresponding finetuned parameters. We use 100 clients in all the experiments. We set <span class="math notranslate nohighlight">\(B=\infty,C=1\)</span>, and <span class="math notranslate nohighlight">\(E=1\)</span> for FedSGD, empirically chose B and E for FdAvg, then perform a fine-grained search on learning rates from <span class="math notranslate nohighlight">\(0.0001 \sim 1.0\)</span>. The best hyperparameters are shown in Table 1. For datasets that are not collected in FL style (e.g., MNIST), we simulate the non-IID data by restricting the number of clients’ local image classes. For example, The experiments of clients have 1 class of MNIST images are reported in robustness benchmarks. For datasets collected in FL manner (i.e., the samples are organized by who generated them), we partition the data naturally based on the identity and randomly shuffle the data between clients to create an ideal IID data setting. To simplify the comparison, we only present the non-IID data results in the robustness evaluation and use the IID setting in other experiments.</p>
 <p>All the experiments run on a Linux server with 8-core 3.7GHz CPU, 128GB RAM. We limit the clients’ bandwidth to 100Mb/s and do not restrict the server’s bandwidth. We set the network latency to 50ms.</p>
 </div>
 <div class="section" id="incentive-evaluation">
@@ -297,8 +297,8 @@ FedSTC &gt; FedAvg \approx FedProx \approx FedOpt &gt; FedSGD
 <td align="center">MNIST</td>
 <td align="center">Non-IID</td>
 <td align="center">0.01925</td>
-<td align="center">$-$</td>
-<td align="center">$-$</td>
+<td align="center">--</td>
+<td align="center">--</td>
 <td align="center">0.98220</td>
 <td align="center">0.96863</td>
 <td align="center">0.97200</td>
@@ -321,8 +321,8 @@ FedSTC &gt; FedAvg \approx FedProx \approx FedOpt &gt; FedSGD
 <td align="center">FEMNIST</td>
 <td align="center">Non-IID</td>
 <td align="center">0.00729</td>
-<td align="center">$-$</td>
-<td align="center">$-$</td>
+<td align="center">--</td>
+<td align="center">--</td>
 <td align="center">0.83617</td>
 <td align="center">0.81918</td>
 <td align="center">0.78459</td>
@@ -345,8 +345,8 @@ FedSTC &gt; FedAvg \approx FedProx \approx FedOpt &gt; FedSGD
 <td align="center">CelebA</td>
 <td align="center">Non-IID</td>
 <td align="center">0.04213</td>
-<td align="center">$-$</td>
-<td align="center">$-$</td>
+<td align="center">--</td>
+<td align="center">--</td>
 <td align="center">0.87300</td>
 <td align="center">0.84667</td>
 <td align="center">0.85533</td>
@@ -369,8 +369,8 @@ FedSTC &gt; FedAvg \approx FedProx \approx FedOpt &gt; FedSGD
 <td align="center">Sent140</td>
 <td align="center">Non-IID</td>
 <td align="center">0.01740</td>
-<td align="center">$-$</td>
-<td align="center">$-$</td>
+<td align="center">--</td>
+<td align="center">--</td>
 <td align="center">0.76178</td>
 <td align="center">0.75651</td>
 <td align="center">0.75236</td>
@@ -380,7 +380,7 @@ FedSTC &gt; FedAvg \approx FedProx \approx FedOpt &gt; FedSGD
 <tr>
 <td align="center">Average</td>
 <td align="center">IID</td>
-<td align="center">$-$</td>
+<td align="center">--</td>
 <td align="center">0.65936</td>
 <td align="center">0.87568</td>
 <td align="center">0.87267</td>
@@ -392,9 +392,9 @@ FedSTC &gt; FedAvg \approx FedProx \approx FedOpt &gt; FedSGD
 <tr>
 <td align="center">Average</td>
 <td align="center">Non-IID</td>
-<td align="center">$-$</td>
-<td align="center">$-$</td>
-<td align="center">$-$</td>
+<td align="center">--</td>
+<td align="center">--</td>
+<td align="center">--</td>
 <td align="center">0.86329</td>
 <td align="center">0.84774</td>
 <td align="center">0.84107</td>

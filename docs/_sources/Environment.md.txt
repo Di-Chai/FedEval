@@ -15,8 +15,8 @@ Recommended memory sizes for different dataset and models are shown in the follo
 |  MNIST  |   MLP    | 32 GB / 100 Clients  |
 |  MNIST  |  LeNet   | 80 GB / 100 Clients  |
 | FEMNIST |  LeNet   | 60 GB / 100 Clients  |
-| CelebA  |  LeNet   | 200 GB / 100 Clients |
-| Sent140 |  LSTM    | 200 GB / 100 Clients |
+| CelebA  |  LeNet   | 128 GB / 100 Clients |
+| Sent140 |  LSTM    | 128 GB / 100 Clients |
 
 #### Docker & Docker Compose (without sudo)
 
