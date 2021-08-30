@@ -30,7 +30,7 @@ We propose a federated benchmarking system called FedEval shown in the above fig
    -  Customized training method for clients, e.g., the clients' model can be trained using regular gradient descent method or the other solutions like meta-learning methods.
    -  Customized method for incorporating the global and local model, e.g., one popularly used method is replacing the local model with the global one before training.
 
-We use the docker container technology to simulate the server and clients (i.e., each participant is a container), and use socket IO in the communication. The isolation between different containers guarantees that our simulation can reflect the real-world application. The entire system is open-sourced, seven benchmark FL datasets, including MNIST, CIFAR10, CIFAR100, FEMNIST, CelebA, Semantic140, and Shakespeare. The essential components (i.e., dataset, ML models, and FL strategy) can be easily used or self-defined. Thus researches can implement their new idea and evaluate with ACTPR model very quickly.
+We use the docker container technology to simulate the server and clients (i.e., each participant is a container), and use socket IO in the communication. The isolation between different containers guarantees that our simulation can reflect the real-world application. The entire system is open-sourced, seven benchmark FL datasets, including MNIST, CIFAR10, CIFAR100, FEMNIST, CelebA, Semantic140, and Shakespeare. The essential components (i.e., dataset, ML models, and FL strategy) can be easily used or self-defined. Thus researches can implement their new idea and evaluate with iSpree model very quickly.
 
 Briefly, three steps are needed to start an experiment in our benchmarking system:
 
