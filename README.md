@@ -1,3 +1,9 @@
+## Benchmark Results Released!
+
+Link to benchmark results: 
+
+Link to reproduction guidelines: 
+
 ## FedEval (iSpree Model)
 
 FedEval is a benchmarking platform with comprehensive evaluation model (i.e., iSpree model) for federated learning. The arxiv paper is available at: https://arxiv.org/abs/2011.09655
@@ -8,9 +14,7 @@ The iSpree evaluation model is the core of our benchmarking system. It defines s
 
 #### Docs
 
-[User guide and Documentation](https://di-chai.github.io/FedEval/)
-
-Benchmark Reproduction Doc
+- [User guide and Documentation](https://di-chai.github.io/FedEval/)
 
 #### Introduction to FedEval
 
