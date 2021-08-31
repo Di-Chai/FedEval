@@ -10,7 +10,181 @@ from .utils import aggregate_weighted_average
 
 ModelWeights = Any  # weights of DL model
 
-class FedStrategyInterface(metaclass=ABCMeta):
+class FedStrategyHostInterface(metaclass=ABCMeta):
+    @abstractmethod
+    def host_get_init_params(self) -> ModelWeights:
+        """get the initial model params/weights from its machine/deep learning model.
+
+        Called by the central server.
+
+        Raises:
+            NotImplementedError: raised when called but not overriden.
+
+        Returns:
+            ModelWeights: the weights/params of its inner machine/deep learning model.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_host_params(self, client_params, aggregate_weights) -> ModelWeights:
+        """update central server's model params/weights with
+        the aggregated params received from clients.
+
+        Called by the central server.
+
+        Args:
+            client_params: TODO(fgh)
+            aggregate_weights: TODO(fgh)
+
+        Raises:
+            NotImplementedError: raised when called but not overriden.
+
+        Returns:
+            ModelWeights: the updated model params/weights, equals to params of self.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def host_exit_job(self, host):
+        """do self-defined finishing jobs before the shutdown of the central server.
+
+        Called by the central server.
+
+        Args:
+            host: TODO(fgh)
+
+        Raises:
+            NotImplementedError: raised when called but not overriden.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def host_select_train_clients(self, ready_clients: List[ContainerId]) -> List[ContainerId]:
+        """select clients from the given ones for training purpose.
+
+        Called by the central server.
+
+        Args:
+            ready_clients (List[ContainerId]): the id list of clients that are ready for training.
+
+        Raises:
+            NotImplementedError: raised when called but not overriden.
+
+        Returns:
+            List[ContainerId]: the id list of the selected clients.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def host_select_evaluate_clients(self, ready_clients: List[ContainerId]) -> List[ContainerId]:
+        """select clients from the given ones for evaluation purpose.
+
+        Called by the central server.
+
+        Args:
+            ready_clients (List[ContainerId]): the id list of clients that are ready for evaluaion.
+
+        Raises:
+            NotImplementedError: raised when called but not overriden.
+
+        Returns:
+            List[ContainerId]: the id list of the selected clients.
+        """
+        raise NotImplementedError
+
+
+class FedStrategyPeerInterface(metaclass=ABCMeta):
+    @abstractmethod
+    def set_host_params_to_local(self, host_params: ModelWeights, current_round: int):
+        """update the current local ML/DL model's params with params received
+        from the central server.
+
+        Called by clients.
+
+        Args:
+            host_params (ModelWeights): params received from the central server.
+            current_round (int): the current round number
+
+        Raises:
+            NotImplementedError: raised when called but not overriden.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def fit_on_local_data(self):
+        """fit model with local data at client side.
+
+        Called by the selected clients.
+
+        Raises:
+            NotImplementedError: raised when called but not overriden.
+
+        Returns:
+            TODO(fgh)
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def retrieve_local_upload_info(self) -> ModelWeights:
+        """return the information aggregated from local model
+        for uploading to the central server.
+
+        Called by the selected clients.
+
+        Raises:
+            NotImplementedError: raised when called but not overriden.
+
+        Returns:
+            ModelWeights: the local model weights/params.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def local_evaluate(self) -> Mapping[str, Any]:
+        """evaluate and test the model received from the central server.
+
+        Called by the selected clients.
+
+        Raises:
+            NotImplementedError: raised when called but not overriden.
+
+        Returns:
+            Mapping[str, Any]: evaluation & test metrics. 
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def client_exit_job(self, client):
+        """do self-defined finishing jobs before the shutdown of the local clients.
+
+        Called by one of the clients.
+
+        Args:
+            client: TODO(fgh)
+
+        Raises:
+            NotImplementedError: raised when called but not overriden.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_client_id(self, client_id) -> None:
+        """set the id of this client.
+
+        TODO(fgh): move this duty into data related modules.
+
+        Called by clients.
+
+        Args:
+            client_id: the id of this client.
+
+        Raises:
+            NotImplementedError: raised when called but not implemented.
+        """
+        raise NotImplementedError
+
+
+class FedStrategyInterface(FedStrategyHostInterface, FedStrategyPeerInterface):
     """the interface of federated strategies.
 
     This class should be inherited instead of being instantiated.
@@ -40,186 +214,6 @@ class FedStrategyInterface(metaclass=ABCMeta):
 
         Raises:
             NotImplementedError: raised when called but not overriden.
-        """
-        raise NotImplementedError
-
-    # Host functions
-    @abstractmethod
-    def host_get_init_params(self) -> ModelWeights:
-        """get the initial model params/weights from its machine/deep learning model.
-
-        Called by the central server.
-
-        Raises:
-            NotImplementedError: raised when called but not overriden.
-
-        Returns:
-            ModelWeights: the weights/params of its inner machine/deep learning model.
-        """
-        raise NotImplementedError
-
-    # Host functions
-    @abstractmethod
-    def update_host_params(self, client_params, aggregate_weights) -> ModelWeights:
-        """update central server's model params/weights with
-        the aggregated params received from clients.
-
-        Called by the central server.
-
-        Args:
-            client_params: TODO(fgh)
-            aggregate_weights: TODO(fgh)
-
-        Raises:
-            NotImplementedError: raised when called but not overriden.
-
-        Returns:
-            ModelWeights: the updated model params/weights, equals to params of self.
-        """
-        raise NotImplementedError
-
-    # Host functions
-    @abstractmethod
-    def host_exit_job(self, host):
-        """do self-defined finishing jobs before the shutdown of the central server.
-
-        Called by the central server.
-
-        Args:
-            host: TODO(fgh)
-
-        Raises:
-            NotImplementedError: raised when called but not overriden.
-        """
-        raise NotImplementedError
-
-    # Host functions
-    @abstractmethod
-    def host_select_train_clients(self, ready_clients: List[ContainerId]) -> List[ContainerId]:
-        """select clients from the given ones for training purpose.
-
-        Called by the central server.
-
-        Args:
-            ready_clients (List[ContainerId]): the id list of clients that are ready for training.
-
-        Raises:
-            NotImplementedError: raised when called but not overriden.
-
-        Returns:
-            List[ContainerId]: the id list of the selected clients.
-        """
-        raise NotImplementedError
-
-    # Host functions
-    @abstractmethod
-    def host_select_evaluate_clients(self, ready_clients: List[ContainerId]) -> List[ContainerId]:
-        """select clients from the given ones for evaluation purpose.
-
-        Called by the central server.
-
-        Args:
-            ready_clients (List[ContainerId]): the id list of clients that are ready for evaluaion.
-
-        Raises:
-            NotImplementedError: raised when called but not overriden.
-
-        Returns:
-            List[ContainerId]: the id list of the selected clients.
-        """
-        raise NotImplementedError
-
-    # Client functions
-    @abstractmethod
-    def set_host_params_to_local(self, host_params: ModelWeights, current_round: int):
-        """update local ML/DL model params with params received from the central server.
-
-        Called by clients.
-
-        Args:
-            host_params (ModelWeights): params received from the central server.
-            current_round (int): the current round number
-
-        Raises:
-            NotImplementedError: raised when called but not overriden.
-        """
-        raise NotImplementedError
-
-    # Client functions
-    @abstractmethod
-    def fit_on_local_data(self):
-        """fit model with local data at client side.
-
-        Called by the selected clients.
-
-        Raises:
-            NotImplementedError: raised when called but not overriden.
-
-        Returns:
-            TODO(fgh)
-        """
-        raise NotImplementedError
-
-    # Client functions
-    @abstractmethod
-    def retrieve_local_upload_info(self) -> ModelWeights:
-        """return the information aggregated from local model
-        for uploading to the central server.
-
-        Called by the selected clients.
-
-        Raises:
-            NotImplementedError: raised when called but not overriden.
-
-        Returns:
-            ModelWeights: the local model weights/params.
-        """
-        raise NotImplementedError
-
-    # Client functions
-    @abstractmethod
-    def local_evaluate(self) -> Mapping[str, Any]:
-        """evaluate and test the model received from the central server.
-
-        Called by the selected clients.
-
-        Raises:
-            NotImplementedError: raised when called but not overriden.
-
-        Returns:
-            Mapping[str, Any]: evaluation & test metrics. 
-        """
-        raise NotImplementedError
-
-    # Client functions
-    @abstractmethod
-    def client_exit_job(self, client):
-        """do self-defined finishing jobs before the shutdown of the local clients.
-
-        Called by one of the clients.
-
-        Args:
-            client: TODO(fgh)
-
-        Raises:
-            NotImplementedError: raised when called but not overriden.
-        """
-        raise NotImplementedError
-
-    # Client functions
-    @abstractmethod
-    def set_client_id(self, client_id) -> None:
-        """set the id of this client.
-
-        TODO(fgh): move this duty into data related modules.
-
-        Called by clients.
-
-        Args:
-            client_id: the id of this client.
-
-        Raises:
-            NotImplementedError: raised when called but not implemented.
         """
         raise NotImplementedError
 

@@ -1,4 +1,4 @@
-from .FederatedStrategy import FedStrategy, FedStrategyInterface
+from .FederatedStrategy import FedStrategy, FedStrategyInterface, FedStrategyPeerInterface, FedStrategyHostInterface
 from .FedAvg import FedAvg, FedSGD
 from .FedSTC import FedSTC
 from .FedProx import FedProx
