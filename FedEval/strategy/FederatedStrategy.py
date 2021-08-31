@@ -2,12 +2,10 @@ import random
 from abc import ABCMeta, abstractmethod, abstractproperty
 from typing import Any, List, Mapping, Optional
 
-from callbacks import *
-from model import *
-from role import ContainerId, Role
-
-from utils import ParamParser, ParamParserInterface
-
+from ..callbacks import *
+from ..model import *
+from ..role import ContainerId, Role
+from ..utils import ParamParser, ParamParserInterface
 from .utils import aggregate_weighted_average
 
 ModelWeights = Any  # weights of DL model
@@ -208,6 +206,23 @@ class FedStrategyInterface(metaclass=ABCMeta):
         """
         raise NotImplementedError
 
+    # Client functions
+    @abstractmethod
+    def set_client_id(self, client_id) -> None:
+        """set the id of this client.
+
+        TODO(fgh): move this duty into data related modules.
+
+        Called by clients.
+
+        Args:
+            client_id: the id of this client.
+
+        Raises:
+            NotImplementedError: raised when called but not implemented.
+        """
+        raise NotImplementedError
+
     @abstractmethod
     def set_logger(self, logger) -> None:
         """the setter of logger of this federated learning.
@@ -224,8 +239,11 @@ class FedStrategyInterface(metaclass=ABCMeta):
 class FedStrategy(FedStrategyInterface):
     """the basic class of federated strategies."""
 
-    def __init__(self, role: Role, data_config, model_config, runtime_config, param_parser_class=ParamParser, logger=None):
-        self._init_configs(role, data_config, model_config, runtime_config, param_parser_class)
+    def __init__(self, role: Role,
+                 data_config, model_config, runtime_config,
+                 param_parser_class: type = ParamParser, logger=None):
+        self._init_configs(role, data_config, model_config,
+                           runtime_config, param_parser_class)
         self._init_states()
         self._config_callback()
         self.logger = logger
@@ -259,20 +277,20 @@ class FedStrategy(FedStrategyInterface):
             run_config = self.param_parser.parse_run_config()
             self.num_clients_contacted_per_round = run_config['num_clients_contacted_per_round']
             self.train_selected_clients = None
-        if self.role == Role.Client:
-            # only clients parse data
-            self.train_data, self.val_data, self.test_data = self.param_parser.parse_data()
+        elif self.role == Role.Client: # only clients parse data
+            self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(self._client_id)
             self.train_data_size = len(self.train_data['x'])
             self.val_data_size = len(self.val_data['x'])
             self.test_data_size = len(self.test_data['x'])
             self.local_params_pre = None
             self.local_params_cur = None
+        else:
+            raise NotImplementedError
 
     def _config_callback(self):
         # TODO: Add the callback model for implementing attacks
-        self.callback: Optional[CallBack] = self.model_config['FedModel'].get('callback')
-        if self.callback:
-            self.callback = eval(self.callback)()
+        callback: Optional[CallBack] = self.model_config['FedModel'].get('callback')
+        self.callback = eval(callback)() if callback else None
 
     def _has_callback(self) -> bool:
         return self.callback is not None and isinstance(self.callback, CallBack)
@@ -284,6 +302,11 @@ class FedStrategy(FedStrategyInterface):
     @param_parser.setter
     def param_parser(self, value: ParamParserInterface):
         self._param_parser = value
+
+    def set_client_id(self, client_id) -> None:
+        if self.role != Role.Client:
+            raise TypeError(f"This {self.__class__.__name__}'s role is not a {Role.Client.value}.")
+        self._client_id = client_id
 
     def host_get_init_params(self) -> ModelWeights:
         self.params = self.ml_model.get_weights()
@@ -328,8 +351,11 @@ class FedStrategy(FedStrategyInterface):
         self.local_params_cur = self.ml_model.get_weights()
         return train_loss, self.train_data_size
 
+    def _retrieve_local_params(self):
+        return self.ml_model.get_weights()
+
     def retrieve_local_upload_info(self) -> ModelWeights:
-        model_weights = self.ml_model.get_weights()
+        model_weights = self._retrieve_local_params()
         if self._has_callback():
             model_weights = self.callback.on_client_upload_begin(model_weights)
         return model_weights

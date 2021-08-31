@@ -4,10 +4,10 @@ import time
 import yaml
 import copy
 import argparse
-import paramiko
 import requests
 import platform
-import numpy as np
+
+sudo = ""
 
 
 class LogAnalysis:
@@ -19,7 +19,11 @@ class LogAnalysis:
         self.configs = []
         self.results = []
         for log in self.logs:
-            c1, c2, c3 = load_config(os.path.join(log_dir, log))
+            try:
+                c1, c2, c3 = load_config(os.path.join(log_dir, log))
+            except FileNotFoundError:
+                print('Config not found in', log, 'skip to next')
+                continue
             self.configs.append({'data_config': c1, 'model_config': c2, 'runtime_config': c3})
             print('Get log', log)
             with open(os.path.join(log_dir, log, 'results.json'), 'r') as f:
@@ -118,6 +122,7 @@ class LogAnalysis:
         return results
 
     def take_average(self):
+        import numpy as np
         average_results = {}
         for i in range(len(self.configs_diff)):
             key = '$$'.join([str(e) for e in self.configs_diff[i]])
@@ -151,10 +156,12 @@ def check_status(host):
 
 
 def local_stop():
-    os.system('sudo docker-compose stop')
+    os.system(sudo + 'docker-compose stop')
 
 
 def server_stop(runtime_config):
+
+    import paramiko
 
     for m_name in runtime_config['machines']:
 
@@ -174,10 +181,10 @@ def server_stop(runtime_config):
         ssh.connect(hostname=host, port=port, username=user_name, key_filename=key_file)
         if m_name == 'server':
             stdin, stdout, stderr = ssh.exec_command('cd {};'.format(remote_path) +
-                                                     'sudo docker-compose -f docker-compose-server.yml stop')
+                                                     sudo + 'docker-compose -f docker-compose-server.yml stop')
         else:
             stdin, stdout, stderr = ssh.exec_command('cd {};'.format(remote_path) +
-                                                     'sudo docker-compose -f docker-compose-{}.yml stop'.format(m_name))
+                                                     sudo + 'docker-compose -f docker-compose-{}.yml stop'.format(m_name))
 
         print(''.join(stdout.readlines()))
         print(''.join(stderr.readlines()))
@@ -233,6 +240,9 @@ def local_recursive_mkdir(local_path):
 
 
 def upload_to_server(machines, local_dirs, file_type=('.py', '.yml', '.css', '.html', 'eot', 'svg', 'ttf', 'woff')):
+    
+    import paramiko
+    
     files = []
     for path in local_dirs:
         files += local_recursive_ls(path)
@@ -272,6 +282,8 @@ def upload_to_server(machines, local_dirs, file_type=('.py', '.yml', '.css', '.h
 
 
 def download_from_server(machines, remote_dirs, file_type):
+
+    import paramiko
 
     def download_check(file_name):
         for ft in file_type:
@@ -390,18 +402,20 @@ def run(execution, mode, config, new_config=None, **kwargs):
     if mode == 'local':
         current_path = os.path.abspath('./')
         os.system(
-            'sudo docker run -it --rm -v {0}:{0} -w {0} '
+            sudo + 'docker run -it --rm -v {0}:{0} -w {0} '
             '{1} python3 -W ignore -m FedEval.run -f data -c {2}'
             .format(current_path, runtime_config['docker']['image'], new_config)
         )
         os.system(
-            'sudo docker run -it --rm -v {0}:{0} -w {0} '
+            sudo + 'docker run -it --rm -v {0}:{0} -w {0} '
             '{1} python3 -W ignore -m FedEval.run -f compose-local -c {2}'
             .format(current_path, runtime_config['docker']['image'], new_config)
         )
-        os.system('sudo docker-compose up -d')
+        os.system(sudo + 'docker-compose up -d')
 
     if mode == 'server':
+
+        import paramiko
 
         upload_to_server(runtime_config['machines'], local_dirs=('FedEval', 'configs'))
         # upload_to_server(runtime_config['machines'], local_dirs=(new_config,))
@@ -424,7 +438,7 @@ def run(execution, mode, config, new_config=None, **kwargs):
 
             if m_name != 'server':
                 _, stdout, stderr = ssh.exec_command(
-                    'sudo docker run -i --rm -v {0}:{0} -w {0} '
+                    sudo + 'docker run -i --rm -v {0}:{0} -w {0} '
                     '{1} python3 -W ignore -m FedEval.run -f data -c {2}'
                     .format(remote_path, runtime_config['docker']['image'], new_config)
                 )
@@ -432,7 +446,7 @@ def run(execution, mode, config, new_config=None, **kwargs):
                 print(''.join(stderr.readlines()))
 
             _, stdout, stderr = ssh.exec_command(
-                'sudo docker run -i --rm -v {0}:{0} -w {0} '
+                sudo + 'docker run -i --rm -v {0}:{0} -w {0} '
                 '{1} python3 -W ignore -m FedEval.run -f compose-server -c {2}'
                 .format(remote_path, runtime_config['docker']['image'], new_config)
             )
@@ -443,12 +457,12 @@ def run(execution, mode, config, new_config=None, **kwargs):
                 print('Start Server')
                 _, stdout, stderr = ssh.exec_command(
                     'cd {};'.format(remote_path) +
-                    'sudo docker-compose -f docker-compose-server.yml up -d')
+                    sudo + 'docker-compose -f docker-compose-server.yml up -d')
             else:
                 print('Start Clients', m_name)
                 _, stdout, stderr = ssh.exec_command(
                     'cd {};'.format(remote_path) +
-                    'sudo docker-compose -f docker-compose-{}.yml up -d'.format(m_name))
+                    sudo + 'docker-compose -f docker-compose-{}.yml up -d'.format(m_name))
 
             print(''.join(stdout.readlines()))
             print(''.join(stderr.readlines()))
@@ -464,11 +478,15 @@ def run(execution, mode, config, new_config=None, **kwargs):
     print('Check the dashboard at %s' % ('http://{}/dashboard'.format(host + ':' + str(port))))
 
     check_status_result = check_status(host + ':' + str(port))
+    current_round = None
 
     while True:
         if check_status_result['success']:
             if not check_status_result['data'].get('finished', False):
-                print('Running at Round %s' % check_status_result['data'].get('rounds', -2))
+                received_round = check_status_result['data'].get('rounds')
+                if received_round is not None and (current_round is None or current_round < received_round):
+                    print('Running at Round %s' % received_round, 'Results', check_status_result['data'].get('results', 'unknown'))
+                    current_round = received_round
                 time.sleep(10)
             else:
                 break

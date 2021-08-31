@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../FedEval'))
 
 project = 'FedEval'
 copyright = ''
-author = 'Di Chai'
+author = 'Di Chai, Leye Wang, Guanghong Fan, Kai Chen, Qiang Yang'
 
 
 # -- General configuration ---------------------------------------------------
@@ -36,7 +36,8 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx_markdown_tables',
-    'recommonmark',         # Markdown
+    # 'recommonmark',
+    'myst_parser'
 ]
 
 

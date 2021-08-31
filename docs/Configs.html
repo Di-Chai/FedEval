@@ -89,8 +89,9 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Environment.html">2. Environment</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Tutorial.html">Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Documentation.html">3. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorial.html">3. Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BenchmarkResults.html">3. Benchmarks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Reproduce.html">4. Reproduce the Benchmark Results</a></li>
 </ul>
 
             
@@ -158,272 +159,142 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="configs">
+  <div class="tex2jax_ignore mathjax_ignore section" id="configs">
 <h1>Configs<a class="headerlink" href="#configs" title="Permalink to this headline">¶</a></h1>
+<p>Following we give detailed comments for each parameter used in the config files.</p>
 <div class="section" id="data-config">
 <h2>Data Config<a class="headerlink" href="#data-config" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">data_dir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">data</span>
-<span class="nt">dataset</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mnist</span>
-<span class="nt">input_shape</span><span class="p">:</span>
-  <span class="nt">celeba</span><span class="p">:</span>
-    <span class="nt">image</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">54</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">44</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">3</span>
-    <span class="nt">label</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">2</span>
-  <span class="nt">cifar10</span><span class="p">:</span>
-    <span class="nt">image</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">32</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">32</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">3</span>
-    <span class="nt">label</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">10</span>
-  <span class="nt">cifar100</span><span class="p">:</span>
-    <span class="nt">image</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">32</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">32</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">3</span>
-    <span class="nt">label</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">100</span>
-  <span class="nt">femnist</span><span class="p">:</span>
-    <span class="nt">image</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">28</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">28</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
-    <span class="nt">label</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">62</span>
-  <span class="nt">mnist</span><span class="p">:</span>
-    <span class="nt">image</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">28</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">28</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
-    <span class="nt">label</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">10</span>
-<span class="nt">non-iid</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0</span>
-<span class="nt">non-iid-strategy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">iid</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># data_dir: The output dir of the clients&#39; data</span>
+<span class="nt">data_dir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">data</span>
+<span class="c1"># dataset: Dataset name, mnist / femnist / celeba / semantic140</span>
+<span class="nt">dataset</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">semantic140</span>
+<span class="c1"># non-iid: True or False, controling the non-IID setting</span>
+<span class="nt">non-iid</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="c1"># non-iid-class: The # of image classes hold by each client, used in mnist, cifar10, cifar100, only works when non-iid=True</span>
+<span class="nt">non-iid-class</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="c1"># non-iid-strategy: which strategy will be used in the non-IID setting</span>
+<span class="c1"># E.g., &quot;natural&quot; strategy for femnist, celebA, semantic140 dataset, &quot;average&quot; for mnist, cifar10 and cifar100</span>
+<span class="nt">non-iid-strategy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">average</span> <span class="c1"># Only work when non-iid = True</span>
+<span class="c1"># normalize: True or False, controling whether the data will be normalized</span>
 <span class="nt">normalize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="c1"># sample_size: Each client&#39;s sample size</span>
 <span class="nt">sample_size</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">300</span>
-<span class="nt">shared_data</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="c1"># train_val_test: Split the data to train, val, and test</span>
 <span class="nt">train_val_test</span><span class="p">:</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">0.8</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">0.1</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">0.1</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">0.8</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">0.1</span>
+  <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">0.1</span>
 </pre></div>
 </div>
-<table border="1" class="docutils">
-<thead>
-<tr>
-<th align="center">Config Name</th>
-<th align="left">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">data_dir</td>
-<td align="left">The output dir of the clients' data</td>
-</tr>
-<tr>
-<td align="center">dataset</td>
-<td align="left">Dataset name, mnist / cifar10 / cifar100 / femnist / mnist</td>
-</tr>
-<tr>
-<td align="center">input_shape</td>
-<td align="left">The image shape that will be used by the server to build the model; <br />You need to add inputs_shape for your own dataset here.</td>
-</tr>
-<tr>
-<td align="center">non-iid</td>
-<td align="left">0 for IID setting; <br />&gt;=1 for non-IID setting, <br />When the datasets are mnist, cifar10, cifar100, the non-iid means the # of image classes hold by each client.</td>
-</tr>
-<tr>
-<td align="center">non-iid-strategy</td>
-<td align="left">"natural" strategy for femnist and celebA dataset<br />"average" for mnist, cifar10 and cifar100</td>
-</tr>
-<tr>
-<td align="center">normalize</td>
-<td align="left">Bool. If tue, normalize the image to 0~1</td>
-</tr>
-<tr>
-<td align="center">sample_size</td>
-<td align="left">Number of Images holf by each client</td>
-</tr>
-<tr>
-<td align="center">shared_data</td>
-<td align="left">If shared_data &gt; 0, the system will choose the correponding number of image from each client <br />to build shard dataset for all the participants</td>
-</tr>
-<tr>
-<td align="center">train_val_test</td>
-<td align="left">Split the data to train, val, and test</td>
-</tr>
-</tbody>
-</table></div>
+</div>
 <div class="section" id="model-config">
 <h2>Model Config<a class="headerlink" href="#model-config" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">FedModel</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">FedSGD</span>
-  <span class="nt">train_strategy</span><span class="p">:</span>
-    <span class="nt">B</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
-    <span class="nt">C</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1.0</span>
-    <span class="nt">E</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
-    <span class="nt">lazy_update</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-    <span class="nt">max_num_rounds</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
-    <span class="nt">num_tolerance</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">20</span>
-    <span class="nt">rounds_between_val</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
-  <span class="nt">upload_strategy</span><span class="p">:</span>
-    <span class="nt">upload_dismiss</span><span class="p">:</span> <span class="p p-Indicator">[]</span>
-    <span class="nt">upload_optimizer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-    <span class="nt">upload_sparsity</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.01</span>
-<span class="nt">MLModel</span><span class="p">:</span>
-  <span class="nt">LeNet</span><span class="p">:</span>
-    <span class="nt">activation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">relu</span>
-    <span class="nt">lr</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.0005</span>
-    <span class="nt">optimizer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">adam</span>
-    <span class="nt">pooling</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">max</span>
-  <span class="nt">MLP</span><span class="p">:</span>
-    <span class="nt">activation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">relu</span>
-    <span class="nt">dropout</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.2</span>
-    <span class="nt">lr</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.0005</span>
-    <span class="nt">optimizer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gd</span>
-    <span class="nt">units</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">512</span>
-    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">512</span>
-  <span class="nt">lr</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.0005</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">LeNet</span>
-  <span class="nt">optimizer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">sgd</span>
-<span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">LeNet</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span>FedModel:
+	# which FL mechanism will be used, could be: FedSGD, FedAvg, FedOpt, FedProx, FedSTC, FedSCA
+  name: FedAvg
+  # B: client&#39;s local batch size (Shared By all mechanisms)
+  B: 32
+  # C: percent of seleced clients during training (Shared By all mechanisms)
+  C: 0.1
+  # E: clients&#39; local training passes (Shared By all mechanisms)
+  E: 1
+  # max_rounds: Maximum number of training rounds (Shared By all mechanisms)
+  max_rounds: 10000
+  # num_tolerance: Used for early-stopping (Shared By all mechanisms)
+  # E.g., when num_tolerance=300, the training stops if the validation loss is not getting lower for 300 rounds
+  num_tolerance: 300
+  # rounds_between_val: (Shared By all mechanisms)
+  # Frequency of doing evaluation, default to evaluate after each round of training 
+  rounds_between_val: 1
+  # sparsity: Compression retio used by FedSTC
+  sparsity: 0.01
+  # mu: regularization parameter used by FedProx
+  mu: 0.01
+  # parameters used by FedOpt
+  tau: 0.0001
+  beta1: 0.9
+  beta2: 0.99
+  opt_name: &#39;fedyogi&#39;
+  # Server-side learning rate, used by FedOpt and FedSCA
+  eta: 1.0
+MLModel:
+	# which ML model will be used, could be: MLP, LeNet, StackedLSTM
+  name: MLP
+  # activation method (Shared By all Method)
+  activation: relu
+  # Dropouts used in MLP
+  dropout: 0.2
+  # Hidden layer units used in MLP
+  units:
+    - 512
+    - 512
+  # Optimizer parameters (Shared By all Method)
+  optimizer:
+    name: sgd
+    lr: 0.1
+    momentum: 0
+  # Type of loss function (Shared By all Method)
+  loss: categorical_crossentropy
+ 	# Additional metrics apart from the loss metric (Shared By all Method)
+  metrics:
+    - accuracy
 </pre></div>
 </div>
-<p>Three models are placed inside the system: MLP, LeNet, and MobileNet. You can add your own model and put the config in this file.</p>
-<table border="1" class="docutils">
-<thead>
-<tr>
-<th align="center">Config Name</th>
-<th align="left">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">Model</td>
-<td align="left">Current using model name</td>
-</tr>
-<tr>
-<td align="center">upload_name_filter</td>
-<td align="left">(List) Use the string in this list to filter all the gradients before uploading, and remove the parameters that the name contains the string in the list.<br />E.g., upload_name_filter=['Adam'] do not upload parameters for Adam optimizer.</td>
-</tr>
-<tr>
-<td align="center">input_shape</td>
-<td align="left">The image shape that will be used by the server to build the model; <br />You need to add inputs_shape for your own dataset here.</td>
-</tr>
-<tr>
-<td align="center">upload_sparse</td>
-<td align="left">float between 0 and 1, where 1 means no-compression</td>
-</tr>
-<tr>
-<td align="center">upload_strategy</td>
-<td align="left">The strategy in the uploading, current have two choices : "no-compress" and "compress". More features will be added in the future.</td>
-</tr>
-</tbody>
-</table></div>
+</div>
 <div class="section" id="runtime-config">
 <h2>Runtime Config<a class="headerlink" href="#runtime-config" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">clients</span><span class="p">:</span>
-  <span class="nt">bandwidth</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">100Mbit</span>
-  <span class="nt">local_batch_size</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
-  <span class="nt">local_rounds</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
-  <span class="nt">lr</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1e-4</span>
-  <span class="nt">num_clients</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10</span>
-  <span class="nt">script</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">client.py</span>
-<span class="nt">docker</span><span class="p">:</span>
-  <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">fleval:v1</span>
-<span class="nt">server</span><span class="p">:</span>
-  <span class="nt">MAX_NUM_ROUNDS</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">5</span>
-  <span class="nt">MIN_NUM_WORKERS</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10</span>
-  <span class="nt">NUM_CLIENTS_CONTACTED_PER_ROUND</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10</span>
-  <span class="nt">NUM_TOLERATE</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">20</span>
-  <span class="nt">ROUNDS_BETWEEN_TEST</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
-  <span class="nt">ROUNDS_BETWEEN_VALIDATIONS</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
-  <span class="nt">host</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">server</span>
-  <span class="nt">listen</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">server</span>
-  <span class="nt">port</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">8200</span>
-  <span class="nt">save_gradients</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">True</span>
-  <span class="nt">script</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">server.py</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span>clients:
+	# bandwidth: Networking bandwidth between the clients and server
+  bandwidth: 100Mbit
+docker:
+	# image: docker image ID
+  image: fedeval:v1
+  # num_containers: number of containers
+  num_containers: 40
+  # enable_gpu: true or false
+  enable_gpu: True
+  # num_gpu: how many gpus do you want to use
+  # the system will by-default pick gpus from the first one 
+  num_gpu: 8
+server:
+	# host: address clients will connect to; Here the &quot;server&quot; is the name of container-network
+	# if you are running with more than one mechine, change &quot;host&quot; to the server&#39;s ip address
+  host: server
+  # listen: address server will listen on; Here the &quot;server&quot; is the name of container-network
+  # &quot;listen&quot; is the same with &quot;host&quot; when running experiments locally
+  # if you are running with more than one mechine, change &quot;listen&quot; to 0.0.0.0
+  listen: server
+  # num_clients: the number of clients
+  num_clients: 100
+  # post: port server will listen on 
+  port: 8000
+# Config the following parameters, if you are using more than one mechine in one experiment
+machines:
+	# server config (doing the aggregation)
+  server:
+    host: 10.173.1.22
+    port: 22
+    user_name: ubuntu
+    # The remote dir that stored the project file, e.g., /home/user_mame/FedEval
+    dir: /home/chaidi/FedEval
+    # Path to the secret key, used to login the remote server
+    key: id_rsa
+  # machine config (doing the training)
+  m1:
+  	# the machine&#39;s ip could be that same with the server
+  	# i.e., you can chose one worker as the central server which performs the aggregation
+    host: 10.173.1.22
+    port: 22
+    # capacity: how many containers can this machine hold
+    capacity: 100
+    user_name: ubuntu
+    dir: /home/chaidi/FedEval
+    key: id_rsa
+# log dir name
+log_dir: log/debug
 </pre></div>
 </div>
-<p>The runtime config contains the parameters that will be used in the FL training, and it contains two parts: the client and server.</p>
-<table border="1" class="docutils">
-<thead>
-<tr>
-<th align="center">Config Name</th>
-<th align="left">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">bandwidth</td>
-<td align="left">Bandwidth for the clients in the uploading and downloading<br />We do not restrict the bandwidth for the server.</td>
-</tr>
-<tr>
-<td align="center">local_batch_size (B)</td>
-<td align="left">Local batch size</td>
-</tr>
-<tr>
-<td align="center">lr</td>
-<td align="left">learning rate for clients</td>
-</tr>
-<tr>
-<td align="center">num_clients</td>
-<td align="left">number of clients</td>
-</tr>
-<tr>
-<td align="center">script</td>
-<td align="left">The script for clients. <br />We provided a template "client.py".<br />Actually you do not need to modify this file in most cases.</td>
-</tr>
-<tr>
-<td align="center">docker image</td>
-<td align="left">the docker image that will be used for both client and server.</td>
-</tr>
-<tr>
-<td align="center">MAX_NUM_ROUNDS</td>
-<td align="left">max number of training rounds</td>
-</tr>
-<tr>
-<td align="center">MIN_NUM_WORKERS</td>
-<td align="left">the minimum number of clients before start training</td>
-</tr>
-<tr>
-<td align="center">NUM_CLIENTS_CONTACTED_PER_ROUND</td>
-<td align="left">number of clients that participate in training in each round</td>
-</tr>
-<tr>
-<td align="center">NUM_TOLERATE</td>
-<td align="left">early stopping patience</td>
-</tr>
-<tr>
-<td align="center">ROUNDS_BETWEEN_TEST/VALIDATIONS</td>
-<td align="left">number of round between test/validation</td>
-</tr>
-<tr>
-<td align="center">host</td>
-<td align="left">the IP address that clients connect to the server, could be set to host-name or 'server' (the name of the container network)</td>
-</tr>
-<tr>
-<td align="center">listen</td>
-<td align="left">the listen address for the server, could be set to 0.0.0.0 or 'server' (the name of the container network)</td>
-</tr>
-<tr>
-<td align="center">port</td>
-<td align="left">port, e.g., 8080</td>
-</tr>
-<tr>
-<td align="center">save_gradients</td>
-<td align="left">bool, if set to true, the server will save the parameters in the training</td>
-</tr>
-<tr>
-<td align="center">script</td>
-<td align="left">The script for the server. <br />We provided a template "server.py".<br />Actually you do not need to modify this file in most cases.</td>
-</tr>
-</tbody>
-</table></div>
+</div>
 </div>
 
 

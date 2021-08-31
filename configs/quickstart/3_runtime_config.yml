@@ -1,0 +1,13 @@
+clients:
+  bandwidth: 100Mbit
+docker:
+  image: fedeval:gpu
+  num_containers: 10
+  enable_gpu: False
+  num_gpu: 0
+server:
+  host: server
+  listen: server
+  num_clients: 10
+  port: 8000
+log_dir: log/quickstart

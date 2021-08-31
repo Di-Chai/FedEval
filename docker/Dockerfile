@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM tensorflow/tensorflow:latest-devel-gpu
 
 # Install python
 RUN apt update && apt install -y python3 python3-pip iproute2 net-tools wget vim nload iftop unzip --fix-missing

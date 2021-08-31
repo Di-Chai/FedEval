@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>3. Get to know the three configurations &mdash; FedEval  documentation</title>
+  <title>3.3. Get to know the three configurations &mdash; FedEval  documentation</title>
   
 
   
@@ -41,8 +41,8 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="4. Get to know the FedEval.run and FedEval.run_util" href="RunUtils.html" />
-    <link rel="prev" title="2. Running Multiple Experiments (using scripts)" href="Procedures.html" /> 
+    <link rel="next" title="3.4. Get to know the FedEval.run and FedEval.run_util" href="RunUtils.html" />
+    <link rel="prev" title="3.2. Running Multiple Experiments (using scripts)" href="Procedures.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -91,24 +91,25 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Environment.html">2. Environment</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="Tutorial.html">Tutorial</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="QuickStart.html">1. Quick Start (single experiment using terminal)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Procedures.html">2. Running Multiple Experiments (using scripts)</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">3. Get to know the three configurations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#data-config">3.1. Data Config</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#model-config">3.2. Model Config</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#fedmodel">3.2.1. FedModel</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#mlmodel">3.2.2. MLModel</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Tutorial.html">3. Tutorial</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="QuickStart.html">3.1. Quick Start (single experiment using terminal)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Procedures.html">3.2. Running Multiple Experiments (using scripts)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">3.3. Get to know the three configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data-config">3.3.1. Data Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-config">3.3.2. Model Config</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#fedmodel">3.3.2.1. FedModel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mlmodel">3.3.2.2. MLModel</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#runtime-config">3.3. Runtime Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#runtime-config">3.3.3. Runtime Config</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="RunUtils.html">4. Get to know the FedEval.run and FedEval.run_util</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Contribute.html">5. Customization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunUtils.html">3.4. Get to know the FedEval.run and FedEval.run_util</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contribute.html">3.5. Customization</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Documentation.html">3. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BenchmarkResults.html">4. Benchmarks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Reproduce.html">5. Reproduce the Benchmark Results</a></li>
 </ul>
 
             
@@ -157,9 +158,9 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-          <li><a href="Tutorial.html">Tutorial</a> &raquo;</li>
+          <li><a href="Tutorial.html"><span class="section-number">3. </span>Tutorial</a> &raquo;</li>
         
-      <li><span class="section-number">3. </span>Get to know the three configurations</li>
+      <li><span class="section-number">3.3. </span>Get to know the three configurations</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -178,10 +179,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="get-to-know-the-three-configurations">
-<h1><span class="section-number">3. </span>Get to know the three configurations<a class="headerlink" href="#get-to-know-the-three-configurations" title="Permalink to this headline">¶</a></h1>
+  <div class="tex2jax_ignore mathjax_ignore section" id="get-to-know-the-three-configurations">
+<h1><span class="section-number">3.3. </span>Get to know the three configurations<a class="headerlink" href="#get-to-know-the-three-configurations" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="data-config">
-<h2><span class="section-number">3.1. </span>Data Config<a class="headerlink" href="#data-config" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">3.3.1. </span>Data Config<a class="headerlink" href="#data-config" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">data_dir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">data</span>
 <span class="nt">dataset</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mnist</span>
 <span class="nt">non-iid</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0</span>
@@ -241,9 +242,10 @@
 <td align="left">Split the data to train, validation, and test. This list indicates the shares of each one</td>
 </tr>
 </tbody>
-</table></div>
+</table>
+</div>
 <div class="section" id="model-config">
-<h2><span class="section-number">3.2. </span>Model Config<a class="headerlink" href="#model-config" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">3.3.2. </span>Model Config<a class="headerlink" href="#model-config" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">FedModel</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">FedSGD</span>
   <span class="c1"># Shared params</span>
@@ -282,7 +284,7 @@
 </div>
 <p>Three models are placed inside the system: MLP, LeNet, and MobileNet. You can add your own model and put the config in this file.</p>
 <div class="section" id="fedmodel">
-<h3><span class="section-number">3.2.1. </span>FedModel<a class="headerlink" href="#fedmodel" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">3.3.2.1. </span>FedModel<a class="headerlink" href="#fedmodel" title="Permalink to this headline">¶</a></h3>
 <table border="1" class="docutils">
 <thead>
 <tr>
@@ -324,14 +326,15 @@
 <td align="left"></td>
 </tr>
 </tbody>
-</table></div>
+</table>
+</div>
 <div class="section" id="mlmodel">
-<h3><span class="section-number">3.2.2. </span>MLModel<a class="headerlink" href="#mlmodel" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">3.3.2.2. </span>MLModel<a class="headerlink" href="#mlmodel" title="Permalink to this headline">¶</a></h3>
 <p>To be done.</p>
 </div>
 </div>
 <div class="section" id="runtime-config">
-<h2><span class="section-number">3.3. </span>Runtime Config<a class="headerlink" href="#runtime-config" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">3.3.3. </span>Runtime Config<a class="headerlink" href="#runtime-config" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">clients</span><span class="p">:</span>
   <span class="nt">bandwidth</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">100Mbit</span>
 <span class="nt">docker</span><span class="p">:</span>
@@ -382,7 +385,8 @@
 <td align="left">Path for saving the log and results</td>
 </tr>
 </tbody>
-</table></div>
+</table>
+</div>
 </div>
 
 
@@ -391,8 +395,8 @@
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="RunUtils.html" class="btn btn-neutral float-right" title="4. Get to know the FedEval.run and FedEval.run_util" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="Procedures.html" class="btn btn-neutral float-left" title="2. Running Multiple Experiments (using scripts)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="RunUtils.html" class="btn btn-neutral float-right" title="3.4. Get to know the FedEval.run and FedEval.run_util" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Procedures.html" class="btn btn-neutral float-left" title="3.2. Running Multiple Experiments (using scripts)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

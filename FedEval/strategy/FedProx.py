@@ -2,9 +2,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.training import gen_training_ops
 
-from model import *
-from utils import ParamParser
-
+from ..model import *
+from ..utils import ParamParser
 from .FedAvg import FedAvg
 
 
@@ -57,8 +56,8 @@ class FedProxParamsParser(ParamParser):
 
 class FedProx(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config, param_parser=FedProxParamsParser):
-        super().__init__(role, data_config, model_config, runtime_config, param_parser=param_parser)
+    def __init__(self, role, data_config, model_config, runtime_config, param_parser=FedProxParamsParser, logger=None):
+        super().__init__(role, data_config, model_config, runtime_config, param_parser=param_parser, logger=logger)
 
     def fit_on_local_data(self):
         cur_params = self._retrieve_local_params()

@@ -1,6 +1,6 @@
 import os
 
-from utils import obj_to_pickle_string, pickle_string_to_obj
+from ..utils import obj_to_pickle_string, pickle_string_to_obj
 
 def aggregate_weighted_average(client_params, aggregate_weights):
     """

@@ -41,7 +41,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Tutorial" href="Tutorial.html" />
+    <link rel="next" title="3. Tutorial" href="Tutorial.html" />
     <link rel="prev" title="1. Introduction" href="Introduction.html" /> 
 </head>
 
@@ -93,18 +93,18 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">2. Environment</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#software-dependencies">2.1. Software Dependencies</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#system-requirements">2.1.1. System Requirements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#sudo-without-password">2.1.2. sudo without password</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#docker-docker-compose">2.1.3. Docker &amp; Docker Compose</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#python">2.1.4. Python</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#git-optional">2.1.5. Git (Optional)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#docker-docker-compose-without-sudo">2.1.2. Docker &amp; Docker Compose (without sudo)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#python">2.1.3. Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#git-optional">2.1.4. Git (Optional)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#build-the-docker-image">2.2. Build the Docker Image</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#download-the-dataset">2.3. Download the dataset</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Tutorial.html">Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Documentation.html">3. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorial.html">3. Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BenchmarkResults.html">3. Benchmarks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Reproduce.html">4. Reproduce the Benchmark Results</a></li>
 </ul>
 
             
@@ -208,21 +208,19 @@
 <tr>
 <td align="center">CelebA</td>
 <td align="center">LeNet</td>
-<td align="center">200 GB / 100 Clients</td>
+<td align="center">128 GB / 100 Clients</td>
+</tr>
+<tr>
+<td align="center">Sent140</td>
+<td align="center">LSTM</td>
+<td align="center">128 GB / 100 Clients</td>
 </tr>
 </tbody>
-</table></div>
-<div class="section" id="sudo-without-password">
-<h3><span class="section-number">2.1.2. </span>sudo without password<a class="headerlink" href="#sudo-without-password" title="Permalink to this headline">¶</a></h3>
-<p>Because there are some operations that need root permissions in scripts, we have to permit the current Linux user to execute commands without root password. In Debian/Ubuntu, we can add the use into <code class="docutils literal notranslate"><span class="pre">sudoers</span></code>. Modify the configuration file by:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ sudo visudo
-</pre></div>
+</table>
 </div>
-<p>Add <code class="docutils literal notranslate"><span class="pre">username</span> <span class="pre">ALL=(ALL)</span> <span class="pre">NOPASSWD:</span> <span class="pre">ALL</span></code> as a new line (replace <code class="docutils literal notranslate"><span class="pre">username</span></code> with your username). Then save and exit.</p>
-</div>
-<div class="section" id="docker-docker-compose">
-<h3><span class="section-number">2.1.3. </span>Docker &amp; Docker Compose<a class="headerlink" href="#docker-docker-compose" title="Permalink to this headline">¶</a></h3>
-<p><a class="reference external" href="https://www.docker.com/">Docker</a> is an indispensable component to virtualize the software and network environment in order to isolate each instance. Follow these <a class="reference external" href="https://docs.docker.com/engine/install/">instructions</a> to install Docker on your machine and execute the following command. Docker has been successfully installed if you got a similar output like this:</p>
+<div class="section" id="docker-docker-compose-without-sudo">
+<h3><span class="section-number">2.1.2. </span>Docker &amp; Docker Compose (without sudo)<a class="headerlink" href="#docker-docker-compose-without-sudo" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference external" href="https://www.docker.com/">Docker</a> is an indispensable component to virtualize the software and network environment in order to isolate each instance. Follow these <a class="reference external" href="https://docs.docker.com/engine/install/">instructions</a> to install Docker on your machine. Follow the guideline on <a class="reference external" href="https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user">Link</a> to manage docker as non-root user. Docker has been successfully installed if you got a similar output like this:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ docker --version
 Docker version <span class="m">20</span>.10.2, build 2291f61
 </pre></div>
@@ -237,12 +235,12 @@ OpenSSL version: OpenSSL <span class="m">1</span>.1.1c  <span class="m">28</span
 </div>
 </div>
 <div class="section" id="python">
-<h3><span class="section-number">2.1.4. </span>Python<a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">2.1.3. </span>Python<a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h3>
 <p>Though most of the programs can be boosted inside containers, it is still recommended to have a Python interpreter installed on your machine for the convenience and immediacy of type checking, auto complete, and so on during code profiling or some advanced, self-defined operations.</p>
 <p>For the sake of compatibility with main components of the system, the version of the interpreter should be in the range of 3.5–3.8 currently. You can find how to install them <a class="reference external" href="https://www.python.org/downloads/">here</a>.</p>
 </div>
 <div class="section" id="git-optional">
-<h3><span class="section-number">2.1.5. </span>Git (Optional)<a class="headerlink" href="#git-optional" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">2.1.4. </span>Git (Optional)<a class="headerlink" href="#git-optional" title="Permalink to this headline">¶</a></h3>
 <p><a class="reference external" href="https://git-scm.com/">Git</a> is a distributed version control system. We use it and host this project on <a class="reference external" href="https://github.com/Di-Chai/FedEval">Github</a>. Feel free to skip this because you also can download the project as a zip file from the web page.</p>
 <p>Clone the project from Github in this way if have installed git.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ git clone https://github.com/Di-Chai/FedEval.git -b dev-0.1
@@ -267,8 +265,8 @@ sudo docker build . -t fedeval:v1
 </pre></div>
 </div>
 <p>And you’ll got something like these if nothing goes wrong. It’s okay if the image ID is different.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">REPOSITORY</span>	<span class="n">TAG</span>	<span class="n">IMAGE</span> <span class="n">ID</span>		<span class="n">CREATED</span>				<span class="n">SIZE</span>
-<span class="n">fedeval</span>		<span class="n">v4</span>	<span class="n">f0d3332e9aa9</span>	<span class="n">About</span> <span class="n">a</span> <span class="n">minute</span> <span class="n">ago</span>	<span class="mf">7.73</span><span class="n">GB</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">REPOSITORY</span>     <span class="n">TAG</span>     <span class="n">IMAGE</span> <span class="n">ID</span>       <span class="n">CREATED</span>         <span class="n">SIZE</span>
+<span class="n">fedeval</span>        <span class="n">v1</span>      <span class="mi">2386</span><span class="n">be014ab5</span>   <span class="mi">3</span> <span class="n">months</span> <span class="n">ago</span>    <span class="mf">4.39</span><span class="n">GB</span>
 </pre></div>
 </div>
 </div>
@@ -290,7 +288,7 @@ tar -zxvf data.tar.gz
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="Tutorial.html" class="btn btn-neutral float-right" title="Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Tutorial.html" class="btn btn-neutral float-right" title="3. Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="Introduction.html" class="btn btn-neutral float-left" title="1. Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 

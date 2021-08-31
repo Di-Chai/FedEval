@@ -1,11 +1,12 @@
 import gc
 gc.set_threshold(700, 10, 5)
 import numpy as np
-
 from scipy.sparse import lil_matrix
-from .utils import aggregate_weighted_average
+
+from ..role import Role
 from .FedAvg import FedAvg
-from role import Role
+from .utils import aggregate_weighted_average
+
 
 def sparse_mask(value_list, p=0.01):
 
@@ -48,8 +49,8 @@ def sparse_mask(value_list, p=0.01):
 
 class FedSTC(FedAvg):
 
-    def __init__(self, role: Role, data_config, model_config, runtime_config):
-        super().__init__(role, data_config, model_config, runtime_config)
+    def __init__(self, role: Role, data_config, model_config, runtime_config, **kwags):
+        super().__init__(role, data_config, model_config, runtime_config, **kwags)
 
         if self.role == Role.Client:
             self.client_residual = self.init_residual()
@@ -127,7 +128,7 @@ class FedSTC(FedAvg):
             for i in range(len(self.server_residual))
         ]
         # Compress the stc(delta_w + R) and return
-        result = [self.compress(e) for e in delta_W_plus_r]
+        result = [self.compress(e.reshape([-1, ])) for e in delta_W_plus_r]
         del delta_W
         del delta_W_plus_r
         del client_params

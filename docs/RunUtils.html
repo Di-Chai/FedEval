@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>4. Get to know the FedEval.run and FedEval.run_util &mdash; FedEval  documentation</title>
+  <title>3.4. Get to know the FedEval.run and FedEval.run_util &mdash; FedEval  documentation</title>
   
 
   
@@ -41,8 +41,8 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="5. Customization" href="Contribute.html" />
-    <link rel="prev" title="3. Get to know the three configurations" href="Configurations.html" /> 
+    <link rel="next" title="3.5. Customization" href="Contribute.html" />
+    <link rel="prev" title="3.3. Get to know the three configurations" href="Configurations.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -91,19 +91,20 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Environment.html">2. Environment</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="Tutorial.html">Tutorial</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="QuickStart.html">1. Quick Start (single experiment using terminal)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Procedures.html">2. Running Multiple Experiments (using scripts)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Configurations.html">3. Get to know the three configurations</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">4. Get to know the FedEval.run and FedEval.run_util</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#fedeval-run-main">4.1. FedEval.run.__main__</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#fedeval-run-util-run">4.2. FedEval.run_util.run</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Tutorial.html">3. Tutorial</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="QuickStart.html">3.1. Quick Start (single experiment using terminal)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Procedures.html">3.2. Running Multiple Experiments (using scripts)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Configurations.html">3.3. Get to know the three configurations</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">3.4. Get to know the FedEval.run and FedEval.run_util</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#fedeval-run-main">3.4.1. FedEval.run.__main__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fedeval-run-util-run">3.4.2. FedEval.run_util.run</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="Contribute.html">5. Customization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contribute.html">3.5. Customization</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Documentation.html">3. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BenchmarkResults.html">4. Benchmarks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Reproduce.html">5. Reproduce the Benchmark Results</a></li>
 </ul>
 
             
@@ -152,9 +153,9 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-          <li><a href="Tutorial.html">Tutorial</a> &raquo;</li>
+          <li><a href="Tutorial.html"><span class="section-number">3. </span>Tutorial</a> &raquo;</li>
         
-      <li><span class="section-number">4. </span>Get to know the FedEval.run and FedEval.run_util</li>
+      <li><span class="section-number">3.4. </span>Get to know the FedEval.run and FedEval.run_util</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -174,9 +175,9 @@
            <div itemprop="articleBody">
             
   <div class="section" id="get-to-know-the-fedeval-run-and-fedeval-run-util">
-<h1><span class="section-number">4. </span>Get to know the FedEval.run and FedEval.run_util<a class="headerlink" href="#get-to-know-the-fedeval-run-and-fedeval-run-util" title="Permalink to this headline">¶</a></h1>
+<h1><span class="section-number">3.4. </span>Get to know the FedEval.run and FedEval.run_util<a class="headerlink" href="#get-to-know-the-fedeval-run-and-fedeval-run-util" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="fedeval-run-main">
-<h2><span class="section-number">4.1. </span>FedEval.run.__main__<a class="headerlink" href="#fedeval-run-main" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">3.4.1. </span>FedEval.run.__main__<a class="headerlink" href="#fedeval-run-main" title="Permalink to this headline">¶</a></h2>
 <p>This function is a CLI interface, which is used to:</p>
 <ul class="simple">
 <li><p>prepare dataset according to 1_data_config.yml;</p></li>
@@ -199,10 +200,10 @@
 </li>
 <li><p>After a few seconds, visit <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8080/dashboard</span></code> on your browser to have an overview of the experiment’s status.</p></li>
 </ol>
-<p>For full details about this function, please refer to the <a class="reference external" href="#">documentation</a>.</p>
+<p>For full details about this function, please refer to the <span class="xref myst">documentation</span>.</p>
 </div>
 <div class="section" id="fedeval-run-util-run">
-<h2><span class="section-number">4.2. </span>FedEval.run_util.run<a class="headerlink" href="#fedeval-run-util-run" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">3.4.2. </span>FedEval.run_util.run<a class="headerlink" href="#fedeval-run-util-run" title="Permalink to this headline">¶</a></h2>
 <p>This function is a higher-level scheduler based on <code class="docutils literal notranslate"><span class="pre">FedEval.run</span></code>, ssh and scp. Specifically, it direct the whole lifecycle of each instances in an experiment, including:</p>
 <ol class="simple">
 <li><p>compose and dispatch dockerfile and configuration files;</p></li>
@@ -257,8 +258,8 @@
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="Contribute.html" class="btn btn-neutral float-right" title="5. Customization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="Configurations.html" class="btn btn-neutral float-left" title="3. Get to know the three configurations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Contribute.html" class="btn btn-neutral float-right" title="3.5. Customization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Configurations.html" class="btn btn-neutral float-left" title="3.3. Get to know the three configurations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

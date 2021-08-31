@@ -1,4 +1,4 @@
-## Running Multiple Experiments (using scripts)
+### Running Multiple Experiments (using scripts)
 
 #### Start the experiments
 
@@ -17,7 +17,7 @@ Here's an example which aimed at conducting a grid search for learning rate `lr`
 
 ```python
 from FedEval.run_util import run
-
+  
 params = {
     'data_config': {
         'dataset': 'mnist',
@@ -43,15 +43,15 @@ params = {
     }
 }
 
+config = 'configs/quickstart'
+
 for lr in [0.001, 0.01, 0.1, 1]:
     # update learning rate in configuration
-    params['model_config']['MLModel']['optimizer']['lr'] = lr 
-    run(exec='run', mode='local', config='configs/quickstart', new_config=config + '_tmp', **params)
+    params['model_config']['MLModel']['optimizer']['lr'] = lr
+    run(execution='run', mode='local', config=config, new_config=config + '_tmp', **params)
 ```
 
 Noted that the `params` passed into `run`  will override the configurations specified in `config='configs/quickstart'`. And the new configurations will be saved to `new_config=config + '_tmp'`, i.e., keeping the original file untouched.
-
-After run this script in terminal,  you can visit `http://127.0.0.1:8080/dashboard` have an overview of the experiments' status.
 
 #### Check the results
 
@@ -60,6 +60,6 @@ Logs, results and model weight records are stored under `log` directory, classif
 Using the following commend to collect the results from the logs:
 
 ```bash
-sudo docker run -it --rm -v $(pwd):$(pwd) -w $(pwd) fedeval:v1 python -W ignore -m FedEval.run_util -e log -p log/quickstart/Server
+docker run -it --rm -v $(pwd):$(pwd) -w $(pwd) fedeval:v1 python -W ignore -m FedEval.run_util -e log -p log/quickstart/Server
 ```
 

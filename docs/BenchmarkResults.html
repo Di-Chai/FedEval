@@ -1,0 +1,490 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>4. Benchmarks &mdash; FedEval  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="5. Reproduce the Benchmark Results" href="Reproduce.html" />
+    <link rel="prev" title="3.5. Customization" href="Contribute.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FedEval
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Environment.html">2. Environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorial.html">3. Tutorial</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">4. Benchmarks</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#experiment-settings">4.1. Experiment Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#incentive-evaluation">4.2. Incentive Evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#security-and-privacy-evaluation">4.3. Security and Privacy Evaluation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#model-security-evaluation">4.3.1. Model Security Evaluation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-privacy-evaluation">4.3.2. Data Privacy Evaluation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#robustness-evaluation">4.4. Robustness Evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#efficacy-evaluation">4.5. Efficacy Evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#efficiency-evaluation">4.6. Efficiency Evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reference">4.7. Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Reproduce.html">5. Reproduce the Benchmark Results</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FedEval</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li><span class="section-number">4. </span>Benchmarks</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/BenchmarkResults.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="benchmarks">
+<h1><span class="section-number">4. </span>Benchmarks<a class="headerlink" href="#benchmarks" title="Permalink to this headline">¶</a></h1>
+<p>Here we report a benchmarking study on five most well-known FL mechanisms using iSpree model.</p>
+<div class="section" id="experiment-settings">
+<h2><span class="section-number">4.1. </span>Experiment Settings<a class="headerlink" href="#experiment-settings" title="Permalink to this headline">¶</a></h2>
+<p><strong>Benchmarking FL mechanisms</strong>: We have chosen the following five FL mechanisms which target different issues in the benchmarking:</p>
+<ul class="simple">
+<li><p>FedSGD [1]: FedSGD inherits the settings of large-batch synchronous SGD in data centers, and it is the one of the most fundamental FL mechanisms.</p></li>
+<li><p>FedAvg [1]: FedAvg is a communication efficient mechanism, which aggregates the parameters trained by multiple rounds clients’ local training.</p></li>
+<li><p>FedProx [2]: FedProx targets the non-IID data problem, and tries to improve the FedAvg using a regularization on the distance between the global model and local model, such that the negative impact caused by the non-IID data is reduced. We fix the regularization’s weight to 0.01
+in the benchmark.</p></li>
+<li><p>FedSTC [3]: FedSTC proposed a sparse ternary compression (STC) method in FL, such that both the uploading and downloading parameters are compressed to improve the communication efficiency. We fix the compression rate to 0.1 in the benchmark (i.e., only 10% of the most significant parameters are uploaded).</p></li>
+<li><p>FedOpt [4]: FedOpt proposed to use the adoptive optimization methods in FL. Three optimizations, including FedAdagrad, FedYogi, and FedAdam, are proposed. And we chose FedAdam in this paper’s benchmarking study.</p></li>
+</ul>
+<p><strong>Datasets and Hyperparameters</strong>: We have used four datasets in the experiments: MNIST, FEMNIST, CelebA, and Sent140. We use 100 clients in all the experiments. Following previous work, we use <span class="math notranslate nohighlight">\(B\)</span>, <span class="math notranslate nohighlight">\(C\)</span>, and <span class="math notranslate nohighlight">\(E\)</span> as the parameters of FL mechanisms, <span class="math notranslate nohighlight">\(B\)</span> is the local batch size, <span class="math notranslate nohighlight">\(C\)</span> is the ratio of clients that participate in each round of training, and <span class="math notranslate nohighlight">\(E\)</span> is the number of local training passes (i.e., number of epochs).</p>
+<p><strong>Table 1 Finetuned Hyperparameters</strong></p>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th align="center">Datasets</th>
+<th align="center">#Device</th>
+<th align="center">#Sample</th>
+<th align="center">Model</th>
+<th align="center">Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">MNIST</td>
+<td align="center">100</td>
+<td align="center">300</td>
+<td align="center">2-layer MLP</td>
+<td align="center">(FedSGD, FedSTC) -&gt; LR=0.5 <br />(FedAvg, FedProx, FedOpt) -&gt; B=16,LR=0.1</td>
+</tr>
+<tr>
+<td align="center">FEMNIST</td>
+<td align="center">100</td>
+<td align="center">137</td>
+<td align="center">LeNet</td>
+<td align="center">(FedSGD, FedSTC) -&gt; LR=0.1<br />(FedAvg, FedProx, FedOpt) -&gt; B=8,LR=0.05</td>
+</tr>
+<tr>
+<td align="center">CelebA</td>
+<td align="center">100</td>
+<td align="center">24</td>
+<td align="center">LeNet</td>
+<td align="center">(FedSGD, FedSTC) -&gt; LR=0.1<br /> (FedAvg, FedProx, FedOpt) -&gt; B=4,LR=0.05</td>
+</tr>
+<tr>
+<td align="center">Sent140</td>
+<td align="center">100</td>
+<td align="center">140</td>
+<td align="center">2-layer LSTM</td>
+<td align="center">(FedSGD, FedSTC) -&gt; LR=0.05<br />(FedAvg, FedProx, FedOpt) -&gt; B=4,LR=0.0001</td>
+</tr>
+</tbody>
+</table>
+<p>Table 1 shows the four benchmarking datasets that we used in the experiments, and the corresponding finetuned parameters. We use 100 clients in all the experiments. We set <span class="math notranslate nohighlight">\(B=\infty,C=1\)</span>, and <span class="math notranslate nohighlight">\(E=1\)</span> for FedSGD, empirically chose B and E for FdAvg, then perform a fine-grained search on learning rates from <span class="math notranslate nohighlight">\(0.0001 \sim 1.0\)</span>. The best hyperparameters are shown in Table 1. For datasets that are not collected in FL style (e.g., MNIST), we simulate the non-IID data by restricting the number of clients’ local image classes. For example, The experiments of clients have 1 class of MNIST images are reported in robustness benchmarks. For datasets collected in FL manner (i.e., the samples are organized by who generated them), we partition the data naturally based on the identity and randomly shuffle the data between clients to create an ideal IID data setting. To simplify the comparison, we only present the non-IID data results in the robustness evaluation and use the IID setting in other experiments.</p>
+<p>All the experiments run on a Linux server with 8-core 3.7GHz CPU, 128GB RAM. We limit the clients’ bandwidth to 100Mb/s and do not restrict the server’s bandwidth. We set the network latency to 50ms.</p>
+</div>
+<div class="section" id="incentive-evaluation">
+<h2><span class="section-number">4.2. </span>Incentive Evaluation<a class="headerlink" href="#incentive-evaluation" title="Permalink to this headline">¶</a></h2>
+<p>All these five FL mechanisms output the same model for all clients, which cannot guarantee the fairness. A good HFL mechanism should be able to allocate different versions of models to clients, such that the clients that contribute high-quality data receive models with better performance and the clients that use randomly generated data receive no valid model parameter.</p>
+</div>
+<div class="section" id="security-and-privacy-evaluation">
+<h2><span class="section-number">4.3. </span>Security and Privacy Evaluation<a class="headerlink" href="#security-and-privacy-evaluation" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="model-security-evaluation">
+<h3><span class="section-number">4.3.1. </span>Model Security Evaluation<a class="headerlink" href="#model-security-evaluation" title="Permalink to this headline">¶</a></h3>
+<p><strong>Data Poisoning and Model Poisoning Attacks</strong>: All the five benchmarking FL mechanisms (i.e., FedSGD, FedAvg, FedProx, FedSTC, and FedOpt) are vulnerable to data poisoning and model poisoning attacks, since they have no verification schema during the server’s aggregation. To defense against such attacks, the server needs to filter out the poisoned models before the aggregation, i.e., viewing the poisoned models as outliers.</p>
+<p><strong>Incentive Frauds</strong>: These five benchmarking FL mechanisms are also vulnerable to incentive frauds. The reason is that the participants could overfit the local model to the evaluation datasets to gain more incentive, and the clients could also collude to perform a group fraud (i.e., overfitting their models to the joint test datasets). And there is no defending solution designed in these five mechanisms, making the system vulnerable to frauds.</p>
+</div>
+<div class="section" id="data-privacy-evaluation">
+<h3><span class="section-number">4.3.2. </span>Data Privacy Evaluation<a class="headerlink" href="#data-privacy-evaluation" title="Permalink to this headline">¶</a></h3>
+<p><strong>Before Training (Qualitative Analysis):</strong> All these five FL mechanisms leak the model structure to the clients before the training, thus cannot be directly used in the scenarios when the model structures are private.</p>
+<p><strong>During Training (Qualitative Analysis):</strong> All these five FL mechanisms adopt no privacy-preserving techniques, homomorphic encryption), thus leak intermediate results to the semi-honest server. The server could recover private data using gradients attacks from the intermediate results. However, the effectiveness of gradients attack is influenced by many factors, existing work has shown that the DLG attack is not effective when the systems are using gradients compression method or adding differential privacy noise to the data. Thus FedSTC is secure under the DLG attack since it used gradient compression method, and the other four methods (FedSGD, FedAvg, FedProx, and FedOpt) cannot be exempted.</p>
+<p><strong>After Training (Qualitative Analysis)</strong> All these five FL mechanisms distributes the converged model to participants without protection, thus cannot defense against model inversion attacks.</p>
+<p><strong>During Training (Quantitative Analysis)</strong>: We perform a quantitative benchmarking study between FedSGD and FedAvg regarding defending against the gradients attacks. Because they represent two different FL training paradigms, the FedSGD aggregates parameters from all clients, and each client only performs very few local updates (i.e., one round of local training), while the FedAvg, FedProx, and FedOpt only aggregate parameters from a subset of clients and each client run more rounds of local training. Intuitively, the training paradigm of FedAvg has better performance in concealing the private data because the uploaded gradients are generated by multiple rounds of local training.</p>
+<p><img alt="privacy_evaluation" src="_images/privacy_evaluation.png" /></p>
+<p>In the gradient attack experiments, we calculate the gradients using parameters from two adjacent training steps. The attack results are evaluated using the label accuracy and L2 distance between attack results and real data. Data label is one of the outputs in the DLG attack. Thus we can directly compute its accuracy. In FC attack, we use a well-trained CNN model to determine whether the attack outputs and real images have the same label. To further compare FedSGD and FedAvg and demonstrate what affects the results of gradient attacks, we perform experiments in the following aspects: <strong>(1) Varying the number of images in FedSGD and FedAvg</strong>: The first two subplots in Figure 1(a) show the attack results varying the number of images. With the increasing number of images, the label accuracy drops, and L2 distance rises in both FedSGD and FedAvg. Thus the gradient attacks are more difficult when the clients have more images. <strong>(2) Varying the number of epochs in FedAvg</strong>: Since the number of local training epochs (i.e., E) in FedSGD is fixed to one, we only present the attack results of FedAvg when changing the value of <span class="math notranslate nohighlight">\(E\)</span>, and Figure 1(b) shows the results. With the increasing number of training epochs, the L2 distance significantly rises in the DLG attack and slightly grows in the FC attack. We can conclude that the gradient attacks are more difficult when the clients perform more local training steps before uploading the parameters to the server. Moreover, the FC attack is less sensitive to <span class="math notranslate nohighlight">\(E\)</span> compared with the DLG attack, and its attack error (i.e., L2 distance) on ten images is still very low when the clients perform 100 rounds of local training. <strong>(3) FedSGD vs. FedAvg</strong>: Figure 1(c) compares the attack results on FedSGD and FedAvg (B=1, E=20). In the FC attack, the label accuracy of FedSGD and FedAvg are very close, but the L2 distance of FedAvg is larger. In the DLG attack, FedAvg has lower attack label accuracy and larger L2 distance compared with FedSGD. In front of the FC attack, FedSGD has a better performance. In contrast, FedAvg has better performance under the DLG attack. One likely reason is that the FC attack is not easily influenced by the number of clients’ local training steps. <strong>(4) FC attack vs. DLG attack</strong>: The first subplot in Figure 1(a) compares the attack results of FC and DLG. These two methods’ attack performances are almost the same when the client has five (or fewer) images. However, when the client has ten or more images, the FC attack significantly outperforms the DLG attack model (i.e., FC attack has higher label accuracy and lower L2 distance).</p>
+<p>Figure 1(d) shows some concrete attack examples. The restored images are clear, and the digits can be recognized. We can conclude that both FedSGD and FedAvg have privacy issues. FedAvg performs better than FedSGD in resisting the DLG attacks. Figure 1(d) also illustrates that the DLG attack results on FedAvg are fuzzier than FedSGD. FedSGD has better performance under the FC attack compared with FedAvg. Meanwhile, gradient attacks are more difficult when the clients have more images or perform more local training epochs. Then following equation shows the evaluation results regarding data privacy between five mechanisms.</p>
+<div class="math notranslate nohighlight">
+\[
+FedSTC &gt; FedAvg \approx FedProx \approx FedOpt &gt; FedSGD
+\]</div>
+</div>
+</div>
+<div class="section" id="robustness-evaluation">
+<h2><span class="section-number">4.4. </span>Robustness Evaluation<a class="headerlink" href="#robustness-evaluation" title="Permalink to this headline">¶</a></h2>
+<p><strong>Table 2 Robustness Evaluation</strong></p>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th align="center">Dataset</th>
+<th align="center">Data</th>
+<th align="center">$Psi$</th>
+<th align="center">Local</th>
+<th align="center">Central</th>
+<th align="center">FedSGD</th>
+<th align="center">FedAvg</th>
+<th align="center">FedProx</th>
+<th align="center">FedSTC</th>
+<th align="center">FedOpt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">MNIST</td>
+<td align="center">IID</td>
+<td align="center">0.00603</td>
+<td align="center">0.86944</td>
+<td align="center">0.98483</td>
+<td align="center">0.98185</td>
+<td align="center">0.98282</td>
+<td align="center">0.98500</td>
+<td align="center">0.98467</td>
+<td align="center">0.98520</td>
+</tr>
+<tr>
+<td align="center">MNIST</td>
+<td align="center">Non-IID</td>
+<td align="center">0.01925</td>
+<td align="center">--</td>
+<td align="center">--</td>
+<td align="center">0.98220</td>
+<td align="center">0.96863</td>
+<td align="center">0.97200</td>
+<td align="center">0.98443</td>
+<td align="center">0.96067</td>
+</tr>
+<tr>
+<td align="center">FEMNIST</td>
+<td align="center">IID</td>
+<td align="center">0.00316</td>
+<td align="center">0.43593</td>
+<td align="center">0.85121</td>
+<td align="center">0.85556</td>
+<td align="center">0.85201</td>
+<td align="center">0.81286</td>
+<td align="center">0.82213</td>
+<td align="center">0.79803</td>
+</tr>
+<tr>
+<td align="center">FEMNIST</td>
+<td align="center">Non-IID</td>
+<td align="center">0.00729</td>
+<td align="center">--</td>
+<td align="center">--</td>
+<td align="center">0.83617</td>
+<td align="center">0.81918</td>
+<td align="center">0.78459</td>
+<td align="center">0.76264</td>
+<td align="center">0.77092</td>
+</tr>
+<tr>
+<td align="center">CelebA</td>
+<td align="center">IID</td>
+<td align="center">0.03025</td>
+<td align="center">0.61757</td>
+<td align="center">0.88818</td>
+<td align="center">0.88033</td>
+<td align="center">0.88454</td>
+<td align="center">0.87000</td>
+<td align="center">0.86333</td>
+<td align="center">0.84533</td>
+</tr>
+<tr>
+<td align="center">CelebA</td>
+<td align="center">Non-IID</td>
+<td align="center">0.04213</td>
+<td align="center">--</td>
+<td align="center">--</td>
+<td align="center">0.87300</td>
+<td align="center">0.84667</td>
+<td align="center">0.85533</td>
+<td align="center">0.72333</td>
+<td align="center">0.83167</td>
+</tr>
+<tr>
+<td align="center">Sent140</td>
+<td align="center">IID</td>
+<td align="center">0.01099</td>
+<td align="center">0.71453</td>
+<td align="center">0.77850</td>
+<td align="center">0.77297</td>
+<td align="center">0.76818</td>
+<td align="center">0.74775</td>
+<td align="center">0.76918</td>
+<td align="center">0.75466</td>
+</tr>
+<tr>
+<td align="center">Sent140</td>
+<td align="center">Non-IID</td>
+<td align="center">0.01740</td>
+<td align="center">--</td>
+<td align="center">--</td>
+<td align="center">0.76178</td>
+<td align="center">0.75651</td>
+<td align="center">0.75236</td>
+<td align="center">0.76987</td>
+<td align="center">0.74153</td>
+</tr>
+<tr>
+<td align="center">Average</td>
+<td align="center">IID</td>
+<td align="center">--</td>
+<td align="center">0.65936</td>
+<td align="center">0.87568</td>
+<td align="center">0.87267</td>
+<td align="center">0.87188</td>
+<td align="center">0.85390</td>
+<td align="center">0.85985</td>
+<td align="center">0.84580</td>
+</tr>
+<tr>
+<td align="center">Average</td>
+<td align="center">Non-IID</td>
+<td align="center">--</td>
+<td align="center">--</td>
+<td align="center">--</td>
+<td align="center">0.86329</td>
+<td align="center">0.84774</td>
+<td align="center">0.84107</td>
+<td align="center">0.81006</td>
+<td align="center">0.82619</td>
+</tr>
+</tbody>
+</table>
+<p>Table 2 shows the robustness evaluation on five FL mechanisms. Currently, we mainly focus on evaluating non-IID data problems. The evaluation of system uncertainties will be done in the future. Briefly, the non-IID data brings negative impact to all FL mechanisms. We have calculated the average accuracy on four datasets. FedSGD achieves the best performance and only brings 0.9% accuracy loss. The efficacy of FedAvg and FedProx are very close under non-IID setting, thus they have similar performance. FedSTC has the lowest accuracy, thus has the worst performance regarding the non-IID issue. We also reported the average data distribution divergence (i.e., <span class="math notranslate nohighlight">\(\Psi\)</span>) in Table 2. <span class="math notranslate nohighlight">\(\Psi\)</span> is significantly larger in non-IID data compared with the IID setting, which shows the reason for the efficacy loss. Following equation shows the comparison regarding the robustness between five mechanisms.</p>
+<div class="math notranslate nohighlight">
+\[
+FedSGD &gt; FedProx \approx FedAvg &gt; FedOpt &gt; FedSTC
+\]</div>
+</div>
+<div class="section" id="efficacy-evaluation">
+<h2><span class="section-number">4.5. </span>Efficacy Evaluation<a class="headerlink" href="#efficacy-evaluation" title="Permalink to this headline">¶</a></h2>
+<p>Table 2 shows the efficacy evaluation on four datasets. Compared with clients’ local training, all these five FL mechanisms significantly improve the model efficacy, which shows FL’s effectiveness. On average, the efficacy is improved by 19%<span class="math notranslate nohighlight">\(\sim\)</span>21% local training. In most cases, if we select appropriate parameters, both FedSGD and FedAvg can reach similar accuracy as central training, while the other methods, FedProx, FedSTC, and FedOpt show 2%<span class="math notranslate nohighlight">\(\sim\)</span>3% efficacy loss compared with central training. The following equation shows the comparison regarding the efficacy.</p>
+<div class="math notranslate nohighlight">
+\[
+FedSGD \approx FedAvg &gt; FedProx \approx FedSTC &gt; FedOpt
+\]</div>
+</div>
+<div class="section" id="efficiency-evaluation">
+<h2><span class="section-number">4.6. </span>Efficiency Evaluation<a class="headerlink" href="#efficiency-evaluation" title="Permalink to this headline">¶</a></h2>
+<p><img alt="to_acc_lines" src="_images/to_acc_lines.png" /></p>
+<p><strong>Figure 2. Efficiency Evaluation. Each line in the figure represents the test accuracy of a particular FL mechanism from the training start to reaching the best validation loss. The communication amount are the sum of sending and receiving messages of the individual client.</strong></p>
+<p>Figure 2 shows the efficiency evaluation results. We use three types of figures: communication round (CR) to accuracy, communication amount (CA) to accuracy, and time to accuracy to do the assessments. Regarding the CR, we can observe that FedSGD and FedSTC usually require more rounds to reach the best accuracy compared with the other three methods. Regarding the CA, FedSGD requires the largest amount of transmission data. The other four mechanisms have close capabilities on MNIST, FEMNIST, and CelebA datasets. And on the Semantic140 dataset, FedSTC has the best CA performance. Regarding the time consumption, FedAvg, FedProx, and FedOpt perform better than FedSGD and FedSTC on MNIST, FEMNIST, and CelebA datasets, however, the results are opposite on Semantic140, FedSGD and FedSTC have the best performance. The reason is that FedAvg, FedProx, and FedOpt have increased the clients’ local training workload, which significantly increases the local training time when the model and datasets are large. The following equation shows a comparison between these five mechanisms, while the performance are different when the datasets are small or large.</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}
+\begin{aligned}
+		&amp; FedAvg \approx FedProx \approx FedOpt &gt; FedSTC &gt; FedSGD \ (Small \ Dataset) \\
+		&amp; FedSTC &gt; FedSGD &gt; FedAvg \approx FedProx \approx FedOpt \ (Large \ Dataset)
+\end{aligned}
+\end{split}\]</div>
+</div>
+<div class="section" id="reference">
+<h2><span class="section-number">4.7. </span>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<p>[1] McMahan, Brendan, et al. “Communication-efficient learning of deep networks from decentralized data.” <em>Artificial intelligence and statistics</em>. PMLR, 2017.</p>
+<p>[2] Li, Tian, et al. “Federated optimization in heterogeneous networks.” <em>arXiv preprint arXiv:1812.06127</em> (2018).</p>
+<p>[3] Sattler, Felix, et al. “Robust and communication-efficient federated learning from non-iid data.” <em>IEEE transactions on neural networks and learning systems</em> 31.9 (2019): 3400-3413.</p>
+<p>[4] Reddi, Sashank, et al. “Adaptive federated optimization.” <em>arXiv preprint arXiv:2003.00295</em> (2020).</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="Reproduce.html" class="btn btn-neutral float-right" title="5. Reproduce the Benchmark Results" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Contribute.html" class="btn btn-neutral float-left" title="3.5. Customization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright .
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

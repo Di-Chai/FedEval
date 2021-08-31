@@ -1,22 +1,22 @@
-import os
-import re
 import datetime
 import json
+import os
+import re
 import threading
 import time
+from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
-from flask import request, render_template, send_file
+from flask import render_template, request, send_file
 
-from utils import pickle_string_to_obj, obj_to_pickle_string
-from run_util import save_config
-
-from typing import Any, Dict, List, Mapping, Optional
+from ..run_util import save_config
+from ..utils import obj_to_pickle_string, pickle_string_to_obj
+from . import ContainerId
 from .flask_node import ClientSocketIOEvent, FlaskNode, Sid
+from .model_weights_io import server_best_weight_filename, weights_filename_pattern
 from .role import Role
 from .service_interface import ServerFlaskInterface
-from .model_weights_io import weights_filename_pattern, server_best_weight_filename
-from . import ContainerId
+
 
 class Server(FlaskNode):
     """a central server implementation based on FlaskNode."""
@@ -152,7 +152,7 @@ class Server(FlaskNode):
                 test_accuracy=self._best_test_metric.get(test_accuracy_key, 0),
                 test_loss=self._best_test_metric.get('test_loss', 0),
                 server_send=self._server_send_bytes / (2**30),
-                server_receive=self._server_receive_bytes/ (2**30),
+                server_receive=self._server_receive_bytes / (2**30),
             )
 
         # TMP use
@@ -161,10 +161,14 @@ class Server(FlaskNode):
             return json.dumps({
                 'finished': self._server_job_finish,
                 'rounds': self._current_round,
+                'results': [
+                    None if len(self._avg_val_metrics) == 0 else self._avg_val_metrics[-1], 
+                    None if len(self._avg_test_metrics) == 0 else self._avg_test_metrics[-1]
+                    ],
                 'log_dir': self.log_dir,
             })
 
-        @self.route(ServerFlaskInterface.DownloadPattern.value.format(f'<filename>'), methods=['GET'])
+        @self.route(ServerFlaskInterface.DownloadPattern.value.format('<filename>'), methods=['GET'])
         def download_file(filename):
             if os.path.isfile(os.path.join(self._model_path, filename)):
                 return send_file(os.path.join(self._model_path, filename), as_attachment=True)
@@ -201,8 +205,31 @@ class Server(FlaskNode):
             if self._current_round - int(matched_model.group(1)) >= 5:
                 os.remove(os.path.join(self._model_path, matched_model.group(0)))
 
+    def save_result_to_json(self):
+        m, s = divmod(int(round(time.time()) - self._training_start_time), 60)
+        h, m = divmod(m, 60)
+        avg_time_records = []
+        keys = ['update_send', 'update_run', 'update_receive', 'agg_server',
+                'eval_send', 'eval_run', 'eval_receive', 'server_eval']
+        for key in keys:
+            avg_time_records.append(np.mean([e.get(key, 0) for e in self._time_record]))
+        self.result_json = {
+            'best_metric': self._best_test_metric,
+            'best_metric_full': self._best_test_metric_full,
+            'total_time': '{}:{}:{}'.format(h, m, s),
+            'time_detail': str(avg_time_records),
+            'total_rounds': self._current_round,
+            'server_send': self._server_send_bytes / (2 ** 30),
+            'server_receive': self._server_receive_bytes / (2 ** 30),
+            'info_each_round': self._info_each_round
+        }
+        with open(os.path.join(self.log_dir, 'results.json'), 'w') as f:
+            json.dump(self.result_json, f)
+        save_config(self.data_config, self.model_config, self.runtime_config, self.log_dir)
+
     def _register_handles(self):
         from . import ServerSocketIOEvent
+
         # single-threaded async, no need to lock
 
         @self.on(ServerSocketIOEvent.Connect)
@@ -481,6 +508,7 @@ class Server(FlaskNode):
                             # Server job finish
                             self._server_job_finish = True
                     else:
+                        self.save_result_to_json()
                         self.logger.info("start to next round...")
                         self.train_next_round()
 
@@ -534,7 +562,8 @@ class Server(FlaskNode):
 
         # retrieval send information
         if selected_clients is None:
-            selected_clients = self.fed_model.host_select_evaluate_clients(self._ready_clients)
+            # selected_clients = self.fed_model.host_select_evaluate_clients(self._ready_clients)
+            selected_clients = self._ready_clients
         actual_send = self.retrieval_session_information(selected_clients)
 
         self.logger.info('Sending eval requests to %s clients' % len(selected_clients))

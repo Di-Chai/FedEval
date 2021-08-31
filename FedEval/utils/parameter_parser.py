@@ -6,15 +6,15 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 import tensorflow as tf
 
-from dataset import get_data_shape
-from model import *
-from role import Role
+from ..dataset import get_data_shape
+from ..model import *
+from ..role import Role
 
 Data = Any
 XYData = Mapping[str, Data] # {'x': Data, 'y': Data}
 
 class ParamParserInterface(metaclass=ABCMeta):
-    """ Abstract class of ParamParser.
+    """ Abstract class of ParamParser, containing basic params parse functions.
 
     Raises:
         NotImplementedError: raised when methods in this class was not implemented.
@@ -48,8 +48,11 @@ class ParamParserInterface(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def parse_data(self) -> Tuple[XYData, XYData, XYData]:
+    def parse_data(self, client_id) -> Tuple[XYData, XYData, XYData]:
         """load data for train/test/validation purpose according to the data configuration.
+
+        Attributes:
+            client_id: the id of the client which issued this data parse procedure.
 
         Raises:
             NotImplementedError: raised when called but not overriden.
@@ -79,7 +82,7 @@ class ParamParserInterface(metaclass=ABCMeta):
 
 class ParamParser(ParamParserInterface):
     """an implentation of ParamParserInterface."""
-    def __init__(self, data_config, model_config, runtime_config, role:Role):
+    def __init__(self, data_config, model_config, runtime_config, role: Role):
         self._role: Role = role
         self.data_config = data_config
         self.model_config = model_config
@@ -87,7 +90,6 @@ class ParamParser(ParamParserInterface):
 
         self.x_size, self.y_size = get_data_shape(dataset=self.data_config.get('dataset'))
 
-    # Basic parse functions
     def parse_server_addr(self) -> Tuple[str, str]:
         if self._role == Role.Server:
             addr, port = self.runtime_config['server']['listen'], self.runtime_config['server']['port']
@@ -97,23 +99,20 @@ class ParamParser(ParamParserInterface):
             raise NotImplementedError
         return str(addr), str(port)
 
-    # Basic parse functions
-    def parse_model(self) -> tf.keras.Model:
-
+    def parse_model(self):
         # (0) Test, Config the GPU
-        gpus = tf.config.list_physical_devices('GPU')
-        if gpus:
-            # Restrict TensorFlow to only allocate 1GB of memory on the first GPU
-            try:
-                tf.config.experimental.set_virtual_device_configuration(
-                    gpus[0],
-                    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=512)]
-                )
-                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-            except RuntimeError as e:
-                # Virtual devices must be set before GPUs have been initialized
-                print(e) # TODO expose this exception
+        if self.runtime_config['docker'].get('enable_gpu'):
+            gpus = tf.config.list_physical_devices('GPU')
+            if gpus:
+                try:
+                    # Currently, memory growth needs to be the same across GPUs
+                    for gpu in gpus:
+                        tf.config.experimental.set_memory_growth(gpu, True)
+                    logical_gpus = tf.config.list_logical_devices('GPU')
+                    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+                except RuntimeError as e:
+                    # Memory growth must be set before GPUs have been initialized
+                    print(e) # TODO(fgh) expose this exception
 
         ml_model_config = self.model_config['MLModel']
         ml_model_name = ml_model_config.get('name')
@@ -129,7 +128,8 @@ class ParamParser(ParamParserInterface):
         metrics = ml_model_config.get('metrics')
 
         ml_model: tf.keras.Model = eval(ml_model_name)(target_shape=self.y_size, **ml_model_config)
-        ml_model.compile(loss=loss, metrics=metrics, optimizer=optimizer)
+        ml_model.compile(loss=loss, metrics=metrics, optimizer=optimizer, run_eagerly=True)
+
         if ml_model_name == 'MLP':
             self.x_size = (None, int(np.prod(self.x_size[1:])))
         ml_model.build(input_shape=self.x_size)
@@ -140,17 +140,18 @@ class ParamParser(ParamParserInterface):
 
         return ml_model
 
-    # Basic parse functions
-    def parse_data(self) -> Tuple[XYData, XYData, XYData]:
-        client_id = os.environ.get('CLIENT_ID', '0')
-        with open(os.path.join(self.data_config['data_dir'], 'client_%s.pkl' % client_id), 'rb') as f:
-            data = pickle.load(f)
+    def parse_data(self, client_id) -> Tuple[XYData, XYData, XYData]:
+        data_path = os.path.join(
+            self.data_config['data_dir'], f'client_{client_id}.pkl')
+        f = open(data_path, 'rb')
+        data = pickle.load(f)
+        f.close()
+
         train_data = {'x': data['x_train'], 'y': data['y_train']}
         val_data = {'x': data['x_val'], 'y': data['y_val']}
         test_data = {'x': data['x_test'], 'y': data['y_test']}
         return train_data, val_data, test_data
 
-    # Basic parse functions
     def parse_run_config(self) -> Mapping[str, Any]:
         return {
             'num_clients': self.runtime_config['server']['num_clients'],

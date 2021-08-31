@@ -1,6 +1,6 @@
 from abc import ABCMeta
 
-from strategy import *
+from ..strategy import *
 from .role import Role
 
 

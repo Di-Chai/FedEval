@@ -1,15 +1,15 @@
 import numpy as np
 
-from model import *
-from role import Role
+from ..model import *
+from ..role import Role
 from .FedAvg import FedAvg
 from .utils import *
 
 
 class MFedAvg(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config):
-        super().__init__(role, data_config, model_config, runtime_config)
+    def __init__(self, role, data_config, model_config, runtime_config, **kwags):
+        super().__init__(role, data_config, model_config, runtime_config, **kwags)
 
         if self.role == Role.Server:
             self.v = None

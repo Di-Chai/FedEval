@@ -2,10 +2,9 @@ import os
 import time
 from typing import Any, Callable, Dict, List, Mapping
 
-from strategy import *
-from utils.utils import obj_to_pickle_string
-
-from .flask_node import FlaskNode, ServerSocketIOEvent
+from ..strategy import *
+from ..utils.utils import obj_to_pickle_string
+from .flask_node import ContainerId, FlaskNode, ServerSocketIOEvent
 from .model_weights_io import weights_filename_pattern
 from .role import Role
 
@@ -14,6 +13,17 @@ class Client(FlaskNode):
     """a client node implementation based on FlaskNode."""
 
     MAX_DATASET_SIZE_KEPT = 6000
+
+    def __init__(self, data_config, model_config, runtime_config):
+        super().__init__('client', data_config, model_config, runtime_config, role=Role.Client)
+        self._cid = os.environ.get('CLIENT_ID', '0') # TODO(fgh) remove self._cid
+        self._container_id = os.environ.get('CONTAINER_ID', '0')
+        self._init_control_states()
+        self._init_container()
+
+        self._init_logger()
+        self._register_handles()
+        self.start()
 
     def _init_control_states(self):
         ''' allocate cid for the clients hold by this container and
@@ -59,37 +69,23 @@ class Client(FlaskNode):
         self._local_train_round: Dict[ContainerId, int] = { cid: 0 for cid in self._cid_list }
         self._host_params_round: Dict[ContainerId, int] = { cid: -1 for cid in self._cid_list }
 
-    def __init__(self, data_config, model_config, runtime_config):
-        super().__init__('client', data_config, model_config, runtime_config, role=Role.Client)
-        self._cid = os.environ.get('CLIENT_ID', '0') # TODO(fgh) remove self._cid
-        self._container_id = os.environ.get('CONTAINER_ID', '0')
-        self._init_control_states()
-        self._init_container()
-
-        self._init_logger()
-        self._register_handles()
-        self.start()
-
-    def start(self):
-        self.invoke(ServerSocketIOEvent.WakeUp)
-        self.logger.info("sent wakeup")
-        self.wait()
-
     def _init_logger(self):
         super()._init_logger('container', 'Container' + self._container_id)
 
     def _init_container(self):
         # Initialize the fed model for all the clients in this container
         # This method should be called after self._init_control_states()
-        fed_model_class: type = eval(self.model_config['FedModel']['name'])
+        fed_model_type: type = eval(self.model_config['FedModel']['name'])
         self.client_fed_model_fname = os.path.join(self.log_dir, 'client_%s_fed_model')
         biggest_cid_in_this_container = max(self._cid_list)
         for cid in self._cid_list:
             start = time.time()
             client_fed_model_fpath = self.client_fed_model_fname % cid
-            self.fed_model = fed_model_class(
-                role=Role.Client, data_config=self.data_config, model_config=self.model_config, runtime_config=self.runtime_config
+            self.fed_model = fed_model_type(
+                role=Role.Client, data_config=self.data_config,
+                model_config=self.model_config, runtime_config=self.runtime_config
             )
+            self.fed_model.set_client_id(cid)
             self.fed_model = save_fed_model(self.fed_model, client_fed_model_fpath)
             if cid != biggest_cid_in_this_container:
                 del self.fed_model  # Q(fgh): 这里已经留下了最后一个初始化的fed_model了，为什么还要在后面再加载一个fed_model呢？
@@ -139,6 +135,8 @@ class Client(FlaskNode):
             # Get the selected clients
             selected_clients = data_from_server['selected_clients']
 
+            self.logger.info('Debug: selected clients' + str(selected_clients))
+
             current_round = data_from_server['round_number']
 
             for cid in selected_clients:
@@ -146,11 +144,16 @@ class Client(FlaskNode):
                 self.logger.info("### Round {}, Cid {} ###".format(current_round, cid))
                 if self.curr_online_client != cid:
                     start = time.time()
+                    # Save before load
+                    self.fed_model = save_fed_model(
+                        self.fed_model, self.client_fed_model_fname % self.curr_online_client
+                    )
                     self.fed_model = load_fed_model(self.fed_model, self.client_fed_model_fname % cid)
                     self.curr_online_client = cid
                     self.logger.info("Loaded fed model of client %s using %s" % (cid, time.time()-start))
                 self._local_train_round[cid] += 1
                 # Download the parameter if the local model is not the latest
+                self.logger.debug('Debug: %s' % (current_round - self._host_params_round[cid]))
                 if (current_round - self._host_params_round[cid]) > 1:
                     self._host_params_round[cid] = current_round - 1
                     weights_file_name = weights_filename_pattern.format(self._host_params_round[cid])
@@ -162,10 +165,7 @@ class Client(FlaskNode):
                 train_loss, train_data_size = self.fed_model.fit_on_local_data()
                 upload_data = self.fed_model.retrieve_local_upload_info()
 
-                # Save current client
-                # self.fed_model = save_fed_model(
-                #     self.fed_model, self.client_fed_model_fname % self.curr_online_client
-                # )
+                self.logger.info("Local train loss %s" % train_loss)
 
                 # Mark the update finish time
                 time_finish_update = time.time()
@@ -209,6 +209,10 @@ class Client(FlaskNode):
             for cid in selected_clients:
                 time_start_evaluate = time.time()
                 if self.curr_online_client != cid:
+                    # Save before load
+                    self.fed_model = save_fed_model(
+                        self.fed_model, self.client_fed_model_fname % self.curr_online_client
+                    )
                     start = time.time()
                     self.fed_model = load_fed_model(self.fed_model, self.client_fed_model_fname % cid)
                     self.curr_online_client = cid
@@ -226,10 +230,7 @@ class Client(FlaskNode):
 
                 evaluate = self.fed_model.local_evaluate()
 
-                # Save current client
-                # self.fed_model = save_fed_model(
-                #     self.fed_model, self.client_fed_model_fname % self.curr_online_client
-                # )
+                self.logger.info("Local Evaluate" + str(evaluate))
 
                 time_finish_evaluate = time.time()
 
@@ -256,3 +257,8 @@ class Client(FlaskNode):
             self.fed_model.client_exit_job(self)
             print("Federated training finished ...")
             exit(0)
+
+    def start(self):
+        self.invoke(ServerSocketIOEvent.WakeUp)
+        self.logger.info("sent wakeup")
+        self.wait()
