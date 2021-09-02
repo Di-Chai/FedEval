@@ -11,7 +11,7 @@ from flask import render_template, request, send_file
 
 from ..run_util import save_config
 from ..utils import obj_to_pickle_string, pickle_string_to_obj
-from . import ContainerId
+from .container import ContainerId
 from .flask_node import ClientSocketIOEvent, FlaskNode, Sid
 from .model_weights_io import server_best_weight_filename, weights_filename_pattern
 from .role import Role

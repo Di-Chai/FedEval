@@ -15,7 +15,6 @@ from .role import Role
 from .service_interface import ServerFlaskInterface
 
 Sid = Any           # from SocketIO
-ContainerId = int   # to identify container
 
 class SocketIOEvent(Enum):
     """basic SocketIO life-cycle event names."""

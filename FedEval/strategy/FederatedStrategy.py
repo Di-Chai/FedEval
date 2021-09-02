@@ -4,7 +4,8 @@ from typing import Any, List, Mapping, Optional
 
 from ..callbacks import *
 from ..model import *
-from ..role import ContainerId, Role
+from ..role.container import ContainerId
+from ..role.role import Role
 from ..utils import ParamParser, ParamParserInterface
 from .utils import aggregate_weighted_average
 
@@ -14,8 +15,6 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
     @abstractmethod
     def host_get_init_params(self) -> ModelWeights:
         """get the initial model params/weights from its machine/deep learning model.
-
-        Called by the central server.
 
         Raises:
             NotImplementedError: raised when called but not overriden.
@@ -29,8 +28,6 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
     def update_host_params(self, client_params, aggregate_weights) -> ModelWeights:
         """update central server's model params/weights with
         the aggregated params received from clients.
-
-        Called by the central server.
 
         Args:
             client_params: TODO(fgh)
@@ -48,8 +45,6 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
     def host_exit_job(self, host):
         """do self-defined finishing jobs before the shutdown of the central server.
 
-        Called by the central server.
-
         Args:
             host: TODO(fgh)
 
@@ -61,8 +56,6 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
     @abstractmethod
     def host_select_train_clients(self, ready_clients: List[ContainerId]) -> List[ContainerId]:
         """select clients from the given ones for training purpose.
-
-        Called by the central server.
 
         Args:
             ready_clients (List[ContainerId]): the id list of clients that are ready for training.
@@ -78,8 +71,6 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
     @abstractmethod
     def host_select_evaluate_clients(self, ready_clients: List[ContainerId]) -> List[ContainerId]:
         """select clients from the given ones for evaluation purpose.
-
-        Called by the central server.
 
         Args:
             ready_clients (List[ContainerId]): the id list of clients that are ready for evaluaion.
@@ -98,8 +89,6 @@ class FedStrategyPeerInterface(metaclass=ABCMeta):
     def set_host_params_to_local(self, host_params: ModelWeights, current_round: int):
         """update the current local ML/DL model's params with params received
         from the central server.
-
-        Called by clients.
 
         Args:
             host_params (ModelWeights): params received from the central server.
@@ -157,8 +146,6 @@ class FedStrategyPeerInterface(metaclass=ABCMeta):
     def client_exit_job(self, client):
         """do self-defined finishing jobs before the shutdown of the local clients.
 
-        Called by one of the clients.
-
         Args:
             client: TODO(fgh)
 
@@ -172,8 +159,6 @@ class FedStrategyPeerInterface(metaclass=ABCMeta):
         """set the id of this client.
 
         TODO(fgh): move this duty into data related modules.
-
-        Called by clients.
 
         Args:
             client_id: the id of this client.

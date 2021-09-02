@@ -4,7 +4,8 @@ from typing import Any, Callable, Dict, List, Mapping
 
 from ..strategy import *
 from ..utils.utils import obj_to_pickle_string
-from .flask_node import ContainerId, FlaskNode, ServerSocketIOEvent
+from .flask_node import FlaskNode, ServerSocketIOEvent
+from .container import ContainerId
 from .model_weights_io import weights_filename_pattern
 from .role import Role
 
