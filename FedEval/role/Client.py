@@ -88,16 +88,9 @@ class Client(FlaskNode):
             self.fed_model.set_client_id(cid)
             self.fed_model = save_fed_model(self.fed_model, client_fed_model_fpath)
             if cid != biggest_cid_in_this_container:
-                del self.fed_model  # Q(fgh): 这里已经留下了最后一个初始化的fed_model了，为什么还要在后面再加载一个fed_model呢？
-                # self.curr_online_client = biggest_cid_in_this_container
+                del self.fed_model
             self.logger.info('Saving model costs %s(s)' % (time.time() - start))
-
-        # Load arbitrary fed model
-        start = time.time()
-        self.curr_online_client = self._cid_list[0]
-        self.fed_model = load_fed_model(self.fed_model, self.client_fed_model_fname % self.curr_online_client)
-        print('#' * 30)
-        print('Loading federated model costs %s(s)' % (time.time() - start))
+        self.curr_online_client = biggest_cid_in_this_container
 
     def _register_handles(self):
         from . import ClientSocketIOEvent
