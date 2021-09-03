@@ -91,15 +91,17 @@ class FlaskNode(Node):
     @classmethod
     def _con(cls, func: Callable):
         @wraps(func)
-        def wrapper(event: ClientSocketIOEvent, *args, **kwargs):
-            return func(FlaskNode.__event2message(event), *args, **kwargs)
+        def wrapper(*args, **kwargs):
+            event: ClientSocketIOEvent = args[1]
+            return func(args[0], FlaskNode.__event2message(event), *args[2:], **kwargs)
         return wrapper
 
     @classmethod
     def _son(cls, func: Callable):
         @wraps(func)
-        def wrapper(event: ServerSocketIOEvent, *args, **kwargs):
-            return func(FlaskNode.__event2message(event), *args, **kwargs)
+        def wrapper(*args, **kwargs):
+            event: ServerSocketIOEvent = args[1]
+            return func(args[0], FlaskNode.__event2message(event), *args[2:], **kwargs)
         return wrapper
 
     @staticmethod
