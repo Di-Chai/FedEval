@@ -1,17 +1,23 @@
-import os
 import json
+import os
 import pickle
+
 import numpy as np
 import tensorflow as tf
-from .FedAvg import FedAvg
+
+from ..config.configuration import ConfigurationManager
 from ..role import Role
+from .FedAvg import FedAvg
 
 
 class LocalCentral(FedAvg):
 
-    def __init__(self, role: Role, data_config, model_config, runtime_config):
-        super().__init__(role, data_config, model_config, runtime_config)
+    def __init__(self):
+        super().__init__()
 
+        cfg_mgr = ConfigurationManager()
+        client_num = cfg_mgr.runtime_config.client_num
+        data_dir = cfg_mgr.data_config.dir_name
         if self.role == Role.Server:
             x_train = []
             y_train = []
@@ -19,8 +25,8 @@ class LocalCentral(FedAvg):
             y_val = []
             x_test = []
             y_test = []
-            for client_id in range(self.runtime_config['server']['num_clients']):
-                with open(os.path.join(self.data_config['data_dir'], 'client_%s.pkl' % client_id), 'rb') as f:
+            for client_id in range(client_num):
+                with open(os.path.join(data_dir, 'client_%s.pkl' % client_id), 'rb') as f:
                     data = pickle.load(f)
                 x_train.append(data['x_train'])
                 y_train.append(data['y_train'])
@@ -51,13 +57,14 @@ class LocalCentral(FedAvg):
 
     def fit_on_local_data(self):
         self.local_params_pre = self._retrieve_local_params()
+        mdl_cfg = ConfigurationManager().model_config
         train_log = self.ml_model.fit(
-            **self.train_data, batch_size=self.model_config['FedModel']['B'],
-            epochs=self.model_config['FedModel']['E'],
+            **self.train_data, batch_size=mdl_cfg.B,
+            epochs=mdl_cfg.E,
             validation_data=(self.val_data['x'], self.val_data['y']),
             callbacks=[
                 tf.keras.callbacks.EarlyStopping(
-                    monitor='val_loss', patience=self.model_config['FedModel']['num_tolerance'],
+                    monitor='val_loss', patience=ConfigurationManager().tolerance_num,
                     restore_best_weights=True
                 )]
         )

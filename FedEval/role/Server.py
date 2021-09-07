@@ -9,38 +9,49 @@ from typing import Any, Dict, List, Mapping, Optional
 import numpy as np
 from flask import render_template, request, send_file
 
-from ..run_util import save_config
+from ..config.service_interface import ServerFlaskInterface
+from ..config.configuration import ConfigurationManager
 from ..utils import obj_to_pickle_string, pickle_string_to_obj
 from .container import ContainerId
 from .flask_node import ClientSocketIOEvent, FlaskNode, Sid
-from .model_weights_io import server_best_weight_filename, weights_filename_pattern
+from .model_weights_io import (server_best_weight_filename,
+                               weights_filename_pattern)
 from .role import Role
-from .service_interface import ServerFlaskInterface
 
 
 class Server(FlaskNode):
     """a central server implementation based on FlaskNode."""
 
-    def __init__(self, data_config, model_config, runtime_config):
-        super().__init__('server', data_config, model_config, runtime_config, role=Role.Server)
+    def __init__(self):
+        ConfigurationManager().role = Role.Server
+        super().__init__('server')
         self._init_states()
-        self._init_logger()
         self._register_handles()
         self._register_services()
-        self.logger.info(self._run_config)
-        self.logger.info(self.get_model_description())
+
+        self._init_logger()
         self.save_weight(weights_filename_pattern)   # save the init weights
 
     def _init_logger(self):
         super()._init_logger('Server', 'Server')
+        cfg_mgr = ConfigurationManager()
+        _run_config = {
+            'num_clients': cfg_mgr.client_num,
+            'max_num_rounds': cfg_mgr.max_iteration_round_num,
+            'num_tolerance': cfg_mgr.tolerance_num,
+            'num_clients_contacted_per_round': cfg_mgr.num_of_clients_contacted_per_round,
+            'rounds_between_val': cfg_mgr.num_of_rounds_between_val,
+        }
+        self.logger.info(_run_config)
+        self.logger.info(self.get_model_description())
 
     def _bind_run_configs(self):
-        self._run_config = self.fed_model.param_parser.parse_run_config()
-        self._num_clients = self._run_config['num_clients']
-        self._max_num_rounds = self._run_config['max_num_rounds']
-        self._num_tolerance = self._run_config['num_tolerance']
-        self._num_clients_contacted_per_round = self._run_config['num_clients_contacted_per_round']
-        self._rounds_between_val = self._run_config['rounds_between_val']
+        cfg_mgr = ConfigurationManager()
+        self._num_clients = cfg_mgr.client_num
+        self._max_num_rounds = cfg_mgr.max_iteration_round_num
+        self._num_tolerance = cfg_mgr.tolerance_num
+        self._num_clients_contacted_per_round = cfg_mgr.num_of_clients_contacted_per_round
+        self._rounds_between_val = cfg_mgr.num_of_rounds_between_val
 
     def _init_metric_states(self):
         # weights should be an ordered list of parameter
@@ -133,9 +144,8 @@ class Server(FlaskNode):
             m, s = divmod(current_used_time, 60)
             h, m = divmod(m, 60)
 
-            metrics = self.fed_model.model_config['MLModel'].get('metrics', [])
-            test_accuracy_key = 'accuracy' if len(metrics) == 0 else metrics[0]
-            test_accuracy_key = 'test_' + test_accuracy_key
+            metrics = ConfigurationManager().model_config.metrics
+            test_accuracy_key = f'test_{metrics[0]}'
 
             return render_template(
                 'dashboard.html',
@@ -225,7 +235,7 @@ class Server(FlaskNode):
         }
         with open(os.path.join(self.log_dir, 'results.json'), 'w') as f:
             json.dump(self.result_json, f)
-        save_config(self.data_config, self.model_config, self.runtime_config, self.log_dir)
+        ConfigurationManager().to_files(self.log_dir)
 
     def _register_handles(self):
         from . import ServerSocketIOEvent
@@ -500,7 +510,7 @@ class Server(FlaskNode):
                             }
                             with open(os.path.join(self.log_dir, 'results.json'), 'w') as f:
                                 json.dump(self.result_json, f)
-                            save_config(self.data_config, self.model_config, self.runtime_config, self.log_dir)
+                            ConfigurationManager().to_files(self.log_dir)
                             # Stop all the clients
                             self.invoke(ClientSocketIOEvent.Stop, broadcast=True)
                             # Call the server exit job

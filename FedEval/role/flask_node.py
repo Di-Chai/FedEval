@@ -3,16 +3,18 @@ import os
 import time
 from enum import Enum
 from functools import wraps
-from typing import Callable, Tuple, Any
+from platform import platform
+from typing import Any, Callable, Tuple
 
 import psutil
+from FedEval.config.service_interface import ServerFlaskInterface
 from flask import Flask
 from flask_socketio import SocketIO, emit
 
+from ..config.configuration import ConfigurationManager
 from .model_weights_io import ModelWeightsFlaskHandler, ModelWeightsIoInterface
 from .node import Node
 from .role import Role
-from .service_interface import ServerFlaskInterface
 
 Sid = Any           # from SocketIO
 
@@ -50,25 +52,34 @@ class FlaskNode(Node):
             and ERROR-lv threshold in terminal side.
     """
 
-    def __init__(self, name: str, data_config, model_config, runtime_config, role: Role) -> None:
-        super().__init__(name, data_config, model_config, runtime_config, role)
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
+
+        cfg_mgr = ConfigurationManager()
+        role = cfg_mgr.role
+        rt_cfg = cfg_mgr.runtime_config
+        self._port = rt_cfg.central_server_port
+        if role == Role.Server:
+            self._host = rt_cfg.central_server_listen_at
+        elif role == Role.Client:
+            self._host = rt_cfg.central_server_addr
+        else:
+            raise NotImplementedError
 
         if self.role == Role.Client:
-            server_host, server_port = self.fed_model.param_parser.parse_server_addr(self.name)
-            weights_download_url = f'http://{server_host}:{server_port}{ServerFlaskInterface.DownloadPattern}'
+            weights_download_url = f'http://{self._host}:{self._port}{ServerFlaskInterface.DownloadPattern}'
             self._model_weights_io_handler: ModelWeightsIoInterface = ModelWeightsFlaskHandler(
                 weights_download_url)
-            self._sio = SocketIO(server_host, server_port)
+            self._sio = SocketIO(self._host, self._port)
 
             self.on = FlaskNode._con(self._sio.on) # client-side handler register
             self.invoke = self._cinvoke
             self.wait = self._sio.wait
         elif self.role == Role.Server:
-            self._host, self._port = self.fed_model.param_parser.parse_server_addr()
             current_path = os.path.dirname(os.path.abspath(__file__))
             self._app = Flask(__name__, template_folder=os.path.join(current_path, 'templates'),
                             static_folder=os.path.join(current_path, 'static'))
-            self._app.config['SECRET_KEY'] = 'secret!' # TODO(fgh) move into configurations
+            self._app.config['SECRET_KEY'] = cfg_mgr.secret_key
             self._socketio = SocketIO(self._app, max_http_buffer_size=10 ** 20, async_handlers=True,
                                      ping_timeout=3600, ping_interval=1800, cors_allowed_origins='*')
 
@@ -79,7 +90,8 @@ class FlaskNode(Node):
             raise NotImplementedError
 
     def _run_server(self) -> None:
-        if self._role == Role.Server:
+        role = ConfigurationManager().role
+        if role == Role.Server:
             self._socketio.run(self._app, host=self._host, port=self._port)
         else:
             raise TypeError("This is not a central server.")
@@ -117,8 +129,8 @@ class FlaskNode(Node):
         self.logger.setLevel(logging.INFO)
 
         time_str = time.strftime('%Y_%m%d_%H%M%S', time.localtime())
-        self.log_dir = os.path.join(self.runtime_config.get(
-            'log_dir', 'log'), log_dir_name, time_str)
+        rt_cfg = ConfigurationManager().runtime_config
+        self.log_dir = os.path.join(rt_cfg.log_dir_path, log_dir_name, time_str)
         os.makedirs(self.log_dir, exist_ok=True)
         log_file = os.path.join(self.log_dir, 'train.log')
         fh = logging.FileHandler(log_file, encoding='utf8')
@@ -143,10 +155,20 @@ class FlaskNode(Node):
     def _get_comm_in_and_out() -> Tuple[int, int]:
         """retrieve network traffic counter.
 
+        Raises:
+            NotImplementedError: raised when called at unsupported
+                platforms or unknown platforms.
+
         Returns:
             Tuple[int, int]: (the number of received bytes, the number of sent bytes)
         """
-        return get_comm_in_and_out_linux()
+        platform_str = platform.system().lower()
+        if platform_str == 'linux':
+            return get_comm_in_and_out_linux()
+        elif platform_str == 'windows':
+            raise NotImplementedError(f'Unsupported function at {platform_str} platform.')
+        else:
+            raise NotImplementedError("Unknown platform.")
 
 
 def get_comm_in_and_out_linux() -> Tuple[int, int]:

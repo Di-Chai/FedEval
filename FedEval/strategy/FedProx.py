@@ -1,3 +1,4 @@
+from FedEval.config.configuration import ConfigurationManager
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.training import gen_training_ops
@@ -46,9 +47,9 @@ class FedProxOptimizer(tf.keras.optimizers.Optimizer):
 class FedProxParamsParser(ParamParser):
     def parse_model(self):
         ml_model = super(FedProxParamsParser, self).parse_model()
+        mdl_cfg = ConfigurationManager().model_config
         optimizer = FedProxOptimizer(
-            lr=self.model_config['MLModel']['optimizer']['lr'], mu=self.model_config['FedModel']['mu']
-        )
+            lr=mdl_cfg.learning_rate, mu=mdl_cfg.prox_mu)
         optimizer.create_slots(ml_model.variables)
         ml_model.optimizer = optimizer
         return ml_model
@@ -56,8 +57,9 @@ class FedProxParamsParser(ParamParser):
 
 class FedProx(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config, param_parser=FedProxParamsParser, logger=None):
-        super().__init__(role, data_config, model_config, runtime_config, param_parser=param_parser, logger=logger)
+    def __init__(self, param_parser=FedProxParamsParser, logger=None):
+        super().__init__(param_parser=param_parser)
+        self.set_logger(logger)
 
     def fit_on_local_data(self):
         cur_params = self._retrieve_local_params()

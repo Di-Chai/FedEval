@@ -3,6 +3,7 @@ gc.set_threshold(700, 10, 5)
 import numpy as np
 from scipy.sparse import lil_matrix
 
+from ..config.configuration import ConfigurationManager
 from ..role import Role
 from .FedAvg import FedAvg
 from .utils import aggregate_weighted_average
@@ -49,8 +50,8 @@ def sparse_mask(value_list, p=0.01):
 
 class FedSTC(FedAvg):
 
-    def __init__(self, role: Role, data_config, model_config, runtime_config, **kwags):
-        super().__init__(role, data_config, model_config, runtime_config, **kwags)
+    def __init__(self, **kwags):
+        super().__init__(**kwags)
 
         if self.role == Role.Client:
             self.client_residual = self.init_residual()
@@ -86,7 +87,7 @@ class FedSTC(FedAvg):
         # stc(delta_w + R), which will be sent to server
         delta_w_plus_r = [
             self.stc(delta_params[i] + self.client_residual[i],
-                     sparsity=self.model_config['FedModel']['sparsity'])
+                     sparsity=ConfigurationManager().model_config.stc_sparsity)
             for i in range(len(delta_params))
         ]
         # update the local residual
@@ -119,7 +120,7 @@ class FedSTC(FedAvg):
         delta_W = aggregate_weighted_average(client_params, aggregate_weights)
         delta_W_plus_r = [
             self.stc(delta_W[i] + self.server_residual[i],
-                     sparsity=self.model_config['FedModel']['sparsity'])
+                     sparsity=ConfigurationManager().model_config.stc_sparsity)
             for i in range(len(delta_W))
         ]
         # update the residual

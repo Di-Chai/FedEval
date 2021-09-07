@@ -2,10 +2,11 @@ import os
 import time
 from typing import Any, Callable, Dict, List, Mapping
 
+from ..config.configuration import ConfigurationManager
 from ..strategy import *
 from ..utils.utils import obj_to_pickle_string
-from .flask_node import FlaskNode, ServerSocketIOEvent
 from .container import ContainerId
+from .flask_node import FlaskNode, ServerSocketIOEvent
 from .model_weights_io import weights_filename_pattern
 from .role import Role
 
@@ -15,8 +16,9 @@ class Client(FlaskNode):
 
     MAX_DATASET_SIZE_KEPT = 6000
 
-    def __init__(self, data_config, model_config, runtime_config):
-        super().__init__('client', data_config, model_config, runtime_config, role=Role.Client)
+    def __init__(self):
+        ConfigurationManager().role = Role.Client
+        super().__init__('client')
         self._cid = os.environ.get('CLIENT_ID', '0') # TODO(fgh) remove self._cid
         self._container_id = os.environ.get('CONTAINER_ID', '0')
         self._init_control_states()
@@ -53,8 +55,9 @@ class Client(FlaskNode):
         ## container_2
         client_cids: [9..=12]
         '''
-        num_containers = self.runtime_config['docker']['num_containers']
-        num_clients = self.runtime_config['server']['num_clients']
+        rt_cfg = ConfigurationManager().runtime_config
+        num_containers = rt_cfg.container_num
+        num_clients = rt_cfg.client_num
         num_clients_in_this_container = num_clients // num_containers
         cid_start = int(self._container_id) * num_clients_in_this_container
 
@@ -76,16 +79,14 @@ class Client(FlaskNode):
     def _init_container(self):
         # Initialize the fed model for all the clients in this container
         # This method should be called after self._init_control_states()
-        fed_model_type: type = eval(self.model_config['FedModel']['name'])
+        mdl_cfg = ConfigurationManager().model_config
+        fed_model_type: type = eval(mdl_cfg.strategy_name)
         self.client_fed_model_fname = os.path.join(self.log_dir, 'client_%s_fed_model')
         biggest_cid_in_this_container = max(self._cid_list)
         for cid in self._cid_list:
             start = time.time()
             client_fed_model_fpath = self.client_fed_model_fname % cid
-            self.fed_model = fed_model_type(
-                role=Role.Client, data_config=self.data_config,
-                model_config=self.model_config, runtime_config=self.runtime_config
-            )
+            self.fed_model = fed_model_type()
             self.fed_model.set_client_id(cid)
             self.fed_model = save_fed_model(self.fed_model, client_fed_model_fpath)
             if cid != biggest_cid_in_this_container:

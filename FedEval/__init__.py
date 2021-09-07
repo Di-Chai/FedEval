@@ -1,5 +1,6 @@
 # Modules
 # try:
+from . import config
 from . import role
 from . import attack
 from . import utils

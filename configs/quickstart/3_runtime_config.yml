@@ -10,4 +10,5 @@ server:
   listen: server
   num_clients: 10
   port: 8000
+  secret_key: secret!
 log_dir: log/quickstart

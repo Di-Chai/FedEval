@@ -1,8 +1,9 @@
-import torch
 import numpy as np
-from .FedAvg import FedAvg
+import torch
 from csvec import CSVec
 
+from ..config.configuration import ConfigurationManager
+from .FedAvg import FedAvg
 
 """
   # FetchSGD
@@ -16,11 +17,12 @@ from csvec import CSVec
 
 class FetchSGD(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config):
-        super().__init__(role, data_config, model_config, runtime_config)
+    def __init__(self):
+        super().__init__()
 
         self.param_shapes = [e.shape for e in self.ml_model.get_weights()]
         self.sketch_dim = np.sum([np.prod(e) for e in self.param_shapes])
+        # TODO & Q(fgh) there's no top_k in configuraitons
         self.unSketch_k = int(self.sketch_dim * self.model_config['FedModel']['top_k'])
 
         self.momentum = self.init_sketch()
@@ -30,6 +32,8 @@ class FetchSGD(FedAvg):
         print(self.sketch_dim)
 
     def init_sketch(self):
+        mdl_cfg = ConfigurationManager().model_config
+        # TODO(fgh) add num_col & num_row in configuraitons
         return CSVec(
             d=self.sketch_dim, c=self.model_config['FedModel']['num_col'],
             r=self.model_config['FedModel']['num_row'], numBlocks=self.model_config['FedModel']['num_block'],
@@ -51,13 +55,14 @@ class FetchSGD(FedAvg):
         return gradients
 
     def update_host_params(self, client_params, aggregate_weights):
+        mdl_cfg = ConfigurationManager().model_config
         # Aggregate sketches
         agg_tables = np.sum([client_params[i] * aggregate_weights[i] for i in range(len(client_params))], axis=0)
         # Momentum
-        self.momentum *= self.model_config['FedModel']['momentum']
+        self.momentum *= mdl_cfg.momentum
         self.momentum.accumulateTable(torch.from_numpy(agg_tables))
         # Error feedback
-        self.error.accumulateTable(self.momentum.table * self.model_config['MLModel']['lr'])
+        self.error.accumulateTable(self.momentum.table * mdl_cfg.learning_rate)
         # UnSketch
         delta = self.error.unSketch(k=self.unSketch_k)
         # Error accumulation

@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.training import gen_training_ops
 
+from ..config.configuration import ConfigurationManager
 from ..utils import ParamParser
 from .FedAvg import FedAvg
 from .utils import aggregate_weighted_average
@@ -42,7 +43,7 @@ class FedSCAParser(ParamParser):
     def parse_model(self):
         ml_model = super(FedSCAParser, self).parse_model()
         # Customize the model optimizer
-        optimizer = FedSCAOptimizer(lr=self.model_config['MLModel']['optimizer']['lr'])
+        optimizer = FedSCAOptimizer(lr=ConfigurationManager().model_config.learning_rate)
         optimizer.create_slots(ml_model.variables)
         ml_model.optimizer = optimizer
         return ml_model
@@ -50,8 +51,9 @@ class FedSCAParser(ParamParser):
 
 class FedSCA(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config, param_parser=ParamParser, logger=None):
-        super().__init__(role, data_config, model_config, runtime_config, param_parser=param_parser, logger=logger)
+    def __init__(self, param_parser=ParamParser, logger=None):
+        super().__init__(param_parser=param_parser)
+        self.set_logger(logger)
 
         param_shapes = [e.shape for e in self.ml_model.get_weights()]
 
@@ -69,9 +71,10 @@ class FedSCA(FedAvg):
     def update_host_params(self, client_params, aggregate_weights):
         delta_x = aggregate_weighted_average([e[0] for e in client_params], aggregate_weights)
         delta_c = aggregate_weighted_average([e[1] for e in client_params], aggregate_weights)
+        C = mdl_cfg = ConfigurationManager().model_config.C
         for i in range(len(self.params)):
-            self.params[i] += self.model_config['MLModel']['lr'] * delta_x[i]
-            self.server_c[i] += self.model_config['FedModel']['C'] * delta_c[i]
+            self.params[i] += mdl_cfg.learning_rate * delta_x[i]
+            self.server_c[i] += C * delta_c[i]
         return self.params, self.server_c
 
     def fit_on_local_data(self):
@@ -83,10 +86,12 @@ class FedSCA(FedAvg):
         return super(FedSCA, self).fit_on_local_data()
 
     def retrieve_local_upload_info(self):
-        K = np.ceil(self.train_data_size / self.model_config['FedModel']['B']) * self.model_config['FedModel']['E']
+        mdl_cfg = ConfigurationManager().model_config
+        B, E, lr = mdl_cfg.B, mdl_cfg.E, mdl_cfg.learning_rate
+        K = np.ceil(self.train_data_size / B * E)
         new_c = [
             self.client_c[i] - self.server_c[i] + 
-            1/(K*self.model_config['MLModel']['lr'])*(self.local_params_pre[i]-self.local_params_cur[i])
+            1 / (K * lr) * (self.local_params_pre[i] - self.local_params_cur[i])
             for i in range(len(self.client_c))
         ]
         delta_params = [self.local_params_cur[i]-self.local_params_pre[i] for i in range(len(self.local_params_cur))]

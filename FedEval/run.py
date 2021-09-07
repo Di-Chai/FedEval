@@ -1,20 +1,25 @@
-import os
-import copy
-import yaml
-import pickle
 import argparse
-import numpy as np
+import copy
+import os
+from math import ceil
 
-from .model import *
+import yaml
+
+from .config import (DEFAULT_D_CFG_FILENAME, DEFAULT_MDL_CFG_FILENAME,
+                     DEFAULT_RT_CFG_FILENAME, ConfigurationManager)
 from .dataset import *
+from .model import *
 from .role import Client, Server
 
 
-def generate_data(data_config, model_config, runtime_config, save_file=True):
+def generate_data(save_file=True):
+    # TODO(fgh) move this function into dataset module
+    d_cfg = ConfigurationManager().data_config
     try:
-        data = eval(data_config['dataset'])(
-            output_dir=data_config['data_dir'],  # for saving
-            flatten=True if model_config['MLModel']['name'] == 'MLP' else False,
+        # TODO(fgh) remove config from dataset __init__
+        data = eval(d_cfg.dataset_name)(
+            output_dir=d_cfg.dir_name,  # for saving
+            flatten= model_config['MLModel']['name'] == 'MLP',
             normalize=data_config['normalize'],
             train_val_test=data_config['train_val_test'],
             num_clients=runtime_config['server']['num_clients']
@@ -23,7 +28,8 @@ def generate_data(data_config, model_config, runtime_config, save_file=True):
         print('Invalid dataset name', data_config['dataset'])
         return None
 
-    if not data_config['non-iid']:
+    # TODO(fgh) remove config from params of dataset methods
+    if d_cfg.iid:
         print('Generating IID data')
         clients_data = data.iid_data(sample_size=data_config['sample_size'], save_file=save_file)
     else:
@@ -42,9 +48,10 @@ def generate_data(data_config, model_config, runtime_config, save_file=True):
 #     Client(data_config=c1, model_config=c2, runtime_config=c3,)
 
 
-def run(role, data_config, model_config, runtime_config):
+def run(role: str):
+    ConfigurationManager()  # init configs
     if role == 'client':
-        Client(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
+        Client()
         # from multiprocessing import Pool
         # n_jobs = 20
         # with Pool(processes=n_jobs) as pool:
@@ -56,18 +63,21 @@ def run(role, data_config, model_config, runtime_config):
         # p.close()
         # p.join()
 
-    if role == 'server':
-        # 3 Init the server
-        server = Server(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
+    elif role == 'server':
+        server = Server()
         server.start()
 
+    else:
+        raise NotImplementedError
 
-def generate_docker_compose_server(runtime_config, path):
+
+def generate_docker_compose_server(path):
     project_path = os.path.abspath('./')
+    rt_cfg = ConfigurationManager().runtime_config
 
     server_template = {
-        'image': runtime_config['docker']['image'],
-        'ports': ['{0}:{0}'.format(runtime_config['server']['port'])],
+        'image': rt_cfg.image_label,
+        'ports': ['{0}:{0}'.format(rt_cfg.central_server_port)],
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
@@ -76,14 +86,14 @@ def generate_docker_compose_server(runtime_config, path):
     }
 
     client_template = {
-        'image': runtime_config['docker']['image'],
+        'image': rt_cfg.image_label,
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
         'environment': []
     }
 
-    if runtime_config['docker']['enable_gpu']:
+    if rt_cfg.gpu_enabled:
         client_template['runtime'] = 'nvidia'
 
     with open('docker-compose-server.yml', 'w') as f:
@@ -94,22 +104,19 @@ def generate_docker_compose_server(runtime_config, path):
             'services': {'server': server_template}
         }, f, default_flow_style=False, Dumper=no_alias_dumper)
 
-    machines = runtime_config['machines']
-    machines.pop('server')
-    assert sum([v['capacity'] for _, v in machines.items()]) >= runtime_config['docker']['num_containers']
-
+    client_machines = rt_cfg.client_machines
     # Distribute the containers to different machines
-    machine_capacity_sum = sum(np.array([v['capacity'] for _, v in machines.items()]))
+    machine_capacity_sum = sum([m.capacity for m in client_machines.values()])
+    assert machine_capacity_sum >= rt_cfg.container_num
 
-    remain_clients = runtime_config['server']['num_clients']
+    remain_clients = rt_cfg.client_num
     counter = 0
-    for m_k in machines:
+    for m_name, client_machine in client_machines.items():
         dc = {'services': {}, 'version': '2'}
-        num_container_curr_machine = int(np.ceil(
-            (machines[m_k]['capacity'] / machine_capacity_sum) * runtime_config['docker']['num_containers']
-        ))
-        num_container_curr_machine = min(remain_clients, num_container_curr_machine)
-        for i in range(num_container_curr_machine):
+        num_container_cur_machine = ceil(client_machine.capacity / machine_capacity_sum * rt_cfg.container_num)
+        num_container_cur_machine = min(
+            remain_clients, num_container_cur_machine)
+        for i in range(num_container_cur_machine):
             container_id = counter + i
             tmp = copy.deepcopy(client_template)
             tmp['container_name'] = 'container%s' % container_id
@@ -117,28 +124,27 @@ def generate_docker_compose_server(runtime_config, path):
                              '"export CONTAINER_ID={} ' \
                              '&& tc qdisc add dev eth0 root tbf rate {} latency 10ms burst 60000kb ' \
                              '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
-                container_id, runtime_config['clients']['bandwidth'], path)
-            if runtime_config['docker']['enable_gpu']:
-                tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=%s' % (container_id % runtime_config['docker']['num_gpu']))
-            else:
-                tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=-1')
-            dc['services']['container_%s' % container_id] = tmp
+                container_id, rt_cfg.client_bandwidth, path)
+            nvidia_device_env = (container_id % rt_cfg.gpu_num) if rt_cfg.gpu_enabled else -1
+            tmp['environment'].append(f'NVIDIA_VISIBLE_DEVICES={nvidia_device_env}')
+            dc['services'][f'container_{container_id}'] = tmp
 
-        counter += num_container_curr_machine
-        remain_clients -= num_container_curr_machine
+        counter += num_container_cur_machine
+        remain_clients -= num_container_cur_machine
 
-        with open("docker-compose-%s.yml" % m_k, 'w') as f:
+        with open(f"docker-compose-{m_name}.yml", 'w') as f:
             no_alias_dumper = yaml.dumper.SafeDumper
             no_alias_dumper.ignore_aliases = lambda self, data: True
             yaml.dump(dc, f, default_flow_style=False, Dumper=no_alias_dumper)
 
 
-def generate_docker_compose_local(runtime_config, path):
+def generate_docker_compose_local(path):
     project_path = os.path.abspath('./')
+    rt_cfg = ConfigurationManager().runtime_config
 
     server_template = {
-        'image': runtime_config['docker']['image'],
-        'ports': ['{0}:{0}'.format(runtime_config['server']['port'])],
+        'image': rt_cfg.image_label,
+        'ports': ['{0}:{0}'.format(rt_cfg.central_server_port)],
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
@@ -148,7 +154,7 @@ def generate_docker_compose_local(runtime_config, path):
     }
 
     client_template = {
-        'image': runtime_config['docker']['image'],
+        'image': rt_cfg.image_label,
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
@@ -156,7 +162,7 @@ def generate_docker_compose_local(runtime_config, path):
         'environment': []
     }
 
-    if runtime_config['docker']['enable_gpu']:
+    if rt_cfg.gpu_enabled:
         client_template['runtime'] = 'nvidia'
 
     dc = {
@@ -165,7 +171,7 @@ def generate_docker_compose_local(runtime_config, path):
         'services': {'server': server_template}
     }
 
-    for container_id in range(runtime_config['docker']['num_containers']):
+    for container_id in range(rt_cfg.container_num):
         tmp = copy.deepcopy(client_template)
         tmp['container_name'] = 'container%s' % container_id
         tmp['command'] = 'sh -c ' \
@@ -173,10 +179,10 @@ def generate_docker_compose_local(runtime_config, path):
                          '&& tc qdisc add dev eth0 root tbf rate {1} latency 50ms burst 15kb ' \
                          '&& python3 -W ignore -m FedEval.run -f run -r client -c {2}"'.format(
             container_id,
-            runtime_config['clients']['bandwidth'],
+            rt_cfg.client_bandwidth,
             path)
-        if runtime_config['docker']['enable_gpu']:
-            tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=%s' % (container_id % runtime_config['docker']['num_gpu']))
+        if rt_cfg.gpu_enabled:
+            tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=%s' % (container_id % rt_cfg.gpu_num))
         else:
             tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=-1')
         dc['services']['container_%s' % container_id] = tmp
@@ -199,24 +205,23 @@ if __name__ == '__main__':
 
     args = args_parser.parse_args()
 
-    # 1 Load the configs
-    with open(os.path.join(args.config, '1_data_config.yml'), 'r') as f:
+    # load configs
+    with open(os.path.join(args.config, DEFAULT_D_CFG_FILENAME), 'r') as f:
         data_config = yaml.load(f)
-
-    with open(os.path.join(args.config, '2_model_config.yml'), 'r') as f:
+    with open(os.path.join(args.config, DEFAULT_MDL_CFG_FILENAME), 'r') as f:
         model_config = yaml.load(f)
-
-    with open(os.path.join(args.config, '3_runtime_config.yml'), 'r') as f:
+    with open(os.path.join(args.config, DEFAULT_RT_CFG_FILENAME), 'r') as f:
         runtime_config = yaml.load(f)
+    # init configurations
+    ConfigurationManager(data_config, model_config, runtime_config)
 
     if args.function == 'data':
-        generate_data(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
-
-    if args.function == 'run':
-        run(role=args.role, data_config=data_config, model_config=model_config, runtime_config=runtime_config)
-
-    if args.function == 'compose-local':
-        generate_docker_compose_local(runtime_config, args.config)
-
-    if args.function == 'compose-server':
-        generate_docker_compose_server(runtime_config, args.config)
+        generate_data()
+    elif args.function == 'run':
+        run(args.role)
+    elif args.function == 'compose-local':
+        generate_docker_compose_local(args.config)
+    elif args.function == 'compose-server':
+        generate_docker_compose_server(args.config)
+    else:
+        print("unknown function(--function, -f) arg.")

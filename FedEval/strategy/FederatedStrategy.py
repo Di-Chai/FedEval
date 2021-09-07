@@ -1,8 +1,10 @@
+from FedEval import role
 import random
 from abc import ABCMeta, abstractmethod, abstractproperty
 from typing import Any, List, Mapping, Optional
 
 from ..callbacks import *
+from ..config.configuration import ConfigurationManager
 from ..model import *
 from ..role.container import ContainerId
 from ..role.role import Role
@@ -218,11 +220,11 @@ class FedStrategyInterface(FedStrategyHostInterface, FedStrategyPeerInterface):
 class FedStrategy(FedStrategyInterface):
     """the basic class of federated strategies."""
 
-    def __init__(self, role: Role,
-                 data_config, model_config, runtime_config,
-                 param_parser_class: type = ParamParser, logger=None):
-        self._init_configs(role, data_config, model_config,
-                           runtime_config, param_parser_class)
+    def __init__(self, param_parser_type: type = ParamParser, logger=None):
+        self._param_parser: ParamParserInterface = param_parser_type()
+        if not isinstance(self._param_parser, ParamParserInterface):
+            raise ValueError(f"param_parser_class({type(param_parser_type)})" 
+                             + f"should implement {type(ParamParserInterface)}")
         self._init_states()
         self._config_callback()
         self.logger = logger
@@ -230,33 +232,20 @@ class FedStrategy(FedStrategyInterface):
     def set_logger(self, logger) -> None:
         self.logger = logger
 
-    def _init_configs(self, role: Role, data_config, model_config, runtime_config, param_parser_type: type):
-        self.data_config = data_config
-        self.model_config = model_config
-        self.runtime_config = runtime_config
-        self.role: Role = role
-        self._param_parser: ParamParserInterface = param_parser_type(
-            data_config=self.data_config, model_config=self.model_config,
-            runtime_config=self.runtime_config, role=self.role
-        )
-        if not isinstance(self._param_parser, ParamParserInterface):
-            raise ValueError(f"param_parser_class({type(param_parser_type)})" 
-                             + f"should implement {type(ParamParserInterface)}")
-
     def _init_model(self):
         self.ml_model = self.param_parser.parse_model()
 
     def _init_states(self):
         self.current_round: Optional[int] = None
-
-        if self.role == Role.Server:
+        cfg_mgr = ConfigurationManager()
+        role = cfg_mgr.role
+        if role == Role.Server:
             self.params = None
             self.gradients = None
             # TMP
-            run_config = self.param_parser.parse_run_config()
-            self.num_clients_contacted_per_round = run_config['num_clients_contacted_per_round']
+            self.num_clients_contacted_per_round = cfg_mgr.num_of_clients_contacted_per_round
             self.train_selected_clients = None
-        elif self.role == Role.Client: # only clients parse data
+        elif role == Role.Client: # only clients parse data
             self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(self._client_id)
             self.train_data_size = len(self.train_data['x'])
             self.val_data_size = len(self.val_data['x'])
@@ -267,7 +256,8 @@ class FedStrategy(FedStrategyInterface):
             raise NotImplementedError
 
     def _config_callback(self):
-        # TODO: Add the callback model for implementing attacks
+        # TODO(chaidi): Add the callback model for implementing attacks
+        # TODO(fgh): add 'callback' in configurations
         callback: Optional[CallBack] = self.model_config['FedModel'].get('callback')
         self.callback = eval(callback)() if callback else None
 
@@ -283,7 +273,7 @@ class FedStrategy(FedStrategyInterface):
         self._param_parser = value
 
     def set_client_id(self, client_id) -> None:
-        if self.role != Role.Client:
+        if ConfigurationManager().role != Role.Client:
             raise TypeError(f"This {self.__class__.__name__}'s role is not a {Role.Client.value}.")
         self._client_id = client_id
 
@@ -321,10 +311,11 @@ class FedStrategy(FedStrategyInterface):
             )
             self.ml_model.set_weights(model)
         self.local_params_pre = self.ml_model.get_weights()
+        mdl_cfg = ConfigurationManager().model_config
         train_log = self.ml_model.fit(
             x=self.train_data['x'], y=self.train_data['y'],
-            epochs=self.model_config['FedModel']['E'],
-            batch_size=self.model_config['FedModel']['B']
+            epochs=mdl_cfg.E,
+            batch_size=mdl_cfg.B,
         )
         train_loss = train_log.history['loss'][-1]
         self.local_params_cur = self.ml_model.get_weights()

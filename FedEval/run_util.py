@@ -363,6 +363,14 @@ def run(execution, mode, config, new_config=None, **kwargs):
         print('*' * 40)
 
     data_config, model_config, runtime_config = load_config(config)
+    if 'data_config' in kwargs:
+        data_config = recursive_update_dict(data_config, kwargs['data_config'])
+    if 'model_config' in kwargs:
+        model_config = recursive_update_dict(
+            model_config, kwargs['model_config'])
+    if 'runtime_config' in kwargs:
+        runtime_config = recursive_update_dict(
+            runtime_config, kwargs['runtime_config'])
 
     if execution == 'stop':
         if mode == 'local':
@@ -374,19 +382,12 @@ def run(execution, mode, config, new_config=None, **kwargs):
     if execution == 'upload':
         print('Uploading to the server')
         if len(runtime_config.get('machines', None)) is None:
-            raise ValueError('No machine config found, pleck check', os.path.join(config, '3_runtime_config.yml'))
+            raise ValueError('No machine config found, please check', os.path.join(config, '3_runtime_config.yml'))
         upload_to_server(
             runtime_config['machines'], local_dirs=['FedEval', 'configs'],
             file_type=('.py', '.yml', '.css', '.html', 'eot', 'svg', 'ttf', 'woff')
         )
         exit(0)
-
-    if 'data_config' in kwargs:
-        data_config = recursive_update_dict(data_config, kwargs['data_config'])
-    if 'model_config' in kwargs:
-        model_config = recursive_update_dict(model_config, kwargs['model_config'])
-    if 'runtime_config' in kwargs:
-        runtime_config = recursive_update_dict(runtime_config, kwargs['runtime_config'])
 
     new_config = new_config or config
 
@@ -514,22 +515,6 @@ def run(execution, mode, config, new_config=None, **kwargs):
 
     if mode == 'server':
         server_stop(runtime_config)
-
-
-def local_central_trial(config, output_file=None, **kwargs):
-    from .role import NormalTrain
-    data_config, model_config, runtime_config = load_config(config)
-    if 'data_config' in kwargs:
-        data_config = recursive_update_dict(data_config, kwargs['data_config'])
-    if 'model_config' in kwargs:
-        model_config = recursive_update_dict(model_config, kwargs['model_config'])
-    if 'runtime_config' in kwargs:
-        runtime_config = recursive_update_dict(runtime_config, kwargs['runtime_config'])
-    local_central_train = NormalTrain(
-        data_config=data_config, model_config=model_config, runtime_config=runtime_config
-    )
-    output_file = output_file or 'local_central_trial.csv'
-    local_central_train.run(output_file)
 
 
 if __name__ == '__main__':
