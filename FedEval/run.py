@@ -16,30 +16,19 @@ def generate_data(save_file=True):
     # TODO(fgh) move this function into dataset module
     d_cfg = ConfigurationManager().data_config
     try:
-        # TODO(fgh) remove config from dataset __init__
-        data = eval(d_cfg.dataset_name)(
-            output_dir=d_cfg.dir_name,  # for saving
-            flatten= model_config['MLModel']['name'] == 'MLP',
-            normalize=data_config['normalize'],
-            train_val_test=data_config['train_val_test'],
-            num_clients=runtime_config['server']['num_clients']
-        )
+        data = eval(d_cfg.dataset_name)()
     except ModuleNotFoundError:
         print('Invalid dataset name', data_config['dataset'])
         return None
 
-    # TODO(fgh) remove config from params of dataset methods
     if d_cfg.iid:
         print('Generating IID data')
-        clients_data = data.iid_data(sample_size=data_config['sample_size'], save_file=save_file)
+        clients_data = data.iid_data(save_file=save_file)
     else:
         print('Generating Non-IID data')
+        # TODO&Q (fgh) what does the "shared_data" stands for?
         clients_data = data.non_iid_data(
-            non_iid_class=data_config['non-iid-class'],
-            strategy=data_config['non-iid-strategy'],
-            shared_data=data_config['shared_data'], sample_size=data_config['sample_size'],
-            save_file=save_file
-        )
+            shared_data=data_config['shared_data'], save_file=save_file)
     return clients_data
 
 

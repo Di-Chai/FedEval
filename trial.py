@@ -145,11 +145,11 @@ params = {
 
 for _ in range(repeat):
     if args.tune is None:
-            run(execution=execution, mode=mode, config=config, new_config=config + '_tmp', **params)
+            run(execution=execution, mode=mode, config=config, new_config_dir_path=config + '_tmp', **params)
     else:
         if args.tune == 'lr':
             for lr in tune_params['lr']:
                 params['model_config']['MLModel']['optimizer']['lr'] = lr
-                run(execution=execution, mode=mode, config=config, new_config=config + '_tmp', **params)
+                run(execution=execution, mode=mode, config=config, new_config_dir_path=config + '_tmp', **params)
         else:
             raise ValueError('Unknown tuning params', args.tune)
