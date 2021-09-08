@@ -4,28 +4,29 @@ from .Shakespeare import *
 
 
 # Used by the server, because it cannot reach the raw data
-def get_data_shape(dataset):
-    if dataset == 'celeba':
+# Q(fgh): shouldn't this be returned by the dataset object respectively?
+def get_data_shape(dataset_name: str):
+    if dataset_name == 'celeba':
         x_size = (None, 54, 44, 3)
         y_size = (None, 2)
-    elif dataset == 'femnist':
+    elif dataset_name == 'femnist':
         x_size = (None, 28, 28, 1)
         y_size = (None, 62)
-    elif dataset == 'mnist':
+    elif dataset_name == 'mnist':
         x_size = (None, 28, 28, 1)
         y_size = (None, 10)
-    elif dataset == 'cifar10':
+    elif dataset_name == 'cifar10':
         x_size = (None, 32, 32, 3)
         y_size = (None, 10)
-    elif dataset == 'cifar100':
+    elif dataset_name == 'cifar100':
         x_size = (None, 32, 32, 3)
         y_size = (None, 100)
-    elif dataset == 'shakespeare':
+    elif dataset_name == 'shakespeare':
         x_size = (None, 80)
         y_size = (None, 80)
-    elif dataset == 'semantic140':
+    elif dataset_name == 'semantic140':
         x_size = (None, 25, 200)
         y_size = (None, 1)
     else:
-        raise ValueError('Unknown dataset', dataset)
+        raise ValueError('Unknown dataset', dataset_name)
     return x_size, y_size

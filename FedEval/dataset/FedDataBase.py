@@ -1,7 +1,13 @@
-import os
 import copy
+import os
 import pickle
+
 import numpy as np
+from abc import ABCMeta, abstractmethod
+
+from numpy.core.numeric import identity
+
+from ..config.configuration import ConfigurationManager
 
 
 def split_data(data, ratio_list):
@@ -11,9 +17,10 @@ def split_data(data, ratio_list):
     Args:
         data(ndarray):Data to be split.
         ratio_list(list):Split ratio, the `data` will be split according to the ratio.
-    :return:The elements in the returned list are the divided data, and the
-        dimensions of the list are the same as ratio_list.
-    :type: list
+
+    Returns:
+        list: The elements in the returned list are the divided data, and the 
+            dimensions of the list are the same as ratio_list.
     '''
     if np.sum(ratio_list) != 1:
         ratio_list = np.array(ratio_list)
@@ -31,14 +38,14 @@ def shuffle(X, Y):
     return np.array([e[0] for e in xy], dtype=np.float32), np.array([e[1] for e in xy], dtype=np.float32)
 
 
-class FedData:
+class FedData(metaclass=ABCMeta):
 
-    def __init__(self, num_clients, output_dir,
-                 flatten=False, normalize=False, train_val_test=(0.8, 0.1, 0.1,)):
-
-        self.num_clients = num_clients
-        self.output_dir = output_dir
-        self.train_val_test = train_val_test
+    def __init__(self):
+        cfg_mgr = ConfigurationManager()
+        d_cfg, mdl_cfg, rt_cfg = cfg_mgr.data_config, cfg_mgr.model_config, cfg_mgr.runtime_config
+        self.num_clients = rt_cfg.client_num
+        self.output_dir = d_cfg.dir_name
+        self.train_val_test = d_cfg.data_partition
 
         self.local_path = os.path.dirname(os.path.abspath(__file__))
         self.data_dir = os.path.join(os.path.dirname(self.local_path), 'data')
@@ -47,23 +54,24 @@ class FedData:
 
         self.x, self.y = self.load_data()
 
-        if normalize:
+        if d_cfg.normalized:
             self.x = self.x / np.max(self.x)
 
-        if flatten:
+        if mdl_cfg.ml_method_name == 'MLP':
             self.x = np.reshape(self.x, [-1, np.prod(self.x.shape[1:])])
 
+    @abstractmethod
     def load_data(self):
         raise NotImplementedError('Please implement the load_data function')
 
-    def iid_data(self, sample_size=300, save_file=True):
+    def iid_data(self, save_file=True):
         # Temporally use, to guarantee the test set in iid/non-iid setting are the same
-        if self.identity is not None:
-            local_dataset = self.non_iid_data(non_iid_class=1, strategy='natural', sample_size=sample_size,
-                                              shared_data=0, save_file=False)
-        else:
-            local_dataset = self.non_iid_data(non_iid_class=self.num_class, strategy='average', sample_size=sample_size,
-                                              shared_data=0, save_file=False)
+        sample_size = ConfigurationManager().data_config.sample_size
+        non_iid_class_num = self.num_class if self.identity is None else 1
+        strategy = 'average' if self.identity is None else 'natural'
+        local_dataset = self.non_iid_data(
+            non_iid_class=non_iid_class_num, strategy=strategy, sample_size=sample_size,
+            shared_data=0, save_file=False)
         # Transfer non-iid to iid
         x_train_all = np.concatenate([copy.deepcopy(e['x_train']) for e in local_dataset], axis=0)
         y_train_all = np.concatenate([copy.deepcopy(e['y_train']) for e in local_dataset], axis=0)
@@ -108,7 +116,12 @@ class FedData:
             result.update(additional_test)
             return result
 
-    def non_iid_data(self, non_iid_class=2, strategy='average', sample_size=300, shared_data=0, save_file=True):
+    def non_iid_data(self, shared_data=0, save_file=True):
+        d_cfg = ConfigurationManager().data_config
+        non_iid_class = d_cfg.non_iid_class_num
+        strategy = d_cfg.non_iid_strategy_name
+        # TODO(fgh) shared_data = d_cfg.xxx
+        sample_size = d_cfg.sample_size 
 
         local_dataset = []
 
