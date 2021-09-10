@@ -172,14 +172,19 @@ _DEFAULT_RT_CFG: RawConfigurationDict = {
 
 # --- Configuration Entities ---
 class _Configuraiton(object):
-    def __init__(self) -> None:
-        super().__init__()
-
     def __init__(self, config: RawConfigurationDict) -> None:
         self._inner: RawConfigurationDict = config
 
     @property
     def inner(self) -> RawConfigurationDict:
+        """return a deep copy of its inner configuraiton data, presented as a dict.
+        Noticed that modifications on the returned object will NOT affect the original
+        configuration.
+
+        Returns:
+            RawConfigurationDict: a deep copy of the inner data representaiton
+            of this config object.
+        """
         return deepcopy(self._inner)
 
 
@@ -214,18 +219,42 @@ class _DataConfig(_Configuraiton):
 
     @property
     def dir_name(self) -> str:
+        """The output directory of the clients' data.
+
+        Returns:
+            str: the name of the data directory.
+        """
         return self._inner[_D_DIR_KEY]
 
     @property
     def dataset_name(self) -> str:
+        """the name of the dataset, chosen from mnist, cifar10, cifar100, femnist, and mnist.
+
+        Returns:
+            str: the name of chosen dataset.
+        """
         return self._inner[_D_NAME_KEY]
 
     @property
     def iid(self) -> bool:
+        """if the dataset would be used in an i.i.d. manner.
+
+        Returns:
+            bool: True if the dataset is sampled in an i.i.d. manner; otherwise, False.
+        """
         return not self._non_iid
 
     @property
     def non_iid_class_num(self) -> int:
+        """return the number of classes hold by each client.
+        Only avaliable when the dataset is sampled in a non-i.i.d. form.
+
+        Raises:
+            AttributeError: raised when called without non-i.i.d. setting.
+
+        Returns:
+            int: the number of classes hold by each client.
+        """
         if self._non_iid:
             return self._non_iid_class_num
         else:
@@ -233,21 +262,62 @@ class _DataConfig(_Configuraiton):
 
     @property
     def non_iid_strategy_name(self) -> str:
+        """return the name of non-i.i.d. data partition strategy.
+        Two choices are given:
+        1. "natural" strategy for femnist and celebA dataset
+        2. "average" for mnist, cifar10 and cifar100
+
+        Raises:
+            AttributeError: raised when called without non-i.i.d. setting.
+
+        Returns:
+            str: the name of non-i.i.d. data partition strategy.
+        """
         if self._non_iid:
+            if self._non_iid_strategy_name_check():
+                raise AttributeError(f'unregistered non-iid data partition srategy name: {self._non_iid_strategy_name}')
             return self._non_iid_strategy_name
         else:
             raise AttributeError(_DataConfig._IID_EXCEPTiON_CONTENT)
 
+    def _non_iid_strategy_name_check(self) -> bool:
+        """check if the non-i.i.d. data partition strategy is known.
+
+        Returns:
+            bool: True if the data partition strategy name is registered as followed.
+        """
+        return self._non_iid_strategy_name in ['natural', 'average']
+
     @property
     def normalized(self) -> bool:
+        """whether the image pixel data point will be normalized to [0, 1].
+
+        Returns:
+            bool: True if data points would be normalized.
+        """
         return self._inner[_D_NORMALIZE_KEY]
 
     @property
     def sample_size(self) -> int:
+        """return the number of samples owned by each client.
+
+        Returns:
+            int: the number of samples onwed by each client.
+        """
         return self._inner[_D_SAMPLE_SIZE_KEY]
 
     @property
     def data_partition(self) -> Sequence[float]:
+        """get the data partition proportion, ordered as
+        [train data ratio, test data ration, validation data ration].
+        
+        Constraints met by the return value:
+            1. all the ratios in the returned list sum up to 1.
+            2. all the ratios in the returned list are non-negative.
+
+        Returns:
+            Sequence[float]: [train data ratio, test data ration, validation data ration]
+        """
         return self._partition
 
 
