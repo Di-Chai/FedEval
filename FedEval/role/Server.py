@@ -36,22 +36,22 @@ class Server(FlaskNode):
         super()._init_logger('Server', 'Server')
         cfg_mgr = ConfigurationManager()
         _run_config = {
-            'num_clients': cfg_mgr.client_num,
-            'max_num_rounds': cfg_mgr.max_iteration_round_num,
-            'num_tolerance': cfg_mgr.tolerance_num,
+            'num_clients': cfg_mgr.runtime_config.client_num,
+            'max_num_rounds': cfg_mgr.model_config.max_round_num,
+            'num_tolerance': cfg_mgr.model_config.tolerance_num,
             'num_clients_contacted_per_round': cfg_mgr.num_of_clients_contacted_per_round,
-            'rounds_between_val': cfg_mgr.num_of_rounds_between_val,
+            'rounds_between_val': cfg_mgr.model_config.num_of_rounds_between_val,
         }
         self.logger.info(_run_config)
         self.logger.info(self.get_model_description())
 
     def _bind_run_configs(self):
         cfg_mgr = ConfigurationManager()
-        self._num_clients = cfg_mgr.client_num
-        self._max_num_rounds = cfg_mgr.max_iteration_round_num
-        self._num_tolerance = cfg_mgr.tolerance_num
+        self._num_clients = cfg_mgr.runtime_config.client_num
+        self._max_num_rounds = cfg_mgr.model_config.max_round_num
+        self._num_tolerance = cfg_mgr.model_config.tolerance_num
         self._num_clients_contacted_per_round = cfg_mgr.num_of_clients_contacted_per_round
-        self._rounds_between_val = cfg_mgr.num_of_rounds_between_val
+        self._rounds_between_val = cfg_mgr.model_config.num_of_rounds_between_val
 
     def _init_metric_states(self):
         # weights should be an ordered list of parameter

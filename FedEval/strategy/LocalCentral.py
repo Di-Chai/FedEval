@@ -64,7 +64,8 @@ class LocalCentral(FedAvg):
             validation_data=(self.val_data['x'], self.val_data['y']),
             callbacks=[
                 tf.keras.callbacks.EarlyStopping(
-                    monitor='val_loss', patience=ConfigurationManager().tolerance_num,
+                    monitor='val_loss',
+                    patience=ConfigurationManager().model_config.tolerance_num,
                     restore_best_weights=True
                 )]
         )

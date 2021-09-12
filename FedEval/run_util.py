@@ -175,7 +175,7 @@ def server_stop():
         port = machine.port
         user_name = machine.username
         remote_path = machine.work_dir_path
-        key_file = machine.key
+        key_file = machine.key_filename
 
         ssh.connect(hostname=host, port=port, username=user_name, key_filename=key_file)
 
@@ -263,7 +263,7 @@ def upload_to_server(local_dirs, file_type=('.py', '.yml', '.css', '.html', 'eot
         port = machine.port
         user_name = machine.username
         remote_path = machine.work_dir_path
-        key_file = machine.key
+        key_file = machine.key_filename
 
         if f"{host}:{port}" in host_record:
             continue
@@ -298,7 +298,7 @@ def download_from_server(remote_dirs, file_type):
     port = server.port
     user_name = server.username
     remote_path = server.work_dir_path
-    key_file = server.key
+    key_file = server.key_filename
 
     private_key = paramiko.RSAKey.from_private_key_file(key_file)
     trans = paramiko.Transport((host, port))
@@ -428,7 +428,7 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
             user_name = machine.username
             remote_path = machine.work_dir_path
 
-            key_file = machine.key
+            key_file = machine.key_filename
             ssh.connect(hostname=host, port=port, username=user_name, key_filename=key_file)
 
             if not machine.is_server:

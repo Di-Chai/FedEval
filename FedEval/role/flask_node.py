@@ -79,7 +79,7 @@ class FlaskNode(Node):
             current_path = os.path.dirname(os.path.abspath(__file__))
             self._app = Flask(__name__, template_folder=os.path.join(current_path, 'templates'),
                             static_folder=os.path.join(current_path, 'static'))
-            self._app.config['SECRET_KEY'] = cfg_mgr.secret_key
+            self._app.config['SECRET_KEY'] = cfg_mgr.runtime_config.secret_key
             self._socketio = SocketIO(self._app, max_http_buffer_size=10 ** 20, async_handlers=True,
                                      ping_timeout=3600, ping_interval=1800, cors_allowed_origins='*')
 

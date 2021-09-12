@@ -23,7 +23,8 @@ class FetchSGD(FedAvg):
         self.param_shapes = [e.shape for e in self.ml_model.get_weights()]
         self.sketch_dim = np.sum([np.prod(e) for e in self.param_shapes])
         # TODO & Q(fgh) there's no top_k in configuraitons
-        self.unSketch_k = int(self.sketch_dim * self.model_config['FedModel']['top_k'])
+        mdl_cfg = ConfigurationManager().model_config
+        self.unSketch_k = int(self.sketch_dim * mdl_cfg.top_k)
 
         self.momentum = self.init_sketch()
         self.error = self.init_sketch()
@@ -33,16 +34,12 @@ class FetchSGD(FedAvg):
 
     def init_sketch(self):
         mdl_cfg = ConfigurationManager().model_config
-        # TODO(fgh) add num_col & num_row in configuraitons
-        return CSVec(
-            d=self.sketch_dim, c=self.model_config['FedModel']['num_col'],
-            r=self.model_config['FedModel']['num_row'], numBlocks=self.model_config['FedModel']['num_block'],
-        )
+        return CSVec(d=self.sketch_dim, c=mdl_cfg.col_num, r=mdl_cfg.row_num, numBlocks=mdl_cfg.block_num)
 
     def retrieve_local_upload_info(self):
         # Client use SGD optimizer
-        gradients = [(self.local_params_pre[i] - self.local_params_cur[i]) / self.model_config['MLModel']['lr']
-                     for i in range(len(self.local_params_pre))]
+        gradients = [(self.local_params_pre[i] - self.local_params_cur[i]) / ConfigurationManager(
+            ).model_config.learning_rate for i in range(len(self.local_params_pre))]
         client_sketch = self.init_sketch()
         client_sketch.accumulateVec(torch.from_numpy(np.concatenate([e.reshape([-1, ]) for e in gradients])))
         return client_sketch.table.numpy()

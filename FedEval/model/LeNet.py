@@ -1,13 +1,16 @@
 import tensorflow as tf
 
+from ..config.configuration import ConfigurationManager
+
 
 class LeNet(tf.keras.Model):
 
-    def __init__(self, target_shape, activation, **kwargs):
+    def __init__(self, target_shape, **kwargs):
         super().__init__()
 
         output_raw = kwargs.get('output_raw', False)
         self.pooling = kwargs.get('use_pooling', 'max')
+        activation = kwargs.get('activation', ConfigurationManager().model_config.activation)
 
         num_classes = target_shape[-1]
         self.conv1 = tf.keras.layers.Conv2D(6, kernel_size=(5, 5), activation=activation)
