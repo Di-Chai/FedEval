@@ -1,28 +1,29 @@
 FROM tensorflow/tensorflow:latest-devel-gpu
 
-# Install python
-RUN apt update && apt install -y python3 python3-pip iproute2 net-tools wget vim nload iftop unzip --fix-missing
-
-# build the tf-wrapper and FedEval
-RUN ln -s /usr/bin/python3 /usr/bin/python
-RUN ln -s /usr/bin/pip3 /usr/bin/pip
-
-RUN pip install --upgrade pip
+# Install python & tools
+RUN apt update && \
+    apt install -y python3.8 python3-pip --fix-missing && \
+    apt install -y iproute2 net-tools wget nload iftop unzip --fix-missing
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2 && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    ln -s /usr/bin/pip3 /usr/bin/pip
 
 # Install python requirements (using douban image)
 COPY requirements.txt /root/requirements.txt
-RUN pip install -r /root/requirements.txt --no-cache-dir
+RUN python -m pip install --upgrade pip && \
+    pip install -r /root/requirements.txt --no-cache-dir
 
 # Place the dataset in the docker image
-RUN mkdir -p /root/.keras
-RUN mkdir -p /root/.keras/datasets
+RUN mkdir -p /root/.keras && \
+    mkdir -p /root/.keras/datasets
 WORKDIR /root/.keras/datasets
-RUN wget "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz"
-RUN wget 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
-RUN wget 'https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz'
-RUN mv cifar-10-python.tar.gz cifar-10-batches-py.tar.gz
-RUN tar -zxvf cifar-10-batches-py.tar.gz
-RUN tar -zxvf cifar-100-python.tar.gz
+RUN wget "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz" && \
+    wget 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz' && \
+    wget 'https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz' && \
+    mv cifar-10-python.tar.gz cifar-10-batches-py.tar.gz && \
+    tar -zxvf cifar-10-batches-py.tar.gz && \
+    tar -zxvf cifar-100-python.tar.gz
 
 # Place the pre-train model in the docker image
 RUN mkdir -p /root/.keras/models

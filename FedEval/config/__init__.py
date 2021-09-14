@@ -6,3 +6,4 @@ from .configuration import (DEFAULT_D_CFG_FILENAME, DEFAULT_MDL_CFG_FILENAME,
                             RawConfigurationDict,
                             ServerConfigurationManagerInterface)
 from .service_interface import ServerFlaskInterface
+from .role import Role

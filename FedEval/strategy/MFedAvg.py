@@ -1,8 +1,7 @@
 import numpy as np
 
-from ..config.configuration import ConfigurationManager
+from ..config import ConfigurationManager, Role
 from ..model import *
-from ..role import Role
 from .FedAvg import FedAvg
 from .utils import *
 

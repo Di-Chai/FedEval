@@ -1,6 +1,6 @@
 import json
 import os
-from abc import ABCMeta, abstractmethod, abstractproperty, abstractstaticmethod
+from abc import abstractmethod, abstractproperty, ABC
 from copy import deepcopy
 from enum import Enum
 from threading import Lock
@@ -10,7 +10,7 @@ import yaml
 
 from .filename_checker import check_filename
 from .singleton import Singleton
-from ..role.role import Role
+from .role import Role
 
 RawConfigurationDict = Mapping[str, Optional[Union[str, int]]]
 
@@ -747,7 +747,7 @@ class _RuntimeConfig(_Configuraiton):
 
 
 # --- Configuration Manager Interfaces ---
-class ConfigurationManagerInterface(metaclass=ABCMeta):
+class ConfigurationManagerInterface(ABC):
     @abstractproperty
     def data_config_filename(self) -> str:
         raise NotImplementedError
@@ -772,56 +772,17 @@ class ConfigurationManagerInterface(metaclass=ABCMeta):
     def runtime_config(self) -> RawConfigurationDict:
         raise NotImplementedError
 
-    @abstractproperty
-    def fed_model_typename(self) -> str:
-        raise NotImplementedError
 
-    @abstractproperty
-    def log_dir_path(self) -> str:
-        raise NotImplementedError
-
-    @abstractproperty
-    def max_iteration_round_num(self) -> int:
-        raise NotImplementedError
-
-    @abstractproperty
-    def tolerance_num(self) -> int:
-        raise NotImplementedError
-
-
-class ClientConfigurationManagerInterface(metaclass=ABCMeta):
+class ClientConfigurationManagerInterface(ABC):
     """an interface of ConfigurationManager from the client side,
     regulating the essential functions as clients.
 
     Raises:
         NotImplementedError: called without implementation.
     """
-    @abstractproperty
-    def container_num(self) -> int:
-        """the number of containers.
+    pass
 
-        Raises:
-            NotImplementedError: called whithout implementation.
-
-        Returns:
-            int: the number of containers
-        """
-        raise NotImplementedError
-
-    @abstractproperty
-    def client_num(self) -> int:
-        """the number of total clients.
-
-        Raises:
-            NotImplementedError: called without implementation.
-
-        Returns:
-            int: the number of total clients.
-        """
-        raise NotImplementedError
-
-
-class ServerConfigurationManagerInterface(metaclass=ABCMeta):
+class ServerConfigurationManagerInterface(ABC):
     """an interface of ConfigurationManager from the central server side,
     regulating the essential functions as clients.
 
@@ -829,19 +790,7 @@ class ServerConfigurationManagerInterface(metaclass=ABCMeta):
         NotImplementedError: called without implementation.
     """
     @abstractproperty
-    def secret_key(self) -> str:
-        raise NotImplementedError
-
-    @abstractproperty
     def num_of_clients_contacted_per_round(self) -> int:
-        raise NotImplementedError
-
-    @abstractproperty
-    def num_of_rounds_between_val(self) -> int:
-        raise NotImplementedError
-
-    @abstractproperty
-    def metric_names(self) -> Sequence[str]:
         raise NotImplementedError
 
 
@@ -849,11 +798,12 @@ class ServerConfigurationManagerInterface(metaclass=ABCMeta):
 _DEFAULT_ENCODING = 'utf-8'
 _Stream = Union[str, bytes, TextIO]
 
-class _CfgYamlInterface(metaclass=ABCMeta):
+class _CfgYamlInterface(ABC):
     """an interface that regulates the methods used to serialize
     and deserialize configuraitons in YAML.
     """
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def from_yamls(data_cfg_stream: _Stream,
                    model_cfg_stream: _Stream,
                    runtime_cfg_stream: _Stream) -> ConfigurationManagerInterface:
@@ -916,11 +866,12 @@ class _CfgYamlInterface(metaclass=ABCMeta):
             yaml.dump(runtime_cfg, f)
 
 
-class _CfgJsonInterface(metaclass=ABCMeta):
+class _CfgJsonInterface(ABC):
     """an interface that regulates the methods used to serialize
     and deserialize configuraitons in JSON.
     """
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def from_jsons(data_cfg_stream: _Stream,
                    model_cfg_stream: _Stream,
                    runtime_cfg_stream: _Stream) -> ConfigurationManagerInterface:
@@ -977,11 +928,12 @@ class _CfgSerializer(Enum):
     JSON = 'json'
 
 
-class _CfgFileInterface(metaclass=ABCMeta):
+class _CfgFileInterface(ABC):
     """an interface that regulates the methods used to serialize
     and deserialize configuraitons from the file system.
     """
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def from_files(data_cfg_path: str,
                    model_cfg_path: str,
                    runtime_cfg_path: str,
@@ -1008,7 +960,7 @@ class _CfgFileInterface(metaclass=ABCMeta):
         return serializer
 
 # --- Role-related Configuration Interface --- 
-class _RoledConfigurationInterface(metaclass=ABCMeta):
+class _RoledConfigurationInterface(ABC):
     @abstractproperty
     def role(self) -> Role:
         raise NotImplementedError

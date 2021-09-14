@@ -9,14 +9,12 @@ from typing import Any, Dict, List, Mapping, Optional
 import numpy as np
 from flask import render_template, request, send_file
 
-from ..config.service_interface import ServerFlaskInterface
-from ..config.configuration import ConfigurationManager
+from ..config import ConfigurationManager, ServerFlaskInterface, Role
 from ..utils import obj_to_pickle_string, pickle_string_to_obj
 from .container import ContainerId
 from .flask_node import ClientSocketIOEvent, FlaskNode, Sid
 from .model_weights_io import (server_best_weight_filename,
                                weights_filename_pattern)
-from .role import Role
 
 
 class Server(FlaskNode):

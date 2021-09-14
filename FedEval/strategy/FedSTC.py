@@ -3,8 +3,7 @@ gc.set_threshold(700, 10, 5)
 import numpy as np
 from scipy.sparse import lil_matrix
 
-from ..config.configuration import ConfigurationManager
-from ..role import Role
+from ..config import ConfigurationManager, Role
 from .FedAvg import FedAvg
 from .utils import aggregate_weighted_average
 

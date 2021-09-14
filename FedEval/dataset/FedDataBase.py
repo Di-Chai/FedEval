@@ -1,16 +1,15 @@
 import copy
 import os
 import pickle
+from abc import ABCMeta, abstractmethod
+from typing import List, Mapping
 
 import numpy as np
-from abc import ABCMeta, abstractmethod
-
-from numpy.core.numeric import identity
 
 from ..config.configuration import ConfigurationManager
 
 
-def split_data(data, ratio_list):
+def split_data(data, ratio_list) -> List[np.ndarray]:
     '''
     Divide the data based on the given parameter ratio_list.
 
@@ -66,12 +65,7 @@ class FedData(metaclass=ABCMeta):
 
     def iid_data(self, save_file=True):
         # Temporally use, to guarantee the test set in iid/non-iid setting are the same
-        sample_size = ConfigurationManager().data_config.sample_size
-        non_iid_class_num = self.num_class if self.identity is None else 1
-        strategy = 'average' if self.identity is None else 'natural'
-        local_dataset = self.non_iid_data(
-            non_iid_class=non_iid_class_num, strategy=strategy, sample_size=sample_size,
-            shared_data=0, save_file=False)
+        local_dataset = self.non_iid_data(shared_data=0, save_file=False, called_in_iid=True)
         # Transfer non-iid to iid
         x_train_all = np.concatenate([copy.deepcopy(e['x_train']) for e in local_dataset], axis=0)
         y_train_all = np.concatenate([copy.deepcopy(e['y_train']) for e in local_dataset], axis=0)
@@ -84,15 +78,18 @@ class FedData(metaclass=ABCMeta):
             local_dataset[i]['y_train'] = y_train_all[i * train_size: (i + 1) * train_size]
 
         if save_file:
-            if self.output_dir is not None:
-                os.makedirs(self.output_dir, exist_ok=True)
-            for i in range(len(local_dataset)):
-                with open(os.path.join(self.output_dir, 'client_%s.pkl' % i), 'wb') as f:
-                    pickle.dump(local_dataset[i], f)
+            self._save_dataset_files(local_dataset)
 
         return local_dataset
 
-    def generate_local_data(self, local_x, local_y, additional_test=None):
+    def _save_dataset_files(self, dataset: List[Mapping[str, List[np.ndarray]]]) -> None:
+        if self.output_dir is not None:
+            os.makedirs(self.output_dir, exist_ok=True)
+        for i in range(len(dataset)):
+            with open(os.path.join(self.output_dir, f'client_{i}.pkl'), 'wb') as f:
+                pickle.dump(dataset[i], f)
+
+    def generate_local_data(self, local_x, local_y, additional_test=None) -> Mapping[str, List[np.ndarray]]:
         if additional_test is None:
             local_train_x, local_val_x, local_test_x = split_data(local_x, self.train_val_test)
             local_train_y, local_val_y, local_test_y = split_data(local_y, self.train_val_test)
@@ -116,10 +113,15 @@ class FedData(metaclass=ABCMeta):
             result.update(additional_test)
             return result
 
-    def non_iid_data(self, shared_data=0, save_file=True):
+    def non_iid_data(self, shared_data=0, save_file=True, called_in_iid=False) -> List[Mapping[str, List[np.ndarray]]]:
         d_cfg = ConfigurationManager().data_config
-        non_iid_class = d_cfg.non_iid_class_num
-        strategy = d_cfg.non_iid_strategy_name
+        if called_in_iid:
+            non_iid_class_num = self.num_class if self.identity is None else 1
+            strategy = 'average' if self.identity is None else 'natural'
+        else:
+            non_iid_class_num = d_cfg.non_iid_class_num
+            strategy = d_cfg.non_iid_strategy_name
+
         # TODO(fgh) shared_data = d_cfg.xxx
         sample_size = d_cfg.sample_size 
 
@@ -160,11 +162,10 @@ class FedData(metaclass=ABCMeta):
             class_pointer = np.array([int(np.sum(num_of_each_class[0:i])) for i in range(self.num_class)])
 
             # manual set test set
-            non_iid_class = int(non_iid_class)
-            class_size = int(train_size / non_iid_class)
+            class_size = int(train_size / non_iid_class_num)
 
             for i in range(self.num_clients):
-                choose_class = np.random.choice(range(self.num_class), non_iid_class, replace=False)
+                choose_class = np.random.choice(range(self.num_class), non_iid_class_num, replace=False)
                 if strategy == 'average':
                     local_class_size_mask = np.zeros([self.num_class], dtype=int)
                     local_class_size_mask[choose_class] = 1
@@ -208,10 +209,6 @@ class FedData(metaclass=ABCMeta):
                 local_dataset[i]['y_train'] = np.concatenate((local_dataset[i]['y_train'], shared_train_y), axis=0)
 
         if save_file:
-            if self.output_dir is not None:
-                os.makedirs(self.output_dir, exist_ok=True)
-            for i in range(len(local_dataset)):
-                with open(os.path.join(self.output_dir, 'client_%s.pkl' % i), 'wb') as f:
-                    pickle.dump(local_dataset[i], f)
+            self._save_dataset_files(local_dataset)
 
         return local_dataset

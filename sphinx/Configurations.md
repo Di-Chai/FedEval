@@ -23,7 +23,7 @@ train_val_test:
 |     dataset      | Dataset name, mnist / cifar10 / cifar100 / femnist / mnist   |
 |     non-iid      | Bool. |
 |non-iid-class|The number of image classes hold by each client when non-iid is True|
-| non-iid-strategy | "natural" strategy for femnist and celebA dataset<br />"average" for mnist, cifar10 and cifar100 |
+| non-iid-strategy | "natural" strategy for femnist and celebA dataset<br />"average" for mnist, cifar10 and cifar100<br /> "gaussian" TODO |
 |    normalize     | Bool. If true, normalize the image to 0~1                    |
 |   sample_size    | Number of Images hold by each client                        |
 |   shared_data    | If shared_data > 0, the system will choose the corresponding number of image from each client to build shard dataset for all the participants |

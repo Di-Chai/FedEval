@@ -5,8 +5,7 @@ import pickle
 import numpy as np
 import tensorflow as tf
 
-from ..config.configuration import ConfigurationManager
-from ..role import Role
+from ..config import ConfigurationManager, Role
 from .FedAvg import FedAvg
 
 

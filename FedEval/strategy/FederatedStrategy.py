@@ -1,13 +1,11 @@
-from FedEval import role
 import random
 from abc import ABCMeta, abstractmethod, abstractproperty
 from typing import Any, List, Mapping, Optional
 
 from ..callbacks import *
-from ..config.configuration import ConfigurationManager
+from ..config import ConfigurationManager, Role
 from ..model import *
 from ..role.container import ContainerId
-from ..role.role import Role
 from ..utils import ParamParser, ParamParserInterface
 from .utils import aggregate_weighted_average
 

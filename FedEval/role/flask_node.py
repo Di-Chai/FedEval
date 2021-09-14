@@ -11,10 +11,9 @@ from FedEval.config.service_interface import ServerFlaskInterface
 from flask import Flask
 from flask_socketio import SocketIO, emit
 
-from ..config.configuration import ConfigurationManager
+from ..config import ConfigurationManager, Role
 from .model_weights_io import ModelWeightsFlaskHandler, ModelWeightsIoInterface
 from .node import Node
-from .role import Role
 
 Sid = Any           # from SocketIO
 

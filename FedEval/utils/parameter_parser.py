@@ -1,6 +1,6 @@
 import os
 import pickle
-from abc import ABCMeta, abstractstaticmethod
+from abc import ABCMeta, abstractmethod
 from typing import Any, Mapping, Tuple
 
 import numpy as np
@@ -20,7 +20,8 @@ class ParamParserInterface(metaclass=ABCMeta):
         NotImplementedError: raised when methods in this class was not implemented.
     """
 
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def parse_model() -> tf.keras.Model:
         """construct a tensorflow model according to the model configuration.
 
@@ -32,7 +33,8 @@ class ParamParserInterface(metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def parse_data(client_id) -> Tuple[XYData, XYData, XYData]:
         """load data for train/test/validation purpose according to the data configuration.
 

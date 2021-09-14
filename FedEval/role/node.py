@@ -1,8 +1,7 @@
 from abc import ABCMeta
 
-from ..config.configuration import ConfigurationManager
+from ..config import ConfigurationManager, Role
 from ..strategy import *
-from .role import Role
 
 
 class Node(metaclass=ABCMeta):

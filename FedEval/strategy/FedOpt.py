@@ -1,7 +1,6 @@
 import numpy as np
 
-from ..config.configuration import ConfigurationManager
-from ..role import Role
+from ..config import ConfigurationManager, Role
 from .FedAvg import FedAvg
 from .utils import aggregate_weighted_average
 

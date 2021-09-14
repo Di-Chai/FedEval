@@ -19,6 +19,6 @@ class Singleton(object):
         if not cls._already_got_one():
             with Singleton._instance_lock:
                 if not cls._already_got_one():
-                    _instance = super().__new__(cls, *args, **kwargs)
+                    _instance = super().__new__(cls)
                     Singleton._instance_dict[cls] = _instance
         return Singleton._instance_dict[cls]
