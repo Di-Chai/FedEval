@@ -23,11 +23,11 @@ class Server(FlaskNode):
     def __init__(self):
         ConfigurationManager().role = Role.Server
         super().__init__('server')
+        self._init_logger()
         self._init_states()
         self._register_handles()
         self._register_services()
 
-        self._init_logger()
         self.save_weight(weights_filename_pattern)   # save the init weights
 
     def _init_logger(self):

@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from .configuration import (_D_PARTITION_KEY, _DEFAULT_D_CFG, _DEFAULT_MDL_CFG,
                             _DEFAULT_RT_CFG, ConfigurationManager, _DataConfig)
+from .role import Role
 
 
 class ConfigurationManagerTestCase(TestCase):
@@ -34,6 +35,11 @@ class ConfigurationManagerTestCase(TestCase):
             with self.assertRaisesRegex(ValueError, 'sep'):
                 self.cfg_mgr.data_config_filename = invalid_name
         self.cfg_mgr.data_config_filename = 'data_config.yml'
+
+    def test_role_setting(self):
+        ano_mgr = ConfigurationManager()
+        ano_mgr.role = Role.Server
+        self.assertEqual(self.cfg_mgr.role, Role.Server)
 
 
 class DataConfigPartitionTestCase(TestCase):

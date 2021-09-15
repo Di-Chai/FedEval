@@ -3,9 +3,8 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from typing import Any, List, Mapping, Optional
 
 from ..callbacks import *
-from ..config import ConfigurationManager, Role
+from ..config import ClientId, ConfigurationManager, Role
 from ..model import *
-from ..role.container import ContainerId
 from ..utils import ParamParser, ParamParserInterface
 from .utils import aggregate_weighted_average
 
@@ -54,7 +53,7 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def host_select_train_clients(self, ready_clients: List[ContainerId]) -> List[ContainerId]:
+    def host_select_train_clients(self, ready_clients: List[ClientId]) -> List[ClientId]:
         """select clients from the given ones for training purpose.
 
         Args:
@@ -69,7 +68,7 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def host_select_evaluate_clients(self, ready_clients: List[ContainerId]) -> List[ContainerId]:
+    def host_select_evaluate_clients(self, ready_clients: List[ClientId]) -> List[ClientId]:
         """select clients from the given ones for evaluation purpose.
 
         Args:
@@ -224,6 +223,7 @@ class FedStrategy(FedStrategyInterface):
             raise ValueError(f"param_parser_class({type(param_parser_type)})" 
                              + f"should implement {type(ParamParserInterface)}")
         self._init_states()
+        self._init_model()
         self._config_callback()
         self.logger = logger
 
@@ -256,7 +256,8 @@ class FedStrategy(FedStrategyInterface):
     def _config_callback(self):
         # TODO(chaidi): Add the callback model for implementing attacks
         # TODO(fgh): add 'callback' in configurations
-        callback: Optional[CallBack] = self.model_config['FedModel'].get('callback')
+        strategy = ConfigurationManager().model_config.strategy_config
+        callback: Optional[CallBack] = strategy.get('callback')
         self.callback = eval(callback)() if callback else None
 
     def _has_callback(self) -> bool:
@@ -289,11 +290,11 @@ class FedStrategy(FedStrategyInterface):
         if self._has_callback():
             self.callback.on_host_exit()
 
-    def host_select_train_clients(self, ready_clients: List[ContainerId]) -> List[ContainerId]:
+    def host_select_train_clients(self, ready_clients: List[ClientId]) -> List[ClientId]:
         self.train_selected_clients = random.sample(list(ready_clients), self.num_clients_contacted_per_round)
         return self.train_selected_clients
 
-    def host_select_evaluate_clients(self, ready_clients: List[ContainerId]) -> List[ContainerId]:
+    def host_select_evaluate_clients(self, ready_clients: List[ClientId]) -> List[ClientId]:
         return [e for e in self.train_selected_clients if e in ready_clients]
 
     def set_host_params_to_local(self, host_params: ModelWeights, current_round: int):

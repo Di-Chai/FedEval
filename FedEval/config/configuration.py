@@ -1135,7 +1135,7 @@ class ConfigurationManager(Singleton,
             raise NotImplementedError
 
     def __init_role(self) -> None:
-        self._role_set = False  # whether the role of this entity has been set.
+        self._role: Optional[Role] = None
 
     @property
     def role(self) -> Role:
@@ -1147,12 +1147,12 @@ class ConfigurationManager(Singleton,
         Returns:
             Role: the role of this runtime entity.
         """
-        if not self._role_set:
+        if self._role is None:
             raise AttributeError('the role of this node has not been set yet.')
         return self._role
 
     @role.setter
-    def role(self, role: Role) -> None:
+    def role(self, role: Role):
         """set the role of this runtime entity.
         This method should be called only once.
         It is recommoned to be set as soon as the role of this runtime could be known.
@@ -1163,7 +1163,6 @@ class ConfigurationManager(Singleton,
         Raises:
             AttributeError: called more than once.
         """
-        if self._role_set:
+        if self._role is not None:
             raise AttributeError('the role of a node can only be set once.')
         self._role = role
-        self._role_set = True

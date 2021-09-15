@@ -2,12 +2,11 @@ import os
 from contextlib import contextmanager
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
-from ..config import ConfigurationManager
+from ..config import ClientId, ConfigurationManager
 from ..strategy import *  # for strategy construction
 from ..utils.utils import obj_to_pickle_string, pickle_string_to_obj
 
 ContainerId = int   # to identify container
-ClientId = int      # to identify client
 
 class ClientContext:
     def __init__(self, id: ClientId, fed_strategy: type, temp_dir_path: str) -> None:
@@ -49,7 +48,7 @@ class ClientContext:
         return self._id
 
     @property
-    def strategy(self) -> FedStrategyPeerInterface:
+    def strategy(self) -> FedStrategyInterface:
         assert self._strategy is not None
         return self._strategy
 

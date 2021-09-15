@@ -35,3 +35,4 @@ class SingletonTestCase(TestCase):
         singleton = Singleton()
         self.assertIs(singleton, self.singleton)
         self.assertEqual(singleton, self.singleton)
+        self.assertEqual(id(singleton), id(self.singleton))
