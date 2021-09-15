@@ -9,7 +9,8 @@ from typing import Any, Callable, Tuple
 import psutil
 from FedEval.config.service_interface import ServerFlaskInterface
 from flask import Flask
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO as ServerSocketIO, emit
+from socketIO_client import SocketIO as ClientSocketIO
 
 from ..config import ConfigurationManager, Role
 from .model_weights_io import ModelWeightsFlaskHandler, ModelWeightsIoInterface
@@ -66,10 +67,10 @@ class FlaskNode(Node):
             raise NotImplementedError
 
         if role == Role.Client:
-            weights_download_url = f'http://{self._host}:{self._port}{ServerFlaskInterface.DownloadPattern}'
+            weights_download_url = f'http://{self._host}:{self._port}{ServerFlaskInterface.DownloadPattern.value}'
             self._model_weights_io_handler: ModelWeightsIoInterface = ModelWeightsFlaskHandler(
                 weights_download_url)
-            self._sio = SocketIO(self._host, self._port)
+            self._sio = ClientSocketIO(self._host, self._port)
 
             self.on = FlaskNode._con(self._sio.on) # client-side handler register
             self.invoke = self._cinvoke
@@ -79,7 +80,7 @@ class FlaskNode(Node):
             self._app = Flask(__name__, template_folder=os.path.join(current_path, 'templates'),
                             static_folder=os.path.join(current_path, 'static'))
             self._app.config['SECRET_KEY'] = cfg_mgr.runtime_config.secret_key
-            self._socketio = SocketIO(self._app, max_http_buffer_size=10 ** 20, async_handlers=True,
+            self._socketio = ServerSocketIO(self._app, max_http_buffer_size=10 ** 20, async_handlers=True,
                                      ping_timeout=3600, ping_interval=1800, cors_allowed_origins='*')
 
             self.on = FlaskNode._son(self._socketio.on) # server-side handler register
