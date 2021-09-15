@@ -65,7 +65,7 @@ class FlaskNode(Node):
         else:
             raise NotImplementedError
 
-        if self.role == Role.Client:
+        if role == Role.Client:
             weights_download_url = f'http://{self._host}:{self._port}{ServerFlaskInterface.DownloadPattern}'
             self._model_weights_io_handler: ModelWeightsIoInterface = ModelWeightsFlaskHandler(
                 weights_download_url)
@@ -74,7 +74,7 @@ class FlaskNode(Node):
             self.on = FlaskNode._con(self._sio.on) # client-side handler register
             self.invoke = self._cinvoke
             self.wait = self._sio.wait
-        elif self.role == Role.Server:
+        elif role == Role.Server:
             current_path = os.path.dirname(os.path.abspath(__file__))
             self._app = Flask(__name__, template_folder=os.path.join(current_path, 'templates'),
                             static_folder=os.path.join(current_path, 'static'))
@@ -103,16 +103,16 @@ class FlaskNode(Node):
     def _con(cls, func: Callable):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            event: ClientSocketIOEvent = args[1]
-            return func(args[0], FlaskNode.__event2message(event), *args[2:], **kwargs)
+            event: ClientSocketIOEvent = args[0]
+            return func(FlaskNode.__event2message(event), *args[1:], **kwargs)
         return wrapper
 
     @classmethod
     def _son(cls, func: Callable):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            event: ServerSocketIOEvent = args[1]
-            return func(args[0], FlaskNode.__event2message(event), *args[2:], **kwargs)
+            event: ServerSocketIOEvent = args[0]
+            return func(FlaskNode.__event2message(event), *args[1:], **kwargs)
         return wrapper
 
     @staticmethod
