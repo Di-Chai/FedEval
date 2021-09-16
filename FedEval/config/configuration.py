@@ -126,7 +126,7 @@ _RT_S_HOST_KEY = 'host'
 _RT_S_LISTEN_KEY = 'listen'
 _RT_S_PORT_KEY = 'port'
 _RT_S_CLIENTS_NUM_KEY = 'num_clients'
-_RT_S_SECRET_KEY = 'secret'
+_RT_S_SECRET_KEY = 'secret_key'
 
 _RT_DOCKER_KEY = 'docker'
 _RT_D_IMAGE_LABEL_KEY = 'image'

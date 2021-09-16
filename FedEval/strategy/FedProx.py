@@ -1,8 +1,8 @@
-from FedEval.config.configuration import ConfigurationManager
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.training import gen_training_ops
 
+from ..config import ConfigurationManager
 from ..model import *
 from ..utils import ParamParser
 from .FedAvg import FedAvg

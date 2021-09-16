@@ -8,7 +8,7 @@ server:
   listen: 0.0.0.0
   num_clients: 100
   port: 8000
-  secret: secret!
+  secret_key: secret!
 machines:
   server:
     host: 10.173.1.22

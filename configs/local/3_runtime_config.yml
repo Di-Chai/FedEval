@@ -10,5 +10,5 @@ server:
   listen: server
   num_clients: 100
   port: 8000
-  secret: secret!
+  secret_key: secret!
 log_dir: log/local
