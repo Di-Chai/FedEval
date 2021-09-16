@@ -974,19 +974,25 @@ class ConfigurationManager(Singleton,
                            _CfgJsonInterface,
                            _CfgFileInterface,
                            _RoledConfigurationInterface):
+    __init_once_lock = Lock()   # thread lock for __initiated
+    __initiated = False # whether this class has been initiated
+
     def __init__(self,
                  data_config: RawConfigurationDict = _DEFAULT_D_CFG,
                  model_config: RawConfigurationDict = _DEFAULT_MDL_CFG,
                  runtime_config: RawConfigurationDict = _DEFAULT_RT_CFG,
                  thread_safe: bool = False) -> None:
-        self._d_cfg: _DataConfig = _DataConfig(data_config)
-        self._mdl_cfg: _ModelConfig = _ModelConfig(model_config)
-        self._rt_cfg: _RuntimeConfig = _RuntimeConfig(runtime_config)
+        with ConfigurationManager.__init_once_lock:
+            if not ConfigurationManager.__initiated:
+                self._d_cfg: _DataConfig = _DataConfig(data_config)
+                self._mdl_cfg: _ModelConfig = _ModelConfig(model_config)
+                self._rt_cfg: _RuntimeConfig = _RuntimeConfig(runtime_config)
 
-        self._lock: Optional[Lock] = Lock() if thread_safe else None
-        self._init_file_names()
-        self._encoding = _DEFAULT_ENCODING
-        self.__init_role()
+                self._lock: Optional[Lock] = Lock() if thread_safe else None
+                self._init_file_names()
+                self._encoding = _DEFAULT_ENCODING
+                self.__init_role()
+                ConfigurationManager.__initiated = True
 
     def _init_file_names(self,
                          data_config_filename: str = DEFAULT_D_CFG_FILENAME,
