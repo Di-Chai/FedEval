@@ -154,8 +154,8 @@ class FedStrategyPeerInterface(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def set_client_id(self, client_id) -> None:
-        """set the id of this client.
+    def load_data_with(self, client_id) -> None:
+        """load data with respect to the id of this client.
 
         TODO(fgh): move this duty into data related modules.
 
@@ -243,11 +243,7 @@ class FedStrategy(FedStrategyInterface):
             # TMP
             self.num_clients_contacted_per_round = cfg_mgr.num_of_clients_contacted_per_round
             self.train_selected_clients = None
-        elif role == Role.Client: # only clients parse data
-            self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(self._client_id)
-            self.train_data_size = len(self.train_data['x'])
-            self.val_data_size = len(self.val_data['x'])
-            self.test_data_size = len(self.test_data['x'])
+        elif role == Role.Client:
             self.local_params_pre = None
             self.local_params_cur = None
         else:
@@ -271,10 +267,11 @@ class FedStrategy(FedStrategyInterface):
     def param_parser(self, value: ParamParserInterface):
         self._param_parser = value
 
-    def set_client_id(self, client_id) -> None:
+    def load_data_with(self, client_id) -> None:
         if ConfigurationManager().role != Role.Client:
             raise TypeError(f"This {self.__class__.__name__}'s role is not a {Role.Client.value}.")
         self._client_id = client_id
+        self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(self._client_id)
 
     def host_get_init_params(self) -> ModelWeights:
         self.params = self.ml_model.get_weights()
@@ -318,7 +315,7 @@ class FedStrategy(FedStrategyInterface):
         )
         train_loss = train_log.history['loss'][-1]
         self.local_params_cur = self.ml_model.get_weights()
-        return train_loss, self.train_data_size
+        return train_loss, len(self.train_data['x'])
 
     def _retrieve_local_params(self):
         return self.ml_model.get_weights()
@@ -342,8 +339,8 @@ class FedStrategy(FedStrategyInterface):
         evaluate.update(
             {'test_' + metrics_names[i]: float(test_result[i]) for i in range(len(metrics_names))})
         # TMP
-        evaluate['val_size'] = self.val_data_size
-        evaluate['test_size'] = self.test_data_size
+        evaluate['val_size'] = len(self.val_data['x'])
+        evaluate['test_size'] = len(self.test_data['x'])
         return evaluate
 
     def client_exit_job(self, client):

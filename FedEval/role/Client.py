@@ -17,15 +17,15 @@ class Client(FlaskNode):
     def __init__(self):
         ConfigurationManager().role = Role.Client
         super().__init__('client')
-        container_id = os.environ.get('CONTAINER_ID', '0')
+        container_id = int(os.environ.get('CONTAINER_ID', 0))
+        self._init_logger(container_id)
         self._ctx_mgr = ClientContextManager(container_id, self.log_dir)
 
-        self._init_logger()
         self._register_handles()
         self.start()
 
-    def _init_logger(self):
-        super()._init_logger('container', 'Container' + self._ctx_mgr.container_id)
+    def _init_logger(self, container_id):
+        super()._init_logger('container', f'Container{container_id}')
 
     def _register_handles(self):
         from . import ClientSocketIOEvent

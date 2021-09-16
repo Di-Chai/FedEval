@@ -88,7 +88,7 @@ class FedSCA(FedAvg):
     def retrieve_local_upload_info(self):
         mdl_cfg = ConfigurationManager().model_config
         B, E, lr = mdl_cfg.B, mdl_cfg.E, mdl_cfg.learning_rate
-        K = np.ceil(self.train_data_size / B * E)
+        K = np.ceil(len(self.train_data['x']) / B * E)
         new_c = [
             self.client_c[i] - self.server_c[i] + 
             1 / (K * lr) * (self.local_params_pre[i] - self.local_params_cur[i])

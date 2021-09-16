@@ -148,7 +148,7 @@ class FlaskNode(Node):
         # add the handlers to the logger
         self.logger.addHandler(fh)
         self.logger.addHandler(ch)
-        self.fed_model.set_logger(self.logger)
+        # self.fed_model.set_logger(self.logger)
 
     @staticmethod
     def _get_comm_in_and_out() -> Tuple[int, int]:

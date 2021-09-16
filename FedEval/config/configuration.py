@@ -695,7 +695,7 @@ class _RuntimeConfig(_Configuraiton):
     @property
     def container_num(self) -> int:
         """the number of total docker containers in this experiment."""
-        return self._inner[_RT_DOCKER_KEY][_RT_D_CONTAINER_NUM_KEY]
+        return int(self._inner[_RT_DOCKER_KEY][_RT_D_CONTAINER_NUM_KEY])
 
     @property
     def central_server_addr(self) -> str:

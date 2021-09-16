@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
 from ..config import ClientId, ConfigurationManager
 from ..strategy import *  # for strategy construction
@@ -11,7 +11,7 @@ ContainerId = int   # to identify container
 class ClientContext:
     def __init__(self, id: ClientId, fed_strategy: type, temp_dir_path: str) -> None:
         self._strategy: Optional[FedStrategyInterface] = fed_strategy()
-        self._strategy.set_client_id(id)
+        self._strategy.load_data_with(id)
 
         self._local_train_round: int = 0
         self._host_params_round: int = -1
@@ -107,8 +107,8 @@ class ClientContext:
 
 
 class ClientContextManager:
-    def __init__(self, id: ContainerId, tmp_dir_path: str) -> None:
-        self._id = id
+    def __init__(self, id: Union[ContainerId, str], tmp_dir_path: str) -> None:
+        self._id: ContainerId = id if isinstance(id, ContainerId) else int(id)
 
         fed_model_type: type = eval(
             ConfigurationManager().model_config.strategy_name)
