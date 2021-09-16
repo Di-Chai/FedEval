@@ -2,7 +2,7 @@ import logging
 import os
 import time
 from enum import Enum
-from functools import wraps
+from functools import wraps, partial
 from platform import platform
 from typing import Any, Callable, Tuple
 
@@ -71,8 +71,8 @@ class FlaskNode(Node):
                 weights_download_url)
             self._sio = ClientSocketIO(self._host, self._port)
 
-            self.on = FlaskNode._con(self._sio.on) # client-side handler register
-            self.invoke = self._cinvoke
+            self.on = self._con # client-side handler register
+            self.invoke = partial(self._cinvoke, self)
             self.wait = self._sio.wait
         elif role == Role.Server:
             current_path = os.path.dirname(os.path.abspath(__file__))
@@ -99,13 +99,13 @@ class FlaskNode(Node):
     def __event2message(event: SocketIOEvent) -> str:
         return event.value
 
-    @classmethod
-    def _con(cls, func: Callable):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            event: ClientSocketIOEvent = args[0]
-            return func(FlaskNode.__event2message(event), *args[1:], **kwargs)
-        return wrapper
+    def _con(self, event: ClientSocketIOEvent, *on_args, **on_kwargs):
+        def decorator(func: Callable):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                return self._sio.on(FlaskNode.__event2message(event), func, *on_args, **on_kwargs)
+            return wrapper
+        return decorator
 
     @classmethod
     def _son(cls, func: Callable):
@@ -116,8 +116,8 @@ class FlaskNode(Node):
         return wrapper
 
     @staticmethod
-    def _cinvoke(event: ServerSocketIOEvent, *args, **kwargs):
-        return emit(FlaskNode.__event2message(event), *args, **kwargs)
+    def _cinvoke(self, event: ServerSocketIOEvent, *args, **kwargs):
+        return self._sio.emit(FlaskNode.__event2message(event), *args, **kwargs)
 
     @staticmethod
     def _sinvoke(event: ClientSocketIOEvent, *args, **kwargs):
