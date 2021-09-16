@@ -1,16 +1,18 @@
 import json
 import os
-from abc import abstractmethod, abstractproperty, ABC
+from abc import ABC, abstractmethod, abstractproperty
 from copy import deepcopy
 from enum import Enum
+from functools import wraps
 from threading import Lock
-from typing import List, Mapping, Optional, Sequence, TextIO, Tuple, Union
+from typing import Callable, List, Mapping, Optional, Sequence, TextIO, Tuple, Union
+from unittest import case
 
 import yaml
 
 from .filename_checker import check_filename
-from .singleton import Singleton
 from .role import Role
+from .singleton import Singleton
 
 RawConfigurationDict = Mapping[str, Optional[Union[str, int]]]
 
@@ -984,11 +986,11 @@ class ConfigurationManager(Singleton,
                  thread_safe: bool = False) -> None:
         with ConfigurationManager.__init_once_lock:
             if not ConfigurationManager.__initiated:
+                super().__init__(thread_safe)
                 self._d_cfg: _DataConfig = _DataConfig(data_config)
                 self._mdl_cfg: _ModelConfig = _ModelConfig(model_config)
                 self._rt_cfg: _RuntimeConfig = _RuntimeConfig(runtime_config)
 
-                self._lock: Optional[Lock] = Lock() if thread_safe else None
                 self._init_file_names()
                 self._encoding = _DEFAULT_ENCODING
                 self.__init_role()
@@ -1004,47 +1006,48 @@ class ConfigurationManager(Singleton,
         # TODO(fgh) add unit tests for this method in test_config.py
 
     @property
+    @Singleton.thread_safe_ensurance
     def encoding(self) -> str:
         """the encoding scheme during (de)serialization."""
         return self._encoding
 
     @encoding.setter
-    def encoding(self, encoding) -> None:
+    @Singleton.thread_safe_ensurance
+    def encoding(self, encoding):
         self._encoding = encoding
 
     @property
+    @Singleton.thread_safe_ensurance
     def data_config_filename(self) -> str:
         return self._d_cfg_filename
 
     @data_config_filename.setter
+    @Singleton.thread_safe_ensurance
     @check_filename(1)
-    def data_config_filename(self, filename: str) -> None:
+    def data_config_filename(self, filename: str):
         self._d_cfg_filename = filename
 
     @property
+    @Singleton.thread_safe_ensurance
     def model_config_filename(self) -> str:
         return self._mdl_cfg_filename
 
     @model_config_filename.setter
+    @Singleton.thread_safe_ensurance
     @check_filename(1)
     def model_config_filename(self, filename: str) -> None:
         self._mdl_cfg_filename = filename
 
     @property
+    @Singleton.thread_safe_ensurance
     def runtime_config_filename(self) -> str:
         return self._rt_cfg_filename
 
     @runtime_config_filename.setter
+    @Singleton.thread_safe_ensurance
     @check_filename(1)
     def runtime_config_filename(self, filename: str) -> None:
         self._rt_cfg_filename = filename
-
-    def _thread_safe(self) -> bool:
-        # TODO(fgh) add thread safety to self._x_cfg attributes.
-        # Skip this if there's no modification to self._x_cfg.
-        # Currently, except for config filenames, there's no
-        # modification towards a constructed ConfiguraitonManger object.
-        return self._lock is not None
 
     @property
     def data_config(self) -> _DataConfig:
@@ -1144,6 +1147,7 @@ class ConfigurationManager(Singleton,
         self._role: Optional[Role] = None
 
     @property
+    @Singleton.thread_safe_ensurance
     def role(self) -> Role:
         """return the role of this runtime entity.
 
@@ -1158,6 +1162,7 @@ class ConfigurationManager(Singleton,
         return self._role
 
     @role.setter
+    @Singleton.thread_safe_ensurance
     def role(self, role: Role):
         """set the role of this runtime entity.
         This method should be called only once.

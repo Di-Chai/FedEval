@@ -7,12 +7,11 @@ from platform import platform
 from typing import Any, Callable, Tuple
 
 import psutil
-from FedEval.config.service_interface import ServerFlaskInterface
 from flask import Flask
 from flask_socketio import SocketIO as ServerSocketIO, emit
 from socketIO_client import SocketIO as ClientSocketIO
 
-from ..config import ConfigurationManager, Role
+from ..config import ConfigurationManager, Role, ServerFlaskInterface
 from .model_weights_io import ModelWeightsFlaskHandler, ModelWeightsIoInterface
 from .node import Node
 

@@ -36,3 +36,12 @@ class SingletonTestCase(TestCase):
         self.assertIs(singleton, self.singleton)
         self.assertEqual(singleton, self.singleton)
         self.assertEqual(id(singleton), id(self.singleton))
+
+
+class ThreadSafeTestCase(TestCase):
+    def setUp(self):
+        self.sgt = Singleton(thread_safe=True)
+
+    def test_thread_safe_setter(self):
+        thread_safe = Singleton.thread_safe()
+        self.assertEqual(thread_safe, True)
