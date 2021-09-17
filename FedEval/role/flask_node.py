@@ -12,7 +12,7 @@ from flask_socketio import SocketIO as ServerSocketIO, emit
 from socketIO_client import SocketIO as ClientSocketIO
 
 from ..config import ConfigurationManager, Role, ServerFlaskInterface
-from .model_weights_io import ModelWeightsFlaskHandler, ModelWeightsIoInterface
+from ..communicaiton import ModelWeightsFlaskHandler, ModelWeightsIoInterface
 from .node import Node
 
 Sid = Any           # from SocketIO

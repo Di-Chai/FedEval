@@ -2,11 +2,11 @@ import os
 import time
 from typing import Any, Mapping
 
+from ..communicaiton import weights_filename_pattern
 from ..config import ConfigurationManager, Role
 from ..utils.utils import obj_to_pickle_string
 from .container import ClientContextManager
 from .flask_node import FlaskNode, ServerSocketIOEvent
-from .model_weights_io import weights_filename_pattern
 
 
 class Client(FlaskNode):

@@ -57,13 +57,13 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
         """select clients from the given ones for training purpose.
 
         Args:
-            ready_clients (List[ContainerId]): the id list of clients that are ready for training.
+            ready_clients (List[ClientId]): the id list of clients that are ready for training.
 
         Raises:
             NotImplementedError: raised when called but not overriden.
 
         Returns:
-            List[ContainerId]: the id list of the selected clients.
+            List[ClientId]: the id list of the selected clients.
         """
         raise NotImplementedError
 
@@ -72,13 +72,13 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
         """select clients from the given ones for evaluation purpose.
 
         Args:
-            ready_clients (List[ContainerId]): the id list of clients that are ready for evaluaion.
+            ready_clients (List[ClientId]): the id list of clients that are ready for evaluaion.
 
         Raises:
             NotImplementedError: raised when called but not overriden.
 
         Returns:
-            List[ContainerId]: the id list of the selected clients.
+            List[ClientId]: the id list of the selected clients.
         """
         raise NotImplementedError
 

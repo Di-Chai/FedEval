@@ -9,12 +9,13 @@ from typing import Any, Dict, List, Mapping, Optional
 import numpy as np
 from flask import render_template, request, send_file
 
-from ..config import ConfigurationManager, ServerFlaskInterface, Role
+from ..communicaiton import (server_best_weight_filename,
+                             weights_filename_pattern)
+from ..config import ClientId, ConfigurationManager, Role, ServerFlaskInterface
+from ..strategy import FedStrategyInterface
 from ..utils import obj_to_pickle_string, pickle_string_to_obj
 from .container import ContainerId
 from .flask_node import ClientSocketIOEvent, FlaskNode, Sid
-from .model_weights_io import (server_best_weight_filename,
-                               weights_filename_pattern)
 
 
 class Server(FlaskNode):
@@ -23,12 +24,21 @@ class Server(FlaskNode):
     def __init__(self):
         ConfigurationManager().role = Role.Server
         super().__init__('server')
+        self._construct_fed_model()
         self._init_logger()
         self._init_states()
         self._register_handles()
         self._register_services()
 
         self.save_weight(weights_filename_pattern)   # save the init weights
+
+    def _construct_fed_model(self):
+        """Construct a federated model according to `self.model_config` and bind it to `self.fed_model`.
+            This method only works after `self._bind_configs()`.
+        """
+        cfg_mgr = ConfigurationManager()
+        fed_model_type: type = eval(cfg_mgr.model_config.strategy_name)
+        self.fed_model: FedStrategyInterface = fed_model_type()
 
     def _init_logger(self):
         super()._init_logger('Server', 'Server')
@@ -96,7 +106,7 @@ class Server(FlaskNode):
         self._invalid_tolerate: int = 0  # for client-side evaluation
         self._ready_container_sid_dict: Dict[ContainerId, Sid] = {}
         self._ready_container_id_dict: Dict[ContainerId, List[ContainerId]] = {}
-        self._ready_clients: List[ContainerId] = []
+        self._ready_clients: List[ClientId] = []
         self._client_resource = {}
 
     def _init_model_io_configs(self):
@@ -256,7 +266,8 @@ class Server(FlaskNode):
             self.logger.info('%s disconnected' % request.sid)
             if request.sid in self._ready_container_sid_dict:
                 self._ready_container_sid_dict.pop(request.sid)
-                offline_clients: List[ContainerId] = self._ready_container_id_dict.pop(request.sid)
+                offline_clients: List[ClientId] = self._ready_container_id_dict.pop(
+                    request.sid)
                 ready_clients = set(self._ready_clients) - set(offline_clients)
                 self._ready_clients = list(ready_clients)
 
