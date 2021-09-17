@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Any, Callable, Mapping
+from typing import Any, Mapping
 
 from ..config import ConfigurationManager, Role
 from ..utils.utils import obj_to_pickle_string
@@ -52,13 +52,10 @@ class Client(FlaskNode):
             self.invoke(ClientSocketIOEvent.Ready, [self._ctx_mgr.container_id] + self._cid_list)
 
         @self.on(ClientSocketIOEvent.RequestUpdate)
-        def on_request_update(data_from_server: Mapping[str, Any], response_with: Callable):
+        def on_request_update(data_from_server: Mapping[str, Any]):
 
             # Mark the receive time
             time_receive_request = time.time()
-
-            # Call backs for debug, could be removed in the future
-            response_with('Train Received by', self._ctx_mgr.container_id)
 
             # Get the selected clients
             selected_clients = data_from_server['selected_clients']
@@ -115,12 +112,9 @@ class Client(FlaskNode):
                     self.logger.info(f"Client {client_ctx.id} Emited update")
 
         @self.on(ClientSocketIOEvent.RequestEvaluate)
-        def on_request_evaluate(data_from_server: Mapping[str, Any], response_with: Callable):
+        def on_request_evaluate(data_from_server: Mapping[str, Any]):
 
             time_receive_evaluate = time.time()
-
-            # Call backs
-            response_with('Evaluate Received by', self._ctx_mgr.container_id)
 
             # Get the selected clients
             selected_clients = data_from_server['selected_clients']

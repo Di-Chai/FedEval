@@ -520,10 +520,6 @@ class Server(FlaskNode):
                         self.logger.info("start to next round...")
                         self.train_next_round()
 
-    def response(self, mode, cid):
-        self._check_list.append(cid)
-        # self.logger.info('Response: ' + mode + ' %s' % cid)
-
     def retrieval_session_information(self, selected_clients):
         send_target = {}
         for container in self._ready_container_id_dict:
@@ -557,7 +553,7 @@ class Server(FlaskNode):
             self.logger.info('Sending train requests to container %s targeting clients %s' % (
                 container_id, str(target_clients)))
             data_send['selected_clients'] = target_clients
-            self.invoke(ClientSocketIOEvent.RequestUpdate, data_send, room=self._ready_container_sid_dict[container_id], callback=self.response)
+            self.invoke(ClientSocketIOEvent.RequestUpdate, data_send, room=self._ready_container_sid_dict[container_id])
 
         self.logger.info('Finished sending update requests, waiting resp from clients')
 
@@ -578,7 +574,7 @@ class Server(FlaskNode):
         for container_id, target_clients in actual_send.items():
             data_send['selected_clients'] = target_clients
             self.invoke(ClientSocketIOEvent.RequestEvaluate, data_send,
-                        room=self._ready_container_sid_dict[container_id], callback=self.response)
+                        room=self._ready_container_sid_dict[container_id])
         self.logger.info('Waiting resp from clients')
 
     def start(self):
