@@ -48,7 +48,7 @@ class FlaskCommunicator(Communicatior):
         super().__init__()
 
     @staticmethod
-    def _get_comm_in_and_out() -> Tuple[int, int]:
+    def get_comm_in_and_out() -> Tuple[int, int]:
         """retrieve network traffic counter.
 
         Raises:

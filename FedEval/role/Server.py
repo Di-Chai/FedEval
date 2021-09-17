@@ -298,219 +298,229 @@ class Server(Node):
         @self._communicator.on(ServerSocketIOEvent.ResponseUpdate)
         def handle_client_update(data: Mapping[str, Any]):
 
-            if data['round_number'] == self._current_round:
-                num_clients_contacted_per_round = ConfigurationManager().num_of_clients_contacted_per_round
-                with self._thread_lock:
-                    data['weights'] = pickle_string_to_obj(data['weights'])
-                    data['time_receive_update'] = time.time()
-                    self._c_up.append(data)
-                    receive_all = len(self._c_up) == num_clients_contacted_per_round
+            if data['round_number'] != self._current_round:
+                #TODO(fgh) raise an Exception
+                return
 
-                if receive_all:
+            num_clients_contacted_per_round = ConfigurationManager().num_of_clients_contacted_per_round
+            with self._thread_lock:
+                data['weights'] = pickle_string_to_obj(data['weights'])
+                data['time_receive_update'] = time.time()
+                self._c_up.append(data)
+                receive_all = len(self._c_up) == num_clients_contacted_per_round
 
-                    self.logger.info("Received update from all clients")
+            if not receive_all:
+                #TODO(fgh) raise an Exception
+                return
 
-                    receive_update_time = [e['time_receive_request'] - self._time_send_train for e in self._c_up]
-                    finish_update_time = [e['time_finish_update'] - e['time_start_update'] for e in self._c_up]
-                    update_receive_time = [e['time_receive_update'] - e['time_finish_update'] for e in self._c_up]
-                    latest_time_record = self._time_record[-1]
-                    cur_round_info = self._info_each_round[self._current_round]
+            self.logger.info("Received update from all clients")
 
-                    latest_time_record['update_send'] = np.mean(receive_update_time)
-                    latest_time_record['update_run'] = np.mean(finish_update_time)
-                    latest_time_record['update_receive'] = np.mean(update_receive_time)
+            receive_update_time = [e['time_receive_request'] - self._time_send_train for e in self._c_up]
+            finish_update_time = [e['time_finish_update'] - e['time_start_update'] for e in self._c_up]
+            update_receive_time = [e['time_receive_update'] - e['time_finish_update'] for e in self._c_up]
+            latest_time_record = self._time_record[-1]
+            cur_round_info = self._info_each_round[self._current_round]
 
-                    # From request update, until receives all clients' update
-                    self._time_agg_train_start = time.time()
+            latest_time_record['update_send'] = np.mean(receive_update_time)
+            latest_time_record['update_run'] = np.mean(finish_update_time)
+            latest_time_record['update_receive'] = np.mean(update_receive_time)
 
-                    # current train
-                    client_params = [x['weights'] for x in self._c_up]
-                    aggregate_weights = np.array([x['train_size'] for x in self._c_up])
+            # From request update, until receives all clients' update
+            self._time_agg_train_start = time.time()
 
-                    self._current_params = self._strategy.update_host_params(
-                        client_params, aggregate_weights / np.sum(aggregate_weights)
-                    )
+            # current train
+            client_params = [x['weights'] for x in self._c_up]
+            aggregate_weights = np.array([x['train_size'] for x in self._c_up])
 
-                    self.save_weight(weights_filename_pattern)
+            self._current_params = self._strategy.update_host_params(
+                client_params, aggregate_weights / np.sum(aggregate_weights)
+            )
 
-                    aggr_train_loss = self.aggregate_train_loss(
-                        [x['train_loss'] for x in self._c_up],
-                        [x['train_size'] for x in self._c_up],
-                        self._current_round
-                    )
-                    cur_round_info['train_loss'] = aggr_train_loss
+            self.save_weight(weights_filename_pattern)
 
-                    self.logger.info("=== Train ===")
-                    self.logger.info('Receive update result form %s clients' % len(self._c_up))
-                    self.logger.info("aggr_train_loss {}".format(aggr_train_loss))
+            aggr_train_loss = self.aggregate_train_loss(
+                [x['train_loss'] for x in self._c_up],
+                [x['train_size'] for x in self._c_up],
+                self._current_round
+            )
+            cur_round_info['train_loss'] = aggr_train_loss
 
-                    # Fed Aggregate : computation time
-                    self._time_agg_train_end = time.time()
-                    latest_time_record['agg_server'] = self._time_agg_train_end - self._time_agg_train_start
+            self.logger.info("=== Train ===")
+            self.logger.info('Receive update result form %s clients' % len(self._c_up))
+            self.logger.info("aggr_train_loss {}".format(aggr_train_loss))
 
-                    cur_round_info['time_train_send'] = latest_time_record['update_send']
-                    cur_round_info['time_train_run'] = latest_time_record['update_send']
-                    cur_round_info['time_train_receive'] = latest_time_record['update_receive']
-                    cur_round_info['time_train_agg'] = latest_time_record['agg_server']
+            # Fed Aggregate : computation time
+            self._time_agg_train_end = time.time()
+            latest_time_record['agg_server'] = self._time_agg_train_end - self._time_agg_train_start
 
-                    # Collect the send and received bytes
-                    self._server_receive_bytes, self._server_send_bytes = self._get_comm_in_and_out()
+            cur_round_info['time_train_send'] = latest_time_record['update_send']
+            cur_round_info['time_train_run'] = latest_time_record['update_send']
+            cur_round_info['time_train_receive'] = latest_time_record['update_receive']
+            cur_round_info['time_train_agg'] = latest_time_record['agg_server']
 
-                    if self._current_round % ConfigurationManager().model_config.num_of_rounds_between_val == 0:
-                        self.evaluate()
-                    else:
-                        self.train_next_round()
+            # Collect the send and received bytes
+            self._server_receive_bytes, self._server_send_bytes = self._communicator.get_comm_in_and_out()
 
-                    cur_round_info['round_finish_time'] = time.time()
+            if self._current_round % ConfigurationManager().model_config.num_of_rounds_between_val == 0:
+                self.evaluate()
+            else:
+                self.train_next_round()
+
+            cur_round_info['round_finish_time'] = time.time()
 
         @self._communicator.on(ServerSocketIOEvent.ResponseEvaluate)
         def handle_client_evaluate(data: Mapping[str, Any]):
 
-            if data['round_number'] == self._current_round:
-                rt_cfg = ConfigurationManager().runtime_config
-                num_clients_contacted_per_round = ConfigurationManager().num_of_clients_contacted_per_round
-                with self._thread_lock:
-                    data['time_receive_evaluate'] = time.time()
-                    self._c_eval.append(data)
-                    num_clients_required = num_clients_contacted_per_round if self._lazy_update and not self._STOP else rt_cfg.client_num
-                    receive_all = len(self._c_eval) == num_clients_required
-                # self.logger.info('Receive evaluate result form %s' % request.sid)
+            if data['round_number'] != self._current_round:
+                #TODO(fgh) raise an Exception
+                return
 
-                if receive_all:
-                    # sort according to the client id
-                    try:
-                        self._c_eval = sorted(self._c_eval, key=lambda x: int(x['cid']))
-                    except TypeError as error:
-                        print('Debug Mode', error)
+            rt_cfg = ConfigurationManager().runtime_config
+            num_clients_contacted_per_round = ConfigurationManager().num_of_clients_contacted_per_round
+            with self._thread_lock:
+                data['time_receive_evaluate'] = time.time()
+                self._c_eval.append(data)
+                num_clients_required = num_clients_contacted_per_round if self._lazy_update and not self._STOP else rt_cfg.client_num
+                receive_all = len(self._c_eval) == num_clients_required
 
-                    self.logger.info("=== Evaluate ===")
-                    self.logger.info('Receive evaluate result form %s clients' % len(self._c_eval))
+            if not receive_all:
+                #TODO(fgh) raise an Exception
+                return
 
-                    receive_eval_time = [e['time_receive_request'] - self._time_agg_train_end for e in self._c_eval]
-                    finish_eval_time = [e['time_finish_evaluate'] - e['time_start_evaluate'] for e in self._c_eval]
-                    eval_receive_time = [e['time_receive_evaluate'] - e['time_finish_evaluate'] for e in self._c_eval]
+            # sort according to the client id
+            try:
+                self._c_eval = sorted(self._c_eval, key=lambda x: int(x['cid']))
+            except TypeError as error:
+                print('Debug Mode', error)
 
-                    self.logger.info(
-                        'Update Run min %s max %s mean %s'
-                        % (min(finish_eval_time), max(finish_eval_time), np.mean(finish_eval_time))
+            self.logger.info("=== Evaluate ===")
+            self.logger.info('Receive evaluate result form %s clients' % len(self._c_eval))
+
+            receive_eval_time = [e['time_receive_request'] - self._time_agg_train_end for e in self._c_eval]
+            finish_eval_time = [e['time_finish_evaluate'] - e['time_start_evaluate'] for e in self._c_eval]
+            eval_receive_time = [e['time_receive_evaluate'] - e['time_finish_evaluate'] for e in self._c_eval]
+
+            self.logger.info(
+                'Update Run min %s max %s mean %s'
+                % (min(finish_eval_time), max(finish_eval_time), np.mean(finish_eval_time))
+            )
+
+            self._time_agg_eval_start = time.time()
+
+            avg_val_metrics = {}
+            avg_test_metrics = {}
+            full_test_metric = {}
+            for key in self._c_eval[0]['evaluate']:
+                if key == 'val_size':
+                    continue
+                if key == 'test_size':
+                    continue
+                    # full_test_metric['test_size'] = [
+                    #     float(update['evaluate']['test_size']) for update in self.c_eval]
+                if key.startswith('val_'):
+                    avg_val_metrics[key] = np.average(
+                        [float(update['evaluate'][key]) for update in self._c_eval],
+                        weights=[float(update['evaluate']['val_size']) for update in self._c_eval]
                     )
+                    self.logger.info('Val %s : %s' % (key, avg_val_metrics[key]))
+                if key.startswith('test_'):
+                    full_test_metric[key] = [float(update['evaluate'][key]) for update in self._c_eval]
+                    avg_test_metrics[key] = np.average(
+                        full_test_metric[key],
+                        weights=[float(update['evaluate']['test_size']) for update in self._c_eval]
+                    )
+                    self.logger.info('Test %s : %s' % (key, avg_test_metrics[key]))
 
-                    self._time_agg_eval_start = time.time()
+            latest_time_record = self._time_record[-1]
+            cur_round_info = self._info_each_round[self._current_round]
+            cur_round_info.update(avg_val_metrics)
+            cur_round_info.update(avg_test_metrics)
 
-                    avg_val_metrics = {}
-                    avg_test_metrics = {}
-                    full_test_metric = {}
-                    for key in self._c_eval[0]['evaluate']:
-                        if key == 'val_size':
-                            continue
-                        if key == 'test_size':
-                            continue
-                            # full_test_metric['test_size'] = [
-                            #     float(update['evaluate']['test_size']) for update in self.c_eval]
-                        if key.startswith('val_'):
-                            avg_val_metrics[key] = np.average(
-                                [float(update['evaluate'][key]) for update in self._c_eval],
-                                weights=[float(update['evaluate']['val_size']) for update in self._c_eval]
-                            )
-                            self.logger.info('Val %s : %s' % (key, avg_val_metrics[key]))
-                        if key.startswith('test_'):
-                            full_test_metric[key] = [float(update['evaluate'][key]) for update in self._c_eval]
-                            avg_test_metrics[key] = np.average(
-                                full_test_metric[key],
-                                weights=[float(update['evaluate']['test_size']) for update in self._c_eval]
-                            )
-                            self.logger.info('Test %s : %s' % (key, avg_test_metrics[key]))
+            avg_test_metrics['time'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            avg_val_metrics['time'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-                    latest_time_record = self._time_record[-1]
-                    cur_round_info = self._info_each_round[self._current_round]
-                    cur_round_info.update(avg_val_metrics)
-                    cur_round_info.update(avg_test_metrics)
+            self._time_agg_eval_end = time.time()
+            latest_time_record['server_eval'] = self._time_agg_eval_end - self._time_agg_eval_start
 
-                    avg_test_metrics['time'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    avg_val_metrics['time'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            latest_time_record['eval_send'] = np.mean(receive_eval_time)
+            latest_time_record['eval_run'] = np.mean(finish_eval_time)
+            latest_time_record['eval_receive'] = np.mean(eval_receive_time)
 
-                    self._time_agg_eval_end = time.time()
-                    latest_time_record['server_eval'] = self._time_agg_eval_end - self._time_agg_eval_start
+            self._avg_test_metrics.append(avg_test_metrics)
+            self._avg_val_metrics.append(avg_val_metrics)
 
-                    latest_time_record['eval_send'] = np.mean(receive_eval_time)
-                    latest_time_record['eval_run'] = np.mean(finish_eval_time)
-                    latest_time_record['eval_receive'] = np.mean(eval_receive_time)
+            current_metric = avg_val_metrics.get('val_loss')
+            self.logger.info('val loss %s' % current_metric)
 
-                    self._avg_test_metrics.append(avg_test_metrics)
-                    self._avg_val_metrics.append(avg_val_metrics)
+            cur_round_info['time_eval_send'] = latest_time_record['eval_send']
+            cur_round_info['time_eval_run'] = latest_time_record['eval_run']
+            cur_round_info['time_eval_receive'] = latest_time_record['eval_receive']
+            cur_round_info['time_eval_agg'] = latest_time_record['server_eval']
 
-                    current_metric = avg_val_metrics.get('val_loss')
-                    self.logger.info('val loss %s' % current_metric)
-
-                    cur_round_info['time_eval_send'] = latest_time_record['eval_send']
-                    cur_round_info['time_eval_run'] = latest_time_record['eval_run']
-                    cur_round_info['time_eval_receive'] = latest_time_record['eval_receive']
-                    cur_round_info['time_eval_agg'] = latest_time_record['server_eval']
-
-                    if self._STOP:
-                        # Another round of testing after the training is finished
+            if self._STOP:
+                # Another round of testing after the training is finished
+                self._best_test_metric_full = full_test_metric
+                self._best_test_metric.update(avg_test_metrics)
+            else:
+                if self._best_val_metric is None or self._best_val_metric > current_metric:
+                    self._best_val_metric = current_metric
+                    self._best_round = self._current_round
+                    self._invalid_tolerate = 0
+                    self._best_test_metric.update(avg_test_metrics)
+                    obj_to_pickle_string(self._current_params,
+                                            os.path.join(self._model_path, server_best_weight_filename))
+                    self.logger.info(str(self._best_test_metric))
+                    if not self._lazy_update:
                         self._best_test_metric_full = full_test_metric
-                        self._best_test_metric.update(avg_test_metrics)
-                    else:
-                        if self._best_val_metric is None or self._best_val_metric > current_metric:
-                            self._best_val_metric = current_metric
-                            self._best_round = self._current_round
-                            self._invalid_tolerate = 0
-                            self._best_test_metric.update(avg_test_metrics)
-                            obj_to_pickle_string(self._current_params,
-                                                 os.path.join(self._model_path, server_best_weight_filename))
-                            self.logger.info(str(self._best_test_metric))
-                            if not self._lazy_update:
-                                self._best_test_metric_full = full_test_metric
-                        else:
-                            self._invalid_tolerate += 1
+                else:
+                    self._invalid_tolerate += 1
 
-                        if self._invalid_tolerate > ConfigurationManager().model_config.tolerance_num:
-                            self.logger.info("converges! starting test phase..")
-                            self._STOP = True
+                if self._invalid_tolerate > ConfigurationManager().model_config.tolerance_num:
+                    self.logger.info("converges! starting test phase..")
+                    self._STOP = True
 
-                        max_round_num = ConfigurationManager().model_config.max_round_num
-                        if self._current_round >= max_round_num:
-                            self.logger.info("get to maximum step, stop...")
-                            self._STOP = True
+                max_round_num = ConfigurationManager().model_config.max_round_num
+                if self._current_round >= max_round_num:
+                    self.logger.info("get to maximum step, stop...")
+                    self._STOP = True
 
-                    # Collect the send and received bytes
-                    self._server_receive_bytes, self._server_send_bytes = self._get_comm_in_and_out()
+            # Collect the send and received bytes
+            self._server_receive_bytes, self._server_send_bytes = self._communicator.get_comm_in_and_out()
 
-                    if self._STOP:
-                        # Another round of testing after the training is finished
-                        if self._lazy_update and self._best_test_metric_full is None:
-                            self.evaluate(self._ready_clients, server_best_weight_filename)
-                        else:
-                            self.logger.info("== done ==")
-                            self.logger.info("Federated training finished ... ")
-                            self.logger.info("best full test metric: " +
-                                             json.dumps(self._best_test_metric_full))
-                            self.logger.info("best model at round {}".format(self._best_round))
-                            for key in self._best_test_metric:
-                                self.logger.info(
-                                    "get best test {} {}".format(key, self._best_test_metric[key])
-                                )
-                            self._training_stop_time = int(round(time.time()))
-                            # Time
-                            result_json = self.save_result_to_json(self._training_stop_time)
-                            self.logger.info(f'Total time: {result_json["total_time"]}')
-                            self.logger.info(f'Time Detail: {result_json["time_detail"]}')
-                            self.logger.info(f'Total Rounds: {self._current_round}')
-                            self.logger.info(f'Server Send(GB): {result_json["server_send"]}')
-                            self.logger.info(f'Server Receive(GB): {result_json["server_receive"]}')
+            if self._STOP:
+                # Another round of testing after the training is finished
+                if self._lazy_update and self._best_test_metric_full is None:
+                    self.evaluate(self._ready_clients, server_best_weight_filename)
+                else:
+                    self.logger.info("== done ==")
+                    self.logger.info("Federated training finished ... ")
+                    self.logger.info("best full test metric: " +
+                                        json.dumps(self._best_test_metric_full))
+                    self.logger.info("best model at round {}".format(self._best_round))
+                    for key in self._best_test_metric:
+                        self.logger.info(
+                            "get best test {} {}".format(key, self._best_test_metric[key])
+                        )
+                    self._training_stop_time = int(round(time.time()))
+                    # Time
+                    result_json = self.save_result_to_json(self._training_stop_time)
+                    self.logger.info(f'Total time: {result_json["total_time"]}')
+                    self.logger.info(f'Time Detail: {result_json["time_detail"]}')
+                    self.logger.info(f'Total Rounds: {self._current_round}')
+                    self.logger.info(f'Server Send(GB): {result_json["server_send"]}')
+                    self.logger.info(f'Server Receive(GB): {result_json["server_receive"]}')
 
-                            # Stop all the clients
-                            self._communicator.invoke(
-                                ClientSocketIOEvent.Stop, broadcast=True)
-                            # Call the server exit job
-                            self._strategy.host_exit_job(self)
-                            # Server job finish
-                            self._server_job_finish = True
-                    else:
-                        self.save_result_to_json(time.time())
-                        self.logger.info("start to next round...")
-                        self.train_next_round() #TODO(fgh) into loop form
+                    # Stop all the clients
+                    self._communicator.invoke(
+                        ClientSocketIOEvent.Stop, broadcast=True)
+                    # Call the server exit job
+                    self._strategy.host_exit_job(self)
+                    # Server job finish
+                    self._server_job_finish = True
+            else:
+                self.save_result_to_json(time.time())
+                self.logger.info("start to next round...")
+                self.train_next_round() #TODO(fgh) into loop form
 
     def retrieval_session_information(self, selected_clients: Sequence[ClientId]) -> dict:
         selected_clients = set(selected_clients)
