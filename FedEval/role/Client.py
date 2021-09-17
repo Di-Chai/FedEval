@@ -2,14 +2,14 @@ import os
 import time
 from typing import Any, Mapping
 
-from ..communicaiton import weights_filename_pattern
+from ..communicaiton import ServerSocketIOEvent, weights_filename_pattern, ClientFlaskCommunicator
 from ..config import ConfigurationManager, Role
 from ..utils.utils import obj_to_pickle_string
 from .container import ClientContextManager
-from .flask_node import FlaskNode, ServerSocketIOEvent
+from .node import Node
 
 
-class Client(FlaskNode):
+class Client(Node):
     """a client node implementation based on FlaskNode."""
 
     MAX_DATASET_SIZE_KEPT = 6000
@@ -20,7 +20,7 @@ class Client(FlaskNode):
         container_id = int(os.environ.get('CONTAINER_ID', 0))
         self._init_logger(container_id)
         self._ctx_mgr = ClientContextManager(container_id, self.log_dir)
-
+        self._communicator = ClientFlaskCommunicator()
         self._register_handles()
         self.start()
 
@@ -30,28 +30,29 @@ class Client(FlaskNode):
     def _register_handles(self):
         from . import ClientSocketIOEvent
 
-        @self.on(ClientSocketIOEvent.Connect)
+        @self._communicator.on(ClientSocketIOEvent.Connect)
         def on_connect():
             print('connect')
             self.logger.info('connect')
 
-        @self.on(ClientSocketIOEvent.Disconnect)
+        @self._communicator.on(ClientSocketIOEvent.Disconnect)
         def on_disconnect():
             print('disconnect')
             self.logger.info('disconnect')
 
-        @self.on(ClientSocketIOEvent.Reconnect)
+        @self._communicator.on(ClientSocketIOEvent.Reconnect)
         def on_reconnect():
             print('reconnect')
             self.logger.info('reconnect')
 
-        @self.on(ClientSocketIOEvent.Init)
+        @self._communicator.on(ClientSocketIOEvent.Init)
         def on_init():
             self.logger.info('on init')
             self.logger.info("local model initialized done.")
-            self.invoke(ClientSocketIOEvent.Ready, [self._ctx_mgr.container_id] + self._cid_list)
+            self._communicator.invoke(ClientSocketIOEvent.Ready, [
+                                      self._ctx_mgr.container_id] + self._cid_list)
 
-        @self.on(ClientSocketIOEvent.RequestUpdate)
+        @self._communicator.on(ClientSocketIOEvent.RequestUpdate)
         def on_request_update(data_from_server: Mapping[str, Any]):
 
             # Mark the receive time
@@ -105,13 +106,14 @@ class Client(FlaskNode):
 
                     self.logger.info("Emit client_update")
                     try:
-                        self.invoke(ClientSocketIOEvent.ResponseUpdate, response)
+                        self._communicator.invoke(
+                            ClientSocketIOEvent.ResponseUpdate, response)
                         self.logger.info("sent trained model to server")
                     except Exception as e:
                         self.logger.error(e)
                     self.logger.info(f"Client {client_ctx.id} Emited update")
 
-        @self.on(ClientSocketIOEvent.RequestEvaluate)
+        @self._communicator.on(ClientSocketIOEvent.RequestEvaluate)
         def on_request_evaluate(data_from_server: Mapping[str, Any]):
 
             time_receive_evaluate = time.time()
@@ -153,13 +155,14 @@ class Client(FlaskNode):
 
                     self.logger.info("Emit client evaluate")
                     try:
-                        self.invoke(ClientSocketIOEvent.ResponseEvaluate, response)
+                        self._communicator.invoke(
+                            ClientSocketIOEvent.ResponseEvaluate, response)
                         self.logger.info("sent evaluation results to server")
                     except Exception as e:
                         self.logger.error(e)
                     self.logger.info(f"Client {client_ctx.id} Emited evaluate")
 
-        @self.on(ClientSocketIOEvent.Stop)
+        @self._communicator.on(ClientSocketIOEvent.Stop)
         def on_stop():
             # TODO(fgh): stop all the clients
             for cid in self._ctx_mgr.client_ids:
@@ -169,6 +172,6 @@ class Client(FlaskNode):
             exit(0)
 
     def start(self):
-        self.invoke(ServerSocketIOEvent.WakeUp)
+        self._communicator.invoke(ServerSocketIOEvent.WakeUp)
         self.logger.info("sent wakeup")
         self.wait()

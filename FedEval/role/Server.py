@@ -4,21 +4,22 @@ import os
 import re
 import threading
 import time
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 import numpy as np
 from flask import render_template, request, send_file
 
-from ..communicaiton import (server_best_weight_filename,
+from ..communicaiton import (ClientSocketIOEvent, ServerFlaskCommunicator, Sid,
+                             server_best_weight_filename,
                              weights_filename_pattern)
 from ..config import ClientId, ConfigurationManager, Role, ServerFlaskInterface
 from ..strategy import FedStrategyInterface
 from ..utils import obj_to_pickle_string, pickle_string_to_obj
 from .container import ContainerId
-from .flask_node import ClientSocketIOEvent, FlaskNode, Sid
+from .node import Node
 
 
-class Server(FlaskNode):
+class Server(Node):
     """a central server implementation based on FlaskNode."""
 
     def __init__(self):
@@ -27,6 +28,8 @@ class Server(FlaskNode):
         self._construct_fed_model()
         self._init_logger()
         self._init_states()
+
+        self._communicator = ServerFlaskCommunicator()
         self._register_handles()
         self._register_services()
 
@@ -37,8 +40,8 @@ class Server(FlaskNode):
             This method only works after `self._bind_configs()`.
         """
         cfg_mgr = ConfigurationManager()
-        fed_model_type: type = eval(cfg_mgr.model_config.strategy_name)
-        self.fed_model: FedStrategyInterface = fed_model_type()
+        fed_strategy_type: type = eval(cfg_mgr.model_config.strategy_name)
+        self._strategy: FedStrategyInterface = fed_strategy_type()
 
     def _init_logger(self):
         super()._init_logger('Server', 'Server')
@@ -52,14 +55,6 @@ class Server(FlaskNode):
         }
         self.logger.info(_run_config)
         self.logger.info(self.get_model_description())
-
-    def _bind_run_configs(self):
-        cfg_mgr = ConfigurationManager()
-        self._num_clients = cfg_mgr.runtime_config.client_num
-        self._max_num_rounds = cfg_mgr.model_config.max_round_num
-        self._num_tolerance = cfg_mgr.model_config.tolerance_num
-        self._num_clients_contacted_per_round = cfg_mgr.num_of_clients_contacted_per_round
-        self._rounds_between_val = cfg_mgr.model_config.num_of_rounds_between_val
 
     def _init_metric_states(self):
         # weights should be an ordered list of parameter
@@ -98,32 +93,31 @@ class Server(FlaskNode):
         self._info_each_round = {}
 
     def _init_control_states(self):
-        """initilize attributes for controling."""
+        """initilize attributes for controlling."""
         self._thread_lock = threading.Lock()
         self._STOP = False
         self._server_job_finish = False
         self._client_sids_selected: Optional[List[Any]] = None
         self._invalid_tolerate: int = 0  # for client-side evaluation
-        self._ready_container_sid_dict: Dict[ContainerId, Sid] = {}
-        self._ready_container_id_dict: Dict[ContainerId, List[ContainerId]] = {}
+        self._ready_container_sid_dict: Dict[ContainerId, Sid] = {} # TODO(fgh) 将Container交给Container或者Communicator管理
+        self._ready_container_id_dict: Dict[ContainerId, List[ClientId]] = {}
         self._ready_clients: List[ClientId] = []
         self._client_resource = {}
+
+        self._lazy_update = False
 
     def _init_model_io_configs(self):
         self._model_path = os.path.abspath(self.log_dir) # TODO(fgh): seperate model_path from log_dir
 
     def _init_states(self):
-        self._bind_run_configs()
-        self._lazy_update = False
-
         self._init_statistical_states()
         self._init_control_states()
-        self._current_params = self.fed_model.host_get_init_params()
+        self._current_params = self._strategy.host_get_init_params()
         self._init_metric_states()
         self._init_model_io_configs()
 
     def _register_services(self):
-        @self.route(ServerFlaskInterface.Dashboard.value)
+        @self._communicator.route(ServerFlaskInterface.Dashboard.value)
         def dashboard():
             """for performance illustration and monitoring.
 
@@ -152,15 +146,15 @@ class Server(FlaskNode):
             m, s = divmod(current_used_time, 60)
             h, m = divmod(m, 60)
 
-            metrics = ConfigurationManager().model_config.metrics
+            cfg_mgr = ConfigurationManager()
+            metrics = cfg_mgr.model_config.metrics
             test_accuracy_key = f'test_{metrics[0]}'
 
             return render_template(
                 'dashboard.html',
                 status='Finish' if self._STOP else 'Running',
-                rounds="%s / %s" % (self._current_round, self._max_num_rounds),
-                num_online_clients="%s / %s / %s" % (self._num_clients_contacted_per_round,
-                                                     len(self._ready_clients), self._num_clients),
+                rounds=f"{self._current_round} / {cfg_mgr.model_config.max_round_num}",
+                num_online_clients=f"{cfg_mgr.num_of_clients_contacted_per_round} / {len(self._ready_clients)} / {cfg_mgr.runtime_config.client_num}",
                 avg_test_metric=self._avg_test_metrics,
                 avg_test_metric_keys=avg_test_metric_keys,
                 avg_val_metric=self._avg_val_metrics,
@@ -174,7 +168,7 @@ class Server(FlaskNode):
             )
 
         # TMP use
-        @self.route(ServerFlaskInterface.Status.value)
+        @self._communicator.route(ServerFlaskInterface.Status.value)
         def status_page():
             return json.dumps({
                 'finished': self._server_job_finish,
@@ -186,7 +180,7 @@ class Server(FlaskNode):
                 'log_dir': self.log_dir,
             })
 
-        @self.route(ServerFlaskInterface.DownloadPattern.value.format('<filename>'), methods=['GET'])
+        @self._communicator.route(ServerFlaskInterface.DownloadPattern.value.format('<filename>'), methods=['GET'])
         def download_file(filename):
             if os.path.isfile(os.path.join(self._model_path, filename)):
                 return send_file(os.path.join(self._model_path, filename), as_attachment=True)
@@ -204,12 +198,13 @@ class Server(FlaskNode):
 
     def get_model_description(self):
         return_value = """\nmodel parameters:\n"""
-        for attr in dir(self.fed_model):
-            attr_value = getattr(self.fed_model, attr)
+        for attr in dir(self._strategy):
+            attr_value = getattr(self._strategy, attr)
             if type(attr_value) in [str, int, float] and attr.startswith('_') is False:
                 return_value += "{}={}\n".format(attr, attr_value)
         return return_value
 
+    # TODO(fgh) into IO related module
     def save_weight(self, weight_filename_pattern):
         obj_to_pickle_string(
             self._current_params,
@@ -223,18 +218,19 @@ class Server(FlaskNode):
             if self._current_round - int(matched_model.group(1)) >= 5:
                 os.remove(os.path.join(self._model_path, matched_model.group(0)))
 
-    def save_result_to_json(self):
-        m, s = divmod(int(round(time.time()) - self._training_start_time), 60)
+    # TODO(fgh) into IO related module
+    def save_result_to_json(self, cur_time: float) -> Mapping[str, Any]:
+        m, s = divmod(int(round(cur_time) - self._training_start_time), 60)
         h, m = divmod(m, 60)
         avg_time_records = []
         keys = ['update_send', 'update_run', 'update_receive', 'agg_server',
                 'eval_send', 'eval_run', 'eval_receive', 'server_eval']
         for key in keys:
             avg_time_records.append(np.mean([e.get(key, 0) for e in self._time_record]))
-        self.result_json = {
+        result_json = {
             'best_metric': self._best_test_metric,
             'best_metric_full': self._best_test_metric_full,
-            'total_time': '{}:{}:{}'.format(h, m, s),
+            'total_time': f'{h}:{m}:{s}',
             'time_detail': str(avg_time_records),
             'total_rounds': self._current_round,
             'server_send': self._server_send_bytes / (2 ** 30),
@@ -242,25 +238,26 @@ class Server(FlaskNode):
             'info_each_round': self._info_each_round
         }
         with open(os.path.join(self.log_dir, 'results.json'), 'w') as f:
-            json.dump(self.result_json, f)
+            json.dump(result_json, f)
         ConfigurationManager().to_files(self.log_dir)
+        return result_json
 
     def _register_handles(self):
         from . import ServerSocketIOEvent
 
         # single-threaded async, no need to lock
 
-        @self.on(ServerSocketIOEvent.Connect)
+        @self._communicator.on(ServerSocketIOEvent.Connect)
         def handle_connect():
             print(request.sid, "connected")
             self.logger.info('%s connected' % request.sid)
 
-        @self.on(ServerSocketIOEvent.Reconnect)
+        @self._communicator.on(ServerSocketIOEvent.Reconnect)
         def handle_reconnect():
             print(request.sid, "reconnected")
             self.logger.info('%s reconnected' % request.sid)
 
-        @self.on(ServerSocketIOEvent.Disconnect)
+        @self._communicator.on(ServerSocketIOEvent.Disconnect)
         def handle_disconnect():
             print(request.sid, "disconnected")
             self.logger.info('%s disconnected' % request.sid)
@@ -271,12 +268,12 @@ class Server(FlaskNode):
                 ready_clients = set(self._ready_clients) - set(offline_clients)
                 self._ready_clients = list(ready_clients)
 
-        @self.on(ServerSocketIOEvent.WakeUp)
+        @self._communicator.on(ServerSocketIOEvent.WakeUp)
         def handle_wake_up():
             print("client wake_up: ", request.sid)
-            self.invoke(ClientSocketIOEvent.Init)
+            self._communicator.invoke(ClientSocketIOEvent.Init)
 
-        @self.on(ServerSocketIOEvent.Ready)
+        @self._communicator.on(ServerSocketIOEvent.Ready)
         def handle_client_ready(container_clients):
 
             container_id = container_clients[0]
@@ -288,25 +285,26 @@ class Server(FlaskNode):
             self._ready_container_id_dict[container_id] = client_ids
             self._ready_container_sid_dict[container_id] = request.sid
 
-            if len(self._ready_clients) >= self._num_clients and self._current_round == 0:
+            client_num = ConfigurationManager().runtime_config.client_num
+            if len(self._ready_clients) >= client_num and self._current_round == 0:
                 print("start to federated learning.....")
                 self._training_start_time = int(round(time.time()))
                 self.train_next_round()
-            elif len(self._ready_clients) < self._num_clients:
+            elif len(self._ready_clients) < client_num:
                 print("not enough client worker running.....")
             else:
                 print("current_round is not equal to 0")
 
-        @self.on(ServerSocketIOEvent.ResponseUpdate)
+        @self._communicator.on(ServerSocketIOEvent.ResponseUpdate)
         def handle_client_update(data: Mapping[str, Any]):
 
             if data['round_number'] == self._current_round:
-
+                num_clients_contacted_per_round = ConfigurationManager().num_of_clients_contacted_per_round
                 with self._thread_lock:
                     data['weights'] = pickle_string_to_obj(data['weights'])
                     data['time_receive_update'] = time.time()
                     self._c_up.append(data)
-                    receive_all = len(self._c_up) == self._num_clients_contacted_per_round
+                    receive_all = len(self._c_up) == num_clients_contacted_per_round
 
                 if receive_all:
 
@@ -329,7 +327,7 @@ class Server(FlaskNode):
                     client_params = [x['weights'] for x in self._c_up]
                     aggregate_weights = np.array([x['train_size'] for x in self._c_up])
 
-                    self._current_params = self.fed_model.update_host_params(
+                    self._current_params = self._strategy.update_host_params(
                         client_params, aggregate_weights / np.sum(aggregate_weights)
                     )
 
@@ -358,22 +356,23 @@ class Server(FlaskNode):
                     # Collect the send and received bytes
                     self._server_receive_bytes, self._server_send_bytes = self._get_comm_in_and_out()
 
-                    if self._current_round % self._rounds_between_val == 0:
+                    if self._current_round % ConfigurationManager().model_config.num_of_rounds_between_val == 0:
                         self.evaluate()
                     else:
                         self.train_next_round()
 
                     cur_round_info['round_finish_time'] = time.time()
 
-        @self.on(ServerSocketIOEvent.ResponseEvaluate)
+        @self._communicator.on(ServerSocketIOEvent.ResponseEvaluate)
         def handle_client_evaluate(data: Mapping[str, Any]):
 
             if data['round_number'] == self._current_round:
-
+                rt_cfg = ConfigurationManager().runtime_config
+                num_clients_contacted_per_round = ConfigurationManager().num_of_clients_contacted_per_round
                 with self._thread_lock:
                     data['time_receive_evaluate'] = time.time()
                     self._c_eval.append(data)
-                    num_clients_required = self._num_clients_contacted_per_round if self._lazy_update and not self._STOP else self._num_clients
+                    num_clients_required = num_clients_contacted_per_round if self._lazy_update and not self._STOP else rt_cfg.client_num
                     receive_all = len(self._c_eval) == num_clients_required
                 # self.logger.info('Receive evaluate result form %s' % request.sid)
 
@@ -466,11 +465,12 @@ class Server(FlaskNode):
                         else:
                             self._invalid_tolerate += 1
 
-                        if self._invalid_tolerate > self._num_tolerance:
+                        if self._invalid_tolerate > ConfigurationManager().model_config.tolerance_num:
                             self.logger.info("converges! starting test phase..")
                             self._STOP = True
 
-                        if self._current_round >= self._max_num_rounds:
+                        max_round_num = ConfigurationManager().model_config.max_round_num
+                        if self._current_round >= max_round_num:
                             self.logger.info("get to maximum step, stop...")
                             self._STOP = True
 
@@ -493,56 +493,36 @@ class Server(FlaskNode):
                                 )
                             self._training_stop_time = int(round(time.time()))
                             # Time
-                            m, s = divmod(self._training_stop_time - self._training_start_time, 60)
-                            h, m = divmod(m, 60)
-                            self.logger.info('Total time: {}:{}:{}'.format(h, m, s))
+                            result_json = self.save_result_to_json(self._training_stop_time)
+                            self.logger.info(f'Total time: {result_json["total_time"]}')
+                            self.logger.info(f'Time Detail: {result_json["time_detail"]}')
+                            self.logger.info(f'Total Rounds: {self._current_round}')
+                            self.logger.info(f'Server Send(GB): {result_json["server_send"]}')
+                            self.logger.info(f'Server Receive(GB): {result_json["server_receive"]}')
 
-                            avg_time_records = []
-                            keys = ['update_send', 'update_run', 'update_receive', 'agg_server',
-                                    'eval_send', 'eval_run', 'eval_receive', 'server_eval']
-                            for key in keys:
-                                avg_time_records.append(np.mean([e.get(key, 0) for e in self._time_record]))
-                            self.logger.info('Time Detail: ' + str(avg_time_records))
-                            self.logger.info('Total Rounds: %s' % self._current_round)
-                            self.logger.info('Server Send(GB): %s' % (self._server_send_bytes / (2 ** 30)))
-                            self.logger.info('Server Receive(GB): %s' % (self._server_receive_bytes / (2 ** 30)))
-                            # save data to file
-                            self.result_json = {
-                                'best_metric': self._best_test_metric,
-                                'best_metric_full': self._best_test_metric_full,
-                                'total_time': '{}:{}:{}'.format(h, m, s),
-                                'time_detail': str(avg_time_records),
-                                'total_rounds': self._current_round,
-                                'server_send': self._server_send_bytes / (2 ** 30),
-                                'server_receive': self._server_receive_bytes / (2 ** 30),
-                                'info_each_round': self._info_each_round
-                            }
-                            with open(os.path.join(self.log_dir, 'results.json'), 'w') as f:
-                                json.dump(self.result_json, f)
-                            ConfigurationManager().to_files(self.log_dir)
                             # Stop all the clients
-                            self.invoke(ClientSocketIOEvent.Stop, broadcast=True)
+                            self._communicator.invoke(
+                                ClientSocketIOEvent.Stop, broadcast=True)
                             # Call the server exit job
-                            self.fed_model.host_exit_job(self)
+                            self._strategy.host_exit_job(self)
                             # Server job finish
                             self._server_job_finish = True
                     else:
-                        self.save_result_to_json()
+                        self.save_result_to_json(time.time())
                         self.logger.info("start to next round...")
-                        self.train_next_round()
+                        self.train_next_round() #TODO(fgh) into loop form
 
-    def retrieval_session_information(self, selected_clients):
-        send_target = {}
-        for container in self._ready_container_id_dict:
-            for cid in self._ready_container_id_dict[container]:
-                if cid in selected_clients:
-                    send_target[container] = send_target.get(container, []) + [cid]
-        return send_target
+    def retrieval_session_information(self, selected_clients: Sequence[ClientId]) -> dict:
+        selected_clients = set(selected_clients)
+        return {
+            container_id: [cid for cid in client_ids if cid in selected_clients]
+            for container_id, client_ids in self._ready_container_id_dict.items()
+        }
 
     # Note: we assume that during training the #workers will be >= MIN_NUM_WORKERS
     def train_next_round(self):
 
-        selected_clients = self.fed_model.host_select_train_clients(self._ready_clients)
+        selected_clients = self._strategy.host_select_train_clients(self._ready_clients)
         self._current_round += 1
         self._info_each_round[self._current_round] = {'timestamp': time.time()}
 
@@ -564,7 +544,8 @@ class Server(FlaskNode):
             self.logger.info('Sending train requests to container %s targeting clients %s' % (
                 container_id, str(target_clients)))
             data_send['selected_clients'] = target_clients
-            self.invoke(ClientSocketIOEvent.RequestUpdate, data_send, room=self._ready_container_sid_dict[container_id])
+            self._communicator.invoke(ClientSocketIOEvent.RequestUpdate,
+                                      data_send, room=self._ready_container_sid_dict[container_id])
 
         self.logger.info('Finished sending update requests, waiting resp from clients')
 
@@ -584,10 +565,10 @@ class Server(FlaskNode):
         self.logger.info('Sending eval requests to %s clients' % len(selected_clients))
         for container_id, target_clients in actual_send.items():
             data_send['selected_clients'] = target_clients
-            self.invoke(ClientSocketIOEvent.RequestEvaluate, data_send,
+            self._communicator.invoke(ClientSocketIOEvent.RequestEvaluate, data_send,
                         room=self._ready_container_sid_dict[container_id])
         self.logger.info('Waiting resp from clients')
 
     def start(self):
-        # start to provide services
+        """start to provide services."""
         self._run_server()
