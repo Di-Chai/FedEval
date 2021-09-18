@@ -2,7 +2,8 @@ import os
 import time
 from typing import Any, Mapping
 
-from ..communicaiton import ServerSocketIOEvent, weights_filename_pattern, ClientFlaskCommunicator
+from ..communicaiton import (ClientFlaskCommunicator, ClientSocketIOEvent,
+                             ServerSocketIOEvent, weights_filename_pattern)
 from ..config import ConfigurationManager, Role
 from ..utils.utils import obj_to_pickle_string
 from .container import ClientContextManager
@@ -28,8 +29,6 @@ class Client(Node):
         super()._init_logger('container', f'Container{container_id}')
 
     def _register_handles(self):
-        from . import ClientSocketIOEvent
-
         @self._communicator.on(ClientSocketIOEvent.Connect)
         def on_connect():
             print('connect')
@@ -49,7 +48,7 @@ class Client(Node):
         def on_init():
             self.logger.info('on init')
             self.logger.info("local model initialized done.")
-            self._communicator.invoke(ClientSocketIOEvent.Ready, [
+            self._communicator.invoke(ServerSocketIOEvent.Ready, [
                                       self._ctx_mgr.container_id] + self._cid_list)
 
         @self._communicator.on(ClientSocketIOEvent.RequestUpdate)
@@ -107,7 +106,7 @@ class Client(Node):
                     self.logger.info("Emit client_update")
                     try:
                         self._communicator.invoke(
-                            ClientSocketIOEvent.ResponseUpdate, response)
+                            ServerSocketIOEvent.ResponseUpdate, response)
                         self.logger.info("sent trained model to server")
                     except Exception as e:
                         self.logger.error(e)
@@ -156,7 +155,7 @@ class Client(Node):
                     self.logger.info("Emit client evaluate")
                     try:
                         self._communicator.invoke(
-                            ClientSocketIOEvent.ResponseEvaluate, response)
+                            ServerSocketIOEvent.ResponseEvaluate, response)
                         self.logger.info("sent evaluation results to server")
                     except Exception as e:
                         self.logger.error(e)
