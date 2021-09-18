@@ -9,7 +9,8 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 import numpy as np
 from flask import render_template, request, send_file
 
-from ..communicaiton import (ClientSocketIOEvent, ServerFlaskCommunicator, Sid,
+from ..communicaiton import (ClientSocketIOEvent, ServerFlaskCommunicator,
+                             ServerSocketIOEvent, Sid,
                              server_best_weight_filename,
                              weights_filename_pattern)
 from ..config import ClientId, ConfigurationManager, Role, ServerFlaskInterface
@@ -243,8 +244,6 @@ class Server(Node):
         return result_json
 
     def _register_handles(self):
-        from . import ServerSocketIOEvent
-
         # single-threaded async, no need to lock
 
         @self._communicator.on(ServerSocketIOEvent.Connect)
@@ -259,14 +258,17 @@ class Server(Node):
 
         @self._communicator.on(ServerSocketIOEvent.Disconnect)
         def handle_disconnect():
-            print(request.sid, "disconnected")
-            self.logger.info('%s disconnected' % request.sid)
-            if request.sid in self._ready_container_sid_dict:
-                self._ready_container_sid_dict.pop(request.sid)
-                offline_clients: List[ClientId] = self._ready_container_id_dict.pop(
-                    request.sid)
-                ready_clients = set(self._ready_clients) - set(offline_clients)
-                self._ready_clients = list(ready_clients)
+            self.logger.info(f'{request.sid} disconnected')
+            target_container_id: ContainerId = -1
+            for container_id, sid in self._ready_container_sid_dict.items():
+                if sid == request.sid:
+                    target_container_id = container_id
+                    break
+            self._ready_container_sid_dict.pop(target_container_id)
+            offline_clients: List[ClientId] = self._ready_container_id_dict.pop(
+                target_container_id)
+            ready_clients = set(self._ready_clients).difference(offline_clients)
+            self._ready_clients = list(ready_clients)
 
         @self._communicator.on(ServerSocketIOEvent.WakeUp)
         def handle_wake_up():
