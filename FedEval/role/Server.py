@@ -523,9 +523,13 @@ class Server(Node):
 
     def retrieval_session_information(self, selected_clients: Sequence[ClientId]) -> dict:
         selected_clients = set(selected_clients)
-        return {
+        sess_info = {
             container_id: [cid for cid in client_ids if cid in selected_clients]
             for container_id, client_ids in self._ready_container_id_dict.items()
+        }
+        return {
+            container_id: client_ids
+            for container_id, client_ids in sess_info.items() if len(client_ids) > 0
         }
 
     # Note: we assume that during training the #workers will be >= MIN_NUM_WORKERS
@@ -550,8 +554,8 @@ class Server(Node):
         data_send = {'round_number': self._current_round, 'selected_clients': None}
 
         for container_id, target_clients in actual_send.items():
-            self.logger.info('Sending train requests to container %s targeting clients %s' % (
-                container_id, str(target_clients)))
+            self.logger.info(
+                f'Sending train requests to container {container_id} targeting clients {target_clients}')
             data_send['selected_clients'] = target_clients
             self._communicator.invoke(ClientSocketIOEvent.RequestUpdate,
                                       data_send, room=self._ready_container_sid_dict[container_id])
