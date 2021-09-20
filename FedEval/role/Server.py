@@ -276,13 +276,10 @@ class Server(Node):
             self._communicator.invoke(ClientSocketIOEvent.Init)
 
         @self._communicator.on(ServerSocketIOEvent.Ready)
-        def handle_client_ready(container_clients):
+        def handle_client_ready(container_id: ContainerId, client_ids: List[ClientId]):
+            self.logger.info(
+                f'Container {container_id}, with clients {client_ids} are ready for training')
 
-            container_id = container_clients[0]
-            client_ids = container_clients[1:]
-
-            self.logger.info('Container %s, with clients %s are ready for training' % (container_id, str(client_ids)))
-            
             self._ready_clients += client_ids
             self._ready_container_id_dict[container_id] = client_ids
             self._ready_container_sid_dict[container_id] = request.sid

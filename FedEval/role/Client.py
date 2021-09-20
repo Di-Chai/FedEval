@@ -48,8 +48,8 @@ class Client(Node):
         def on_init():
             self.logger.info('on init')
             self.logger.info("local model initialized done.")
-            self._communicator.invoke(ServerSocketIOEvent.Ready, [
-                                      self._ctx_mgr.container_id] + self._cid_list)
+            self._communicator.invoke(
+                ServerSocketIOEvent.Ready, self._ctx_mgr.container_id, self._cid_list)
 
         @self._communicator.on(ClientSocketIOEvent.RequestUpdate)
         def on_request_update(data_from_server: Mapping[str, Any]):
@@ -163,7 +163,6 @@ class Client(Node):
 
         @self._communicator.on(ClientSocketIOEvent.Stop)
         def on_stop():
-            # TODO(fgh): stop all the clients
             for cid in self._ctx_mgr.client_ids:
                 with self._ctx_mgr.get(cid) as client_ctx:
                     client_ctx.strategy.client_exit_job(self)
