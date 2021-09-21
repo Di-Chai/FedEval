@@ -165,8 +165,8 @@ class Server(Node):
                 current_used_time="%02d:%02d:%02d" % (h, m, s),
                 test_accuracy=self._best_test_metric.get(test_accuracy_key, 0),
                 test_loss=self._best_test_metric.get('test_loss', 0),
-                server_send=self._server_send_bytes / (2**30),
-                server_receive=self._server_receive_bytes / (2**30),
+                server_send=self._server_send_bytes / (1<<30),
+                server_receive=self._server_receive_bytes / (1<<30),
             )
 
         # TMP use
@@ -235,8 +235,8 @@ class Server(Node):
             'total_time': f'{h}:{m}:{s}',
             'time_detail': str(avg_time_records),
             'total_rounds': self._current_round,
-            'server_send': self._server_send_bytes / (2 ** 30),
-            'server_receive': self._server_receive_bytes / (2 ** 30),
+            'server_send': self._server_send_bytes / (1 << 30),
+            'server_receive': self._server_receive_bytes / (1 << 30),
             'info_each_round': self._info_each_round
         }
         with open(os.path.join(self.log_dir, 'results.json'), 'w') as f:
@@ -249,13 +249,15 @@ class Server(Node):
 
         @self._communicator.on(ServerSocketIOEvent.Connect)
         def handle_connect():
-            print(request.sid, "connected")
-            self.logger.info('%s connected' % request.sid)
+            # print(request.sid, "connected")
+            # self.logger.info('%s connected' % request.sid)
+            pass
 
         @self._communicator.on(ServerSocketIOEvent.Reconnect)
         def handle_reconnect():
-            print(request.sid, "reconnected")
-            self.logger.info('%s reconnected' % request.sid)
+            # print(request.sid, "reconnected")
+            # self.logger.info('%s reconnected' % request.sid)
+            pass
 
         @self._communicator.on(ServerSocketIOEvent.Disconnect)
         def handle_disconnect():
