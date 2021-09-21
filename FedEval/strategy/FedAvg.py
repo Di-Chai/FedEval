@@ -4,7 +4,7 @@ from ..callbacks import *
 from ..config.configuration import ConfigurationManager
 from ..model import *
 from ..utils import ParamParser
-from . import FedStrategy
+from .FederatedStrategy import FedStrategy
 from .utils import *
 
 

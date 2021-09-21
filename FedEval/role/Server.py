@@ -15,6 +15,7 @@ from ..communicaiton import (ClientSocketIOEvent, ServerFlaskCommunicator,
                              weights_filename_pattern)
 from ..config import ClientId, ConfigurationManager, Role, ServerFlaskInterface
 from ..strategy import FedStrategyInterface
+from ..strategy.build_in import *
 from ..utils import obj_to_pickle_string, pickle_string_to_obj
 from .container import ContainerId
 from .node import Node
@@ -521,7 +522,7 @@ class Server(Node):
                 self.logger.info("start to next round...")
                 self.train_next_round() #TODO(fgh) into loop form
 
-    def retrieval_session_information(self, selected_clients: Sequence[ClientId]) -> dict:
+    def retrieval_session_information(self, selected_clients: Sequence[ClientId]) -> Mapping[ContainerId, List[ClientId]]:
         selected_clients = set(selected_clients)
         sess_info = {
             container_id: [cid for cid in client_ids if cid in selected_clients]
@@ -584,4 +585,4 @@ class Server(Node):
 
     def start(self):
         """start to provide services."""
-        self._run_server()
+        self._communicator.run_server()

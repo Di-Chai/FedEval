@@ -2,8 +2,8 @@ import os
 import time
 from typing import Any, Mapping
 
-from ..communicaiton import (ClientFlaskCommunicator, ClientSocketIOEvent,
-                             ServerSocketIOEvent, weights_filename_pattern)
+from ..communicaiton import ClientFlaskCommunicator, weights_filename_pattern
+from ..communicaiton.events import *
 from ..config import ConfigurationManager, Role
 from ..utils.utils import obj_to_pickle_string
 from .container import ClientContextManager
@@ -172,4 +172,4 @@ class Client(Node):
     def start(self):
         self._communicator.invoke(ServerSocketIOEvent.WakeUp)
         self.logger.info("sent wakeup")
-        self.wait()
+        self._communicator.wait()

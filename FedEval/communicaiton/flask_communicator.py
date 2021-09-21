@@ -1,5 +1,5 @@
 import os
-from functools import partial, wraps
+from functools import wraps
 from platform import platform
 from typing import Any, Callable, Tuple
 
@@ -17,7 +17,7 @@ from .model_weights_io import ModelWeightsFlaskHandler, ModelWeightsIoInterface
 Sid = Any           # from SocketIO
 
 
-def __event2message(event: SocketIOEvent) -> str:
+def _event2message(event: SocketIOEvent) -> str:
     return event.value
 
 
@@ -80,22 +80,19 @@ class ClientFlaskCommunicator(FlaskCommunicator):
             weights_download_url)
         self._sio = ClientSocketIO(self._host, self._port)
 
-        self.on = self._con  # client-side handler register
-        self.invoke = partial(self._cinvoke, self)
-        self.wait = self._sio.wait
-
-    def _con(self, event: ClientSocketIOEvent, *on_args, **on_kwargs):
+    def on(self, event: ClientSocketIOEvent, *on_args, **on_kwargs):
         def decorator(func: Callable):
             @wraps(func)
             def wrapper(*args, **kwargs):
-                return self._sio.on(__event2message(event), func, *on_args, **on_kwargs)
+                return self._sio.on(_event2message(event), func, *on_args, **on_kwargs)
             return wrapper
         return decorator
 
-    @staticmethod
-    def _cinvoke(self, event: ServerSocketIOEvent, *args, **kwargs):
-        return self._sio.emit(__event2message(event), *args, **kwargs)
+    def invoke(self, event: ServerSocketIOEvent, *args, **kwargs):
+        return self._sio.emit(_event2message(event), *args, **kwargs)
 
+    def wait(self, seconds=None, **kw) -> None:
+        self._sio.wait(seconds=seconds, **kw)
 
 class ServerFlaskCommunicator(FlaskCommunicator):
     def __init__(self) -> None:
@@ -113,21 +110,22 @@ class ServerFlaskCommunicator(FlaskCommunicator):
                                         ping_interval=1800, cors_allowed_origins='*')
 
         # server-side handler register
-        self.on = FlaskCommunicator._son(self._socketio.on)
-        self.invoke = self._sinvoke
-        self.route = self._app.route  # server-side router
+        self.on = ServerFlaskCommunicator._son(self._socketio.on)
 
     @classmethod
     def _son(cls, func: Callable):
         @wraps(func)
         def wrapper(*args, **kwargs):
             event: ServerSocketIOEvent = args[0]
-            return func(__event2message(event), *args[1:], **kwargs)
+            return func(_event2message(event), *args[1:], **kwargs)
         return wrapper
 
     @staticmethod
-    def _sinvoke(event: ClientSocketIOEvent, *args, **kwargs):
-        return emit(__event2message(event), *args, **kwargs)
+    def invoke(event: ClientSocketIOEvent, *args, **kwargs):
+        return emit(_event2message(event), *args, **kwargs)
 
-    def _run_server(self) -> None:
+    def run_server(self) -> None:
         self._socketio.run(self._app, host=self._host, port=self._port)
+
+    def route(self, rule: str, **options: Any):
+        return self._app.route(rule, **options)
