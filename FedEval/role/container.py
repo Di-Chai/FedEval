@@ -1,6 +1,7 @@
 import os
 from contextlib import contextmanager
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
+from typing import (Any, Dict, Iterable, List, Mapping, Optional, Sequence,
+                    Set, Union)
 
 from ..config import ClientId, ConfigurationManager
 from ..strategy import *  # for strategy construction
@@ -174,7 +175,7 @@ class ClientContextManager:
         return self._clients.keys()
 
     @contextmanager
-    def get(self, client_id: ClientId):
+    def get(self, client_id: ClientId) -> ClientContext:
         # TODO(fgh) add unittest for this method
         if client_id not in self._clients:
             raise ValueError(f'unknown client with an ID of {client_id}')
@@ -187,3 +188,110 @@ class ClientContextManager:
         finally:
             pass
 
+
+CommunicationId = Any   # TODO(fgh) into Generic Type
+NodeId = ContainerId    # TODO(fgh) into Generic Type
+
+class ClientNodeContext:
+    def __init__(self, id: NodeId, comm_id: CommunicationId, client_ids: Iterable[ClientId]) -> None:
+        self._id: NodeId = id
+        self._comm_id: CommunicationId = comm_id
+        self._client_ids: Set[ClientId] = set(client_ids)
+
+    @property
+    def id(self) -> NodeId:
+        return self._id
+
+    @property
+    def comm_id(self) -> CommunicationId:
+        return self._comm_id
+
+    @property
+    def client_ids(self) -> Iterable[ClientId]:
+        return list(self._client_ids)
+
+    @client_ids.setter
+    def client_ids(self, value: Iterable[ClientId]):
+        self._client_ids = set(value)
+
+
+class ClientNodeContextManager:
+    def __init__(self) -> None:
+        self._client_ids : Dict[ClientId, NodeId] = dict()
+        self._comm_ids: Dict[NodeId, CommunicationId] = dict()
+        self._nodes: Dict[CommunicationId, ClientNodeContext] = dict()
+        self._offline_node_ids: Set[NodeId] = set()
+
+    def activate(self, node_id: NodeId, comm_id: CommunicationId, client_ids: Iterable[ClientId]):
+        if comm_id in self._nodes:
+            node = self._nodes[comm_id]
+            assert node.id == node_id
+            if node_id in self._offline_node_ids:
+                self._offline_node_ids.remove(node_id)
+            node.client_ids = client_ids
+        else:
+            new_node = ClientNodeContext(node_id, comm_id, client_ids)
+            self._nodes[comm_id] = new_node
+
+        self._comm_ids[node_id] = comm_id
+        for client_id in client_ids:
+            self._client_ids[client_id] = node_id
+
+    def recover_from_deactivation(self, node_id: NodeId):
+        assert node_id in self._offline_node_ids
+        self._offline_node_ids.remove(node_id)
+
+    def deactivate_by_node_id(self, node_id: NodeId) -> Iterable[ClientId]:
+        """mark the given node as offline and return the corresponding offline clients.
+
+        Args:
+            node_id (NodeId): the id of the offline node
+
+        Returns:
+            Iterable[ClientId]: the client on the given offline node.
+        """
+        self._offline_node_ids.add(node_id)
+        return list(self._nodes[self._comm_ids[node_id]].client_ids)
+
+    def deactivate_by_comm(self, comm_id: CommunicationId) -> Iterable[ClientId]:
+        self._offline_node_ids.add(self._nodes[comm_id].id)
+        return list(self._nodes[comm_id].client_ids)
+
+    @contextmanager
+    def get_by_node(self, node_id: NodeId) -> ClientNodeContext:
+        comm_id = self._comm_ids[node_id]
+        try:
+            yield self._nodes[comm_id]
+        finally:
+            pass
+
+    @contextmanager
+    def get_by_client(self, client_id: ClientId) -> ClientNodeContext:
+        node_id = self._client_ids[client_id]
+        comm_id = self._comm_ids[node_id]
+        try:
+            yield self._nodes[comm_id]
+        finally:
+            pass
+
+    @contextmanager
+    def get_by_comm(self, comm_id: CommunicationId) -> ClientNodeContext:
+        try:
+            yield self._nodes[comm_id]
+        finally:
+            pass
+
+    def cluster_by_node(self, selected_clients: Iterable[ClientId]) -> Mapping[NodeId, Iterable[ClientId]]:
+        selected_clients = set(selected_clients)
+        cluster: Dict[NodeId, Optional[List[ClientId]]] = dict()
+        for client_id in selected_clients:
+            node_id = self._client_ids[client_id]
+            if node_id not in cluster:
+                cluster[node_id] = list()
+            cluster[node_id].append(client_id)
+        return cluster
+
+    @property
+    def online_client_ids(self) -> Iterable[ClientId]:
+        return [client_id for client_id, node_id in self._client_ids.items()
+                if node_id not in self._offline_node_ids]

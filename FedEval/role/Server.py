@@ -4,15 +4,15 @@ import os
 import re
 import threading
 import time
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
-from flask import render_template, request, send_file
+from flask import render_template, send_file
 
-from ..communicaiton import (ClientSocketIOEvent, ServerFlaskCommunicator,
-                             ServerSocketIOEvent, Sid,
+from ..communicaiton import (ServerFlaskCommunicator,
                              server_best_weight_filename,
                              weights_filename_pattern)
+from ..communicaiton.events import *
 from ..config import ClientId, ConfigurationManager, Role, ServerFlaskInterface
 from ..strategy import FedStrategyInterface
 from ..strategy.build_in import *
@@ -101,10 +101,6 @@ class Server(Node):
         self._server_job_finish = False
         self._client_sids_selected: Optional[List[Any]] = None
         self._invalid_tolerate: int = 0  # for client-side evaluation
-        self._ready_container_sid_dict: Dict[ContainerId, Sid] = {} # TODO(fgh) 将Container交给Container或者Communicator管理
-        self._ready_container_id_dict: Dict[ContainerId, List[ClientId]] = {}
-        self._ready_clients: List[ClientId] = []
-        self._client_resource = {}
 
         self._lazy_update = False
 
@@ -156,7 +152,7 @@ class Server(Node):
                 'dashboard.html',
                 status='Finish' if self._STOP else 'Running',
                 rounds=f"{self._current_round} / {cfg_mgr.model_config.max_round_num}",
-                num_online_clients=f"{cfg_mgr.num_of_clients_contacted_per_round} / {len(self._ready_clients)} / {cfg_mgr.runtime_config.client_num}",
+                num_online_clients=f"{cfg_mgr.num_of_clients_contacted_per_round} / {len(self._communicator.ready_client_ids)} / {cfg_mgr.runtime_config.client_num}",
                 avg_test_metric=self._avg_test_metrics,
                 avg_test_metric_keys=avg_test_metric_keys,
                 avg_val_metric=self._avg_val_metrics,
@@ -249,33 +245,20 @@ class Server(Node):
 
         @self._communicator.on(ServerSocketIOEvent.Connect)
         def handle_connect():
-            # print(request.sid, "connected")
-            # self.logger.info('%s connected' % request.sid)
             pass
 
         @self._communicator.on(ServerSocketIOEvent.Reconnect)
         def handle_reconnect():
-            # print(request.sid, "reconnected")
-            # self.logger.info('%s reconnected' % request.sid)
-            pass
+            recovered_clients = self._communicator.handle_reconnection()
+            self.logger.info(f'{recovered_clients} reconnected')
 
         @self._communicator.on(ServerSocketIOEvent.Disconnect)
         def handle_disconnect():
-            self.logger.info(f'{request.sid} disconnected')
-            target_container_id: ContainerId = -1
-            for container_id, sid in self._ready_container_sid_dict.items():
-                if sid == request.sid:
-                    target_container_id = container_id
-                    break
-            self._ready_container_sid_dict.pop(target_container_id)
-            offline_clients: List[ClientId] = self._ready_container_id_dict.pop(
-                target_container_id)
-            ready_clients = set(self._ready_clients).difference(offline_clients)
-            self._ready_clients = list(ready_clients)
+            disconnected_clients = self._communicator.handle_disconnection()
+            self.logger.info(f'{disconnected_clients} disconnected')
 
         @self._communicator.on(ServerSocketIOEvent.WakeUp)
         def handle_wake_up():
-            print("client wake_up: ", request.sid)
             self._communicator.invoke(ClientSocketIOEvent.Init)
 
         @self._communicator.on(ServerSocketIOEvent.Ready)
@@ -283,19 +266,17 @@ class Server(Node):
             self.logger.info(
                 f'Container {container_id}, with clients {client_ids} are ready for training')
 
-            self._ready_clients += client_ids
-            self._ready_container_id_dict[container_id] = client_ids
-            self._ready_container_sid_dict[container_id] = request.sid
+            self._communicator.activate(container_id, client_ids)
 
             client_num = ConfigurationManager().runtime_config.client_num
-            if len(self._ready_clients) >= client_num and self._current_round == 0:
-                print("start to federated learning.....")
+            if len(self._communicator.ready_client_ids) >= client_num and self._current_round == 0:
+                self.logger.info("start to federated learning.....")
                 self._training_start_time = int(round(time.time()))
                 self.train_next_round()
-            elif len(self._ready_clients) < client_num:
-                print("not enough client worker running.....")
+            elif len(self._communicator.ready_client_ids) < client_num:
+                self.logger.error("not enough client worker running.....")
             else:
-                print("current_round is not equal to 0")
+                self.logger.warn("current_round is not equal to 0")
 
         @self._communicator.on(ServerSocketIOEvent.ResponseUpdate)
         def handle_client_update(data: Mapping[str, Any]):
@@ -333,11 +314,10 @@ class Server(Node):
             # current train
             client_params = [x['weights'] for x in self._c_up]
             aggregate_weights = np.array([x['train_size'] for x in self._c_up])
+            aggregate_weights /= np.sum(aggregate_weights)
 
             self._current_params = self._strategy.update_host_params(
-                client_params, aggregate_weights / np.sum(aggregate_weights)
-            )
-
+                client_params, aggregate_weights)
             self.save_weight(weights_filename_pattern)
 
             aggr_train_loss = self.aggregate_train_loss(
@@ -492,7 +472,7 @@ class Server(Node):
             if self._STOP:
                 # Another round of testing after the training is finished
                 if self._lazy_update and self._best_test_metric_full is None:
-                    self.evaluate(self._ready_clients, server_best_weight_filename)
+                    self.evaluate(self._communicator.ready_client_ids, server_best_weight_filename)
                 else:
                     self.logger.info("== done ==")
                     self.logger.info("Federated training finished ... ")
@@ -513,8 +493,7 @@ class Server(Node):
                     self.logger.info(f'Server Receive(GB): {result_json["server_receive"]}')
 
                     # Stop all the clients
-                    self._communicator.invoke(
-                        ClientSocketIOEvent.Stop, broadcast=True)
+                    self._communicator.invoke_all(ClientSocketIOEvent.Stop)
                     # Call the server exit job
                     self._strategy.host_exit_job(self)
                     # Server job finish
@@ -524,21 +503,10 @@ class Server(Node):
                 self.logger.info("start to next round...")
                 self.train_next_round() #TODO(fgh) into loop form
 
-    def retrieval_session_information(self, selected_clients: Sequence[ClientId]) -> Mapping[ContainerId, List[ClientId]]:
-        selected_clients = set(selected_clients)
-        sess_info = {
-            container_id: [cid for cid in client_ids if cid in selected_clients]
-            for container_id, client_ids in self._ready_container_id_dict.items()
-        }
-        return {
-            container_id: client_ids
-            for container_id, client_ids in sess_info.items() if len(client_ids) > 0
-        }
-
     # Note: we assume that during training the #workers will be >= MIN_NUM_WORKERS
     def train_next_round(self):
 
-        selected_clients = self._strategy.host_select_train_clients(self._ready_clients)
+        selected_clients = self._strategy.host_select_train_clients(self._communicator.ready_client_ids)
         self._current_round += 1
         self._info_each_round[self._current_round] = {'timestamp': time.time()}
 
@@ -550,19 +518,9 @@ class Server(Node):
         # buffers all client updates
         self._c_up = []
 
-        # get the session information
-        actual_send = self.retrieval_session_information(selected_clients)
-
-        # Start the update
-        data_send = {'round_number': self._current_round, 'selected_clients': None}
-
-        for container_id, target_clients in actual_send.items():
-            self.logger.info(
-                f'Sending train requests to container {container_id} targeting clients {target_clients}')
-            data_send['selected_clients'] = target_clients
-            self._communicator.invoke(ClientSocketIOEvent.RequestUpdate,
-                                      data_send, room=self._ready_container_sid_dict[container_id])
-
+        self._communicator.invoke_all(ClientSocketIOEvent.RequestUpdate,
+                                      {'round_number': self._current_round},
+                                      callees=[selected_clients])
         self.logger.info('Finished sending update requests, waiting resp from clients')
 
     def evaluate(self, selected_clients=None, specified_model_file=None):
@@ -574,15 +532,13 @@ class Server(Node):
 
         # retrieval send information
         if selected_clients is None:
-            # selected_clients = self.fed_model.host_select_evaluate_clients(self._ready_clients)
-            selected_clients = self._ready_clients
-        actual_send = self.retrieval_session_information(selected_clients)
+            # selected_clients = self.fed_model.host_select_evaluate_clients(self._communicator.ready_client_ids)
+            selected_clients = self._communicator.ready_client_ids
 
-        self.logger.info('Sending eval requests to %s clients' % len(selected_clients))
-        for container_id, target_clients in actual_send.items():
-            data_send['selected_clients'] = target_clients
-            self._communicator.invoke(ClientSocketIOEvent.RequestEvaluate, data_send,
-                        room=self._ready_container_sid_dict[container_id])
+        self.logger.info(f'Sending eval requests to {len(selected_clients)} clients')
+        self._communicator.invoke_all(ClientSocketIOEvent.RequestEvaluate,
+                                      data_send,
+                                      callees=selected_clients)
         self.logger.info('Waiting resp from clients')
 
     def start(self):
