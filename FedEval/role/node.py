@@ -16,9 +16,6 @@ class Node(metaclass=ABCMeta):
             constructed according to the given configurations.
     """
 
-    def __init__(self, name: str) -> None:
-        self.name = name
-
     def _init_logger(self, logger_name: str, log_dir_name: str):
         # TODO(fgh): move log-related into a standalone module
         self.logger = logging.getLogger(logger_name)

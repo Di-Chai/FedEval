@@ -3,10 +3,8 @@ import os
 from abc import ABC, abstractmethod, abstractproperty
 from copy import deepcopy
 from enum import Enum
-from functools import wraps
 from threading import Lock
-from typing import Callable, List, Mapping, Optional, Sequence, TextIO, Tuple, Union
-from unittest import case
+from typing import List, Mapping, Optional, Sequence, TextIO, Tuple, Union
 
 import yaml
 
@@ -143,9 +141,19 @@ _RT_M_SK_FILENAME_KEY = 'key'
 _RT_M_CAPACITY_KEY = 'capacity'
 _RT_M_SERVER_NAME = 'server'
 
-_RT_LOG_DIR_PATH_KEY = 'log_dir'
+_RT_LOG_KEY = 'log'
+_RT_L_BASE_LEVEL_KEY = 'base_level'
+_RT_L_FILE_LEVEL_KEY = 'file_log_level'
+_RT_L_CONSOLE_LEVEL_KEY = 'console_log_level'
+_RT_L_DIR_PATH_KEY = 'log_dir'
+
 _DEFAULT_RT_CFG: RawConfigurationDict = {
-    _RT_LOG_DIR_PATH_KEY: 'log/quickstart',
+    _RT_LOG_KEY: {
+        _RT_L_DIR_PATH_KEY: 'log/quickstart',
+        _RT_L_BASE_LEVEL_KEY: 'INFO',
+        _RT_L_FILE_LEVEL_KEY: 'INFO',
+        _RT_L_CONSOLE_LEVEL_KEY: 'ERROR',
+    },
     _RT_DOCKER_KEY: {
         _RT_D_IMAGE_LABEL_KEY: 'fedeval:gpu',
         _RT_D_CONTAINER_NUM_KEY: 10,
@@ -634,6 +642,8 @@ class _RT_Machine(_Configuraiton):
 
 class _RuntimeConfig(_Configuraiton):
     __ITEM_CHECK_VALUE_ERROR_PATTERN = 'runtime configurations should have {}.'
+    __AVAILABLE_LOGGING_LEVELS = {
+        'NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'}
 
     def __init__(self, runtime_config: RawConfigurationDict = _DEFAULT_RT_CFG) -> None:
         _RuntimeConfig.__check_items(runtime_config)
@@ -643,7 +653,7 @@ class _RuntimeConfig(_Configuraiton):
     @staticmethod
     def __check_items(config: RawConfigurationDict) -> None:
         required_keys = [_RT_CLIENTS_KEY, _RT_DOCKER_KEY,
-                         _RT_SERVER_KEY, _RT_LOG_DIR_PATH_KEY]
+                         _RT_SERVER_KEY, _RT_LOG_KEY]
         for k in required_keys:
             assert k in config, ValueError(
                 _RuntimeConfig.__ITEM_CHECK_VALUE_ERROR_PATTERN.format(k))
@@ -720,7 +730,42 @@ class _RuntimeConfig(_Configuraiton):
     @property
     def log_dir_path(self) -> str:
         """the path of the base of log directory."""
-        return self._inner[_RT_LOG_DIR_PATH_KEY]
+        return self._inner[_RT_LOG_KEY][_RT_L_DIR_PATH_KEY]
+
+    @staticmethod
+    def _check_log_level_validity(level: str) -> None:
+        """make sure the given string is one of the logging levels.
+
+        Args:
+            level (str): a string representation of a logging level.
+
+        Raises:
+            ValueError: the given string is not a valid logging level.
+        """
+        if level not in _RuntimeConfig.__AVAILABLE_LOGGING_LEVELS:
+            raise ValueError(
+                f'invalid logging level, available choices: {_RuntimeConfig.__AVAILABLE_LOGGING_LEVELS}')
+
+    @property
+    def base_log_level(self) -> str:
+        """the base logging level of all the loggers."""
+        lvl = self._inner[_RT_LOG_KEY][_RT_L_BASE_LEVEL_KEY]
+        _RuntimeConfig._check_log_level_validity(lvl)
+        return lvl
+
+    @property
+    def file_log_level(self) -> str:
+        """the logging level in the log files."""
+        lvl = self._inner[_RT_LOG_KEY][_RT_L_FILE_LEVEL_KEY]
+        _RuntimeConfig._check_log_level_validity(lvl)
+        return lvl
+
+    @property
+    def console_log_level(self) -> str:
+        """the logging level in consoles."""
+        lvl = self._inner[_RT_LOG_KEY][_RT_L_CONSOLE_LEVEL_KEY]
+        _RuntimeConfig._check_log_level_validity(lvl)
+        return lvl
 
     @property
     def secret_key(self) -> str:

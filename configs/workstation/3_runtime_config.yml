@@ -23,4 +23,8 @@ machines:
     user_name: ubuntu
     dir: /ldisk/chaidi/FedEval
     key: id_rsa
-log_dir: log/workstation
+log:
+  log_dir: log/workstation
+  base_level: INFO
+  file_log_level: INFO
+  console_log_level: ERROR

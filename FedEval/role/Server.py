@@ -1,7 +1,7 @@
+import base64
 import datetime
 import json
 import os
-import re
 import threading
 import time
 from typing import Any, Dict, List, Mapping, Optional
@@ -9,15 +9,14 @@ from typing import Any, Dict, List, Mapping, Optional
 import numpy as np
 from flask import render_template, send_file
 
-from ..communicaiton import (ServerFlaskCommunicator,
-                             server_best_weight_filename,
-                             weights_filename_pattern)
+from ..communicaiton import ServerFlaskCommunicator
 from ..communicaiton.events import *
 from ..config import ClientId, ConfigurationManager, Role, ServerFlaskInterface
 from ..strategy import FedStrategyInterface
 from ..strategy.build_in import *
-from ..utils import obj_to_pickle_string, pickle_string_to_obj
+from ..utils import pickle_string_to_obj  # TODO(fgh) remove from this file
 from .container import ContainerId
+from .logger import HyperLogger
 from .node import Node
 
 
@@ -26,7 +25,7 @@ class Server(Node):
 
     def __init__(self):
         ConfigurationManager().role = Role.Server
-        super().__init__('server')
+        super().__init__()
         self._construct_fed_model()
         self._init_logger()
         self._init_states()
@@ -35,7 +34,8 @@ class Server(Node):
         self._register_handles()
         self._register_services()
 
-        self.save_weight(weights_filename_pattern)   # save the init weights
+        # save the init weights
+        self._hyper_logger.snapshot_model_weights_into_file(self._current_params, self._current_round)
 
     def _construct_fed_model(self):
         """Construct a federated model according to `self.model_config` and bind it to `self.fed_model`.
@@ -46,7 +46,9 @@ class Server(Node):
         self._strategy: FedStrategyInterface = fed_strategy_type()
 
     def _init_logger(self):
-        super()._init_logger('Server', 'Server')
+        self._hyper_logger = HyperLogger('Server', 'Server')
+        self.logger = self._hyper_logger.get()
+
         cfg_mgr = ConfigurationManager()
         _run_config = {
             'num_clients': cfg_mgr.runtime_config.client_num,
@@ -104,15 +106,11 @@ class Server(Node):
 
         self._lazy_update = False
 
-    def _init_model_io_configs(self):
-        self._model_path = os.path.abspath(self.log_dir) # TODO(fgh): seperate model_path from log_dir
-
     def _init_states(self):
         self._init_statistical_states()
         self._init_control_states()
         self._current_params = self._strategy.host_get_init_params()
         self._init_metric_states()
-        self._init_model_io_configs()
 
     def _register_services(self):
         @self._communicator.route(ServerFlaskInterface.Dashboard.value)
@@ -175,13 +173,15 @@ class Server(Node):
                     None if len(self._avg_val_metrics) == 0 else self._avg_val_metrics[-1], 
                     None if len(self._avg_test_metrics) == 0 else self._avg_test_metrics[-1]
                     ],
-                'log_dir': self.log_dir,
+                'log_dir': self._hyper_logger.dir_path,
             })
 
-        @self._communicator.route(ServerFlaskInterface.DownloadPattern.value.format('<filename>'), methods=['GET'])
-        def download_file(filename):
-            if os.path.isfile(os.path.join(self._model_path, filename)):
-                return send_file(os.path.join(self._model_path, filename), as_attachment=True)
+        @self._communicator.route(ServerFlaskInterface.DownloadPattern.value.format('<encoded_file_path>'), methods=['GET'])
+        def download_file(encoded_file_path: str):
+            file_path = base64.b64decode(encoded_file_path.encode(
+                encoding='utf8')).decode(encoding='utf8')
+            if os.path.isfile(file_path):
+                return send_file(file_path, as_attachment=True)
             else:
                 return json.dumps({'status': 404, 'msg': 'file not found'})
 
@@ -202,30 +202,14 @@ class Server(Node):
                 return_value += "{}={}\n".format(attr, attr_value)
         return return_value
 
-    # TODO(fgh) into IO related module
-    def save_weight(self, weight_filename_pattern):
-        obj_to_pickle_string(
-            self._current_params,
-            os.path.join(self._model_path, weight_filename_pattern.format(self._current_round))
-        )
-        # Keep the latest 5 weights
-        all_files_in_model_dir = os.listdir(self._model_path)
-        matched_model_files = [re.match(r'model_([0-9]+).pkl', e) for e in all_files_in_model_dir]
-        matched_model_files = [e for e in matched_model_files if e is not None]
-        for matched_model in matched_model_files:
-            if self._current_round - int(matched_model.group(1)) >= 5:
-                os.remove(os.path.join(self._model_path, matched_model.group(0)))
-
-    # TODO(fgh) into IO related module
-    def save_result_to_json(self, cur_time: float) -> Mapping[str, Any]:
+    def snapshot_result(self, cur_time: float) -> Mapping[str, Any]:
         m, s = divmod(int(round(cur_time) - self._training_start_time), 60)
         h, m = divmod(m, 60)
-        avg_time_records = []
         keys = ['update_send', 'update_run', 'update_receive', 'agg_server',
                 'eval_send', 'eval_run', 'eval_receive', 'server_eval']
-        for key in keys:
-            avg_time_records.append(np.mean([e.get(key, 0) for e in self._time_record]))
-        result_json = {
+        avg_time_records = [np.mean([e.get(key, 0)
+                                    for e in self._time_record]) for key in keys]
+        return {
             'best_metric': self._best_test_metric,
             'best_metric_full': self._best_test_metric_full,
             'total_time': f'{h}:{m}:{s}',
@@ -235,10 +219,6 @@ class Server(Node):
             'server_receive': self._server_receive_bytes / (1 << 30),
             'info_each_round': self._info_each_round
         }
-        with open(os.path.join(self.log_dir, 'results.json'), 'w') as f:
-            json.dump(result_json, f)
-        ConfigurationManager().to_files(self.log_dir)
-        return result_json
 
     def _register_handles(self):
         # single-threaded async, no need to lock
@@ -318,7 +298,7 @@ class Server(Node):
 
             self._current_params = self._strategy.update_host_params(
                 client_params, aggregate_weights)
-            self.save_weight(weights_filename_pattern)
+            self._hyper_logger.snapshot_model_weights_into_file(self._current_params, self._current_round)
 
             aggr_train_loss = self.aggregate_train_loss(
                 [x['train_loss'] for x in self._c_up],
@@ -449,8 +429,8 @@ class Server(Node):
                     self._best_round = self._current_round
                     self._invalid_tolerate = 0
                     self._best_test_metric.update(avg_test_metrics)
-                    obj_to_pickle_string(self._current_params,
-                                            os.path.join(self._model_path, server_best_weight_filename))
+                    self._hyper_logger.snap_server_side_best_model_weights_into_file(
+                        self._current_params)
                     self.logger.info(str(self._best_test_metric))
                     if not self._lazy_update:
                         self._best_test_metric_full = full_test_metric
@@ -472,7 +452,7 @@ class Server(Node):
             if self._STOP:
                 # Another round of testing after the training is finished
                 if self._lazy_update and self._best_test_metric_full is None:
-                    self.evaluate(self._communicator.ready_client_ids, server_best_weight_filename)
+                    self.evaluate(self._communicator.ready_client_ids, eval_best_model=True)
                 else:
                     self.logger.info("== done ==")
                     self.logger.info("Federated training finished ... ")
@@ -485,7 +465,9 @@ class Server(Node):
                         )
                     self._training_stop_time = int(round(time.time()))
                     # Time
-                    result_json = self.save_result_to_json(self._training_stop_time)
+                    result_json = self.snapshot_result(self._training_stop_time)
+                    self._hyper_logger.snapshot_results_into_file(result_json)
+                    self._hyper_logger.snapshot_config_into_files()
                     self.logger.info(f'Total time: {result_json["total_time"]}')
                     self.logger.info(f'Time Detail: {result_json["time_detail"]}')
                     self.logger.info(f'Total Rounds: {self._current_round}')
@@ -499,7 +481,9 @@ class Server(Node):
                     # Server job finish
                     self._server_job_finish = True
             else:
-                self.save_result_to_json(time.time())
+                results = self.snapshot_result(time.time())
+                self._hyper_logger.snapshot_results_into_file(results)
+                self._hyper_logger.snapshot_config_into_files() # just for backward compatibility
                 self.logger.info("start to next round...")
                 self.train_next_round() #TODO(fgh) into loop form
 
@@ -518,17 +502,26 @@ class Server(Node):
         # buffers all client updates
         self._c_up = []
 
+        previous_round = self._current_round - 1
+        weight_file_path = self._hyper_logger.model_weight_file_path(previous_round)
+        encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(encoding='utf8')
+        data_send = {'round_number': self._current_round,
+                     'weights_file_name': encoded_weight_file_path}
         self._communicator.invoke_all(ClientSocketIOEvent.RequestUpdate,
-                                      {'round_number': self._current_round},
+                                      data_send,
                                       callees=[selected_clients])
         self.logger.info('Finished sending update requests, waiting resp from clients')
 
-    def evaluate(self, selected_clients=None, specified_model_file=None):
+    def evaluate(self, selected_clients=None, eval_best_model=False):
         self.logger.info('Starting eval')
         self._c_eval = []
         data_send = { 'round_number': self._current_round }
-        if specified_model_file is not None and os.path.isfile(os.path.join(self._model_path, specified_model_file)):
-            data_send['weights_file_name'] = specified_model_file
+        weight_file_path = (
+            self._hyper_logger.server_side_best_model_weight_file_path 
+            if eval_best_model else 
+            self._hyper_logger.model_weight_file_path(self._current_round))
+        encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(encoding='utf8')
+        data_send['weights_file_name'] = encoded_weight_file_path
 
         # retrieval send information
         if selected_clients is None:
