@@ -58,7 +58,7 @@ class Server(Node):
             'rounds_between_val': cfg_mgr.model_config.num_of_rounds_between_val,
         }
         self.logger.info(_run_config)
-        self.logger.info(self.get_model_description())
+        self.logger.info(self._get_strategy_description())
 
     def _init_metric_states(self):
         # weights should be an ordered list of parameter
@@ -194,7 +194,7 @@ class Server(Node):
                         for i in range(len(client_sizes)))
         return aggr_loss
 
-    def get_model_description(self):
+    def _get_strategy_description(self):
         return_value = """\nmodel parameters:\n"""
         for attr in dir(self._strategy):
             attr_value = getattr(self._strategy, attr)
