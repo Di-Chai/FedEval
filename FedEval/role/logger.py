@@ -84,7 +84,7 @@ class HyperLogger:
 
     @property
     def server_side_best_model_weight_file_path(self) -> str:
-        return os.path.join(self._hyper_logger.dir_path, server_best_weight_filename)
+        return os.path.join(self.dir_path, server_best_weight_filename)
 
     def model_weight_file_path(self, round_num: int) -> str:
-        return os.path.join(self._log_dir_path, weights_filename_pattern.format(round_num))
+        return os.path.join(self.dir_path, weights_filename_pattern.format(round_num))

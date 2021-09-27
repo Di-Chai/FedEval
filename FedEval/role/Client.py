@@ -25,9 +25,9 @@ class Client(Node):
         self._ctx_mgr = ClientContextManager(container_id, self._hyper_logger._log_dir_path)
         self._communicator = ClientFlaskCommunicator()
 
-        central_server_addr = cfg_mgr.runtime_config.central_server_addr
-        listen_port = cfg_mgr.runtime_config.central_server_listen_at
-        download_url_pattern = f'{central_server_addr}:{listen_port}{ServerFlaskInterface.DownloadPattern.value}'
+        central_server_service_addr = cfg_mgr.runtime_config.central_server_listen_at
+        listen_port = cfg_mgr.runtime_config.central_server_port
+        download_url_pattern = f'{central_server_service_addr}:{listen_port}{ServerFlaskInterface.DownloadPattern.value}'
         self._model_weights_io_handler = ModelWeightsFlaskHandler(download_url_pattern)
         self._register_handles()
         self.start()
@@ -57,7 +57,7 @@ class Client(Node):
             self.logger.info('on init')
             self.logger.info("local model initialized done.")
             self._communicator.invoke(
-                ServerSocketIOEvent.Ready, self._ctx_mgr.container_id, self._cid_list)
+                ServerSocketIOEvent.Ready, self._ctx_mgr.container_id, list(self._ctx_mgr.client_ids))
 
         @self._communicator.on(ClientSocketIOEvent.RequestUpdate)
         def on_request_update(data_from_server: Mapping[str, Any]):

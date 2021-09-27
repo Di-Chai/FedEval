@@ -1,9 +1,7 @@
 import os
 from functools import wraps
-from platform import platform
 from typing import Any, Callable, Dict, Iterable, Optional, Tuple
 
-import psutil
 from flask import Flask, request
 from flask_socketio import SocketIO as ServerSocketIO
 from flask_socketio import emit
@@ -23,18 +21,6 @@ def _event2message(event: SocketIOEvent) -> str:
     return event.value
 
 
-def _get_comm_in_and_out_linux() -> Tuple[int, int]:
-    """retrieve network traffic counter in linux platforms (with the support from psutil lib).
-
-    Returns:
-        Tuple[int, int]: (the number of received bytes, the number of sent bytes)
-    """
-    eth0_info = psutil.net_io_counters(pernic=True).get('eth0')
-    bytes_recv = 0 if eth0_info is None else eth0_info.bytes_recv
-    bytes_sent = 0 if eth0_info is None else eth0_info.bytes_sent
-    return bytes_recv, bytes_sent
-
-
 class FlaskCommunicator(Communicatior):
     """an implementation of node.Node based on flask framework
     and SocketIO plugin in flask. This class should be inherited
@@ -48,26 +34,6 @@ class FlaskCommunicator(Communicatior):
 
     def __init__(self) -> None:
         super().__init__()
-
-    @staticmethod
-    def get_comm_in_and_out() -> Tuple[int, int]:
-        """retrieve network traffic counter.
-
-        Raises:
-            NotImplementedError: raised when called at unsupported
-                platforms or unknown platforms.
-
-        Returns:
-            Tuple[int, int]: (the number of received bytes, the number of sent bytes)
-        """
-        platform_str = platform.system().lower()
-        if platform_str == 'linux':
-            return _get_comm_in_and_out_linux()
-        elif platform_str == 'windows':
-            raise NotImplementedError(
-                f'Unsupported function at {platform_str} platform.')
-        else:
-            raise NotImplementedError("Unknown platform.")
 
 
 class ClientFlaskCommunicator(FlaskCommunicator):
@@ -84,9 +50,10 @@ class ClientFlaskCommunicator(FlaskCommunicator):
 
     def on(self, event: ClientSocketIOEvent, *on_args, **on_kwargs):
         def decorator(func: Callable):
+            self._sio.on(_event2message(event), func, *on_args, **on_kwargs)
             @wraps(func)
             def wrapper(*args, **kwargs):
-                return self._sio.on(_event2message(event), func, *on_args, **on_kwargs)
+                return None
             return wrapper
         return decorator
 
@@ -113,7 +80,7 @@ class ServerFlaskCommunicator(FlaskCommunicator):
 
         # server-side handler register
         self.on = ServerFlaskCommunicator._son(self._socketio.on)
-
+        self.route = ServerFlaskCommunicator._route(self._app.route)
         self._client_node_ctx_mgr = ClientNodeContextManager()
 
     @classmethod
@@ -125,10 +92,8 @@ class ServerFlaskCommunicator(FlaskCommunicator):
         return wrapper
 
     def invoke(self, event: ClientSocketIOEvent, *args, callee: Optional[ClientId]=None, **kwargs):
-        room_id = None
-        if callee is None:
-            room_id = request.sid
-        else:
+        room_id = request.sid
+        if callee is not None:
             with self._client_node_ctx_mgr.get_by_client(callee) as c_node_ctx:
                 room_id = c_node_ctx.comm_id
         return emit(_event2message(event), *args, room=room_id, **kwargs)
@@ -159,8 +124,12 @@ class ServerFlaskCommunicator(FlaskCommunicator):
     def run_server(self) -> None:
         self._socketio.run(self._app, host=self._host, port=self._port)
 
-    def route(self, rule: str, **options: Any):
-        return self._app.route(rule, **options)
+    @classmethod
+    def _route(cls, func: Callable):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        return wrapper
 
     def handle_disconnection(self) -> Iterable[ClientId]:
         return self._client_node_ctx_mgr.deactivate_by_comm(request.sid)

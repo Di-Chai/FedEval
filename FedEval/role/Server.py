@@ -254,7 +254,7 @@ class Server(Node):
                 self._training_start_time = int(round(time.time()))
                 self.train_next_round()
             elif len(self._communicator.ready_client_ids) < client_num:
-                self.logger.error("not enough client worker running.....")
+                self.logger.warn("currently, not enough client worker running.....")
             else:
                 self.logger.warn("current_round is not equal to 0")
 
@@ -266,14 +266,16 @@ class Server(Node):
                 return
 
             num_clients_contacted_per_round = ConfigurationManager().num_of_clients_contacted_per_round
+            data['weights'] = pickle_string_to_obj(data['weights'])
+            data['time_receive_update'] = time.time()
             with self._thread_lock:
-                data['weights'] = pickle_string_to_obj(data['weights'])
-                data['time_receive_update'] = time.time()
                 self._c_up.append(data)
                 receive_all = len(self._c_up) == num_clients_contacted_per_round
 
             if not receive_all:
                 #TODO(fgh) raise an Exception
+                self.logger.error(
+                    f"not all the clients' responses are received during the handling of {ServerSocketIOEvent.ResponseUpdate.value}")
                 return
 
             self.logger.info("Received update from all clients")
@@ -293,7 +295,7 @@ class Server(Node):
 
             # current train
             client_params = [x['weights'] for x in self._c_up]
-            aggregate_weights = np.array([x['train_size'] for x in self._c_up])
+            aggregate_weights = np.array([x['train_size'] for x in self._c_up]).astype(np.float)
             aggregate_weights /= np.sum(aggregate_weights)
 
             self._current_params = self._strategy.update_host_params(
@@ -328,7 +330,7 @@ class Server(Node):
             else:
                 self.train_next_round()
 
-            cur_round_info['round_finish_time'] = time.time()
+            cur_round_info['round_finish_time'] = time.time()   # TODO Q(fgh) 这个东西放在这里如果上面调用的是train_next_round那么这个计时合理吗？
 
         @self._communicator.on(ServerSocketIOEvent.ResponseEvaluate)
         def handle_client_evaluate(data: Mapping[str, Any]):
@@ -509,7 +511,7 @@ class Server(Node):
                      'weights_file_name': encoded_weight_file_path}
         self._communicator.invoke_all(ClientSocketIOEvent.RequestUpdate,
                                       data_send,
-                                      callees=[selected_clients])
+                                      callees=selected_clients)
         self.logger.info('Finished sending update requests, waiting resp from clients')
 
     def evaluate(self, selected_clients=None, eval_best_model=False):

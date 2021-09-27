@@ -120,7 +120,7 @@ class ClientContextManager:
             client_ctx.sleep()
             self._clients[cid] = client_ctx
 
-        self._curr_client_ctx: Optional[ClientContext] = None
+        self._curr_client_ctx: ClientContext = list(self._clients.values())[0]
 
     def _allocate_client_ids(self) -> Sequence[ClientId]:
         '''allocate cid for the clients hold by this container and
@@ -182,6 +182,7 @@ class ClientContextManager:
         if self._curr_client_ctx.id != client_id:
             self._curr_client_ctx.sleep()
             self._curr_client_ctx = self._clients[client_id]
+        if self._curr_client_ctx.sleeping:
             self._curr_client_ctx.wake_up()
         try:
             yield self._curr_client_ctx

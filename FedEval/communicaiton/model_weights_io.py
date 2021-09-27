@@ -20,6 +20,7 @@ class ModelWeightsFlaskHandler(ModelWeightsIoInterface):
         self._timeout: int = 600
 
     def fetch_params(self, file_location: str):
-        response = requests.get(self._download_url_pattern.format(
+        protocol = 'http://'
+        response = requests.get(protocol + self._download_url_pattern.format(
             file_location), timeout=self._timeout)
         return pickle.loads(response.content)
