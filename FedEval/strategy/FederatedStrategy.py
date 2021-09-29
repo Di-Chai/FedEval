@@ -1,6 +1,6 @@
 import random
 from abc import ABCMeta, abstractmethod, abstractproperty
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, Union
 
 from ..callbacks import *
 from ..config import ClientId, ConfigurationManager, Role
@@ -128,7 +128,7 @@ class FedStrategyPeerInterface(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def local_evaluate(self) -> Mapping[str, Any]:
+    def local_evaluate(self) -> Mapping[str, Union[int, float]]:
         """evaluate and test the model received from the central server.
 
         Called by the selected clients.
@@ -137,7 +137,7 @@ class FedStrategyPeerInterface(metaclass=ABCMeta):
             NotImplementedError: raised when called but not overriden.
 
         Returns:
-            Mapping[str, Any]: evaluation & test metrics. 
+            Mapping[str, Union[int, float]]: evaluation & test metrics. 
         """
         raise NotImplementedError
 
@@ -326,7 +326,7 @@ class FedStrategy(FedStrategyInterface):
             model_weights = self.callback.on_client_upload_begin(model_weights)
         return model_weights
 
-    def local_evaluate(self) -> Mapping[str, Any]:
+    def local_evaluate(self) -> Mapping[str, Union[int, float]]:
         # val and test
         val_result = self.ml_model.evaluate(
             x=self.val_data['x'], y=self.val_data['y'])

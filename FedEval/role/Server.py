@@ -91,9 +91,6 @@ class Server(Node):
 
         # rounds during training
         self._current_round: int = 0
-        self._c_up = []                                      # clients' updates of this round
-        self._c_eval = []                                    # clients' evaluations of this round
-        self._check_list = []
         self._info_each_round = {}
 
     def _init_control_states(self):
@@ -104,6 +101,9 @@ class Server(Node):
         self._client_sids_selected: Optional[List[Any]] = None
         self._invalid_tolerate: int = 0  # for client-side evaluation
 
+        self._c_up = []                                      # clients' updates of this round
+        self._c_eval = []                                    # clients' evaluations of this round
+
         self._lazy_update = False
 
     def _init_states(self):
@@ -111,6 +111,12 @@ class Server(Node):
         self._init_control_states()
         self._current_params = self._strategy.host_get_init_params()
         self._init_metric_states()
+
+    def _refresh_update_cache(self) -> None:
+        self._c_up = list()
+
+    def _refresh_evaluation_cache(self) -> None:
+        self._c_eval = list()
 
     def _register_services(self):
         @self._communicator.route(ServerFlaskInterface.Dashboard.value)
@@ -273,8 +279,7 @@ class Server(Node):
                 receive_all = len(self._c_up) == num_clients_contacted_per_round
 
             if not receive_all:
-                #TODO(fgh) raise an Exception
-                self.logger.error(
+                self.logger.warn(
                     f"not all the clients' responses are received during the handling of {ServerEvent.ResponseUpdate.value}")
                 return
 
@@ -321,6 +326,7 @@ class Server(Node):
             cur_round_info['time_train_run'] = latest_time_record['update_send']
             cur_round_info['time_train_receive'] = latest_time_record['update_receive']
             cur_round_info['time_train_agg'] = latest_time_record['agg_server']
+            cur_round_info['round_finish_time'] = time.time()   # TODO Q(fgh) 这个东西放在这里如果上面调用的是train_next_round那么这个计时合理吗？
 
             # Collect the send and received bytes
             self._server_receive_bytes, self._server_send_bytes = self._communicator.get_comm_in_and_out()
@@ -329,8 +335,6 @@ class Server(Node):
                 self.evaluate()
             else:
                 self.train_next_round()
-
-            cur_round_info['round_finish_time'] = time.time()   # TODO Q(fgh) 这个东西放在这里如果上面调用的是train_next_round那么这个计时合理吗？
 
         @self._communicator.on(ServerEvent.ResponseEvaluate)
         def handle_client_evaluate(data: Mapping[str, Any]):
@@ -502,7 +506,7 @@ class Server(Node):
         self.logger.info("##### Round {} #####".format(self._current_round))
 
         # buffers all client updates
-        self._c_up = []
+        self._refresh_update_cache()
 
         previous_round = self._current_round - 1
         weight_file_path = self._hyper_logger.model_weight_file_path(previous_round)
@@ -516,7 +520,7 @@ class Server(Node):
 
     def evaluate(self, selected_clients=None, eval_best_model=False):
         self.logger.info('Starting eval')
-        self._c_eval = []
+        self._refresh_evaluation_cache()
         data_send = { 'round_number': self._current_round }
         weight_file_path = (
             self._hyper_logger.server_side_best_model_weight_file_path 
