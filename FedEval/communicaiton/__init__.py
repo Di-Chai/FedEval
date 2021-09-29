@@ -1,5 +1,5 @@
-from .events import ClientSocketIOEvent, ServerSocketIOEvent, SocketIOEvent
-from .flask_communicator import (ClientFlaskCommunicator, FlaskCommunicator,
+from .events import ClientEvent, ConnectionEvent, ServerEvent
+from .flask_communicator import (ClientFlaskCommunicator,
                                  ServerFlaskCommunicator, Sid)
 from .model_weights_io import (ModelWeightsFlaskHandler,
                                ModelWeightsIoInterface,

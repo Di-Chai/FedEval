@@ -37,29 +37,29 @@ class Client(Node):
         self.logger = self._hyper_logger.get()
 
     def _register_handles(self):
-        @self._communicator.on(ClientSocketIOEvent.Connect)
+        @self._communicator.on(ClientEvent.Connect)
         def on_connect():
             print('connect')
             self.logger.info('connect')
 
-        @self._communicator.on(ClientSocketIOEvent.Disconnect)
+        @self._communicator.on(ClientEvent.Disconnect)
         def on_disconnect():
             print('disconnect')
             self.logger.info('disconnect')
 
-        @self._communicator.on(ClientSocketIOEvent.Reconnect)
+        @self._communicator.on(ClientEvent.Reconnect)
         def on_reconnect():
             print('reconnect')
             self.logger.info('reconnect')
 
-        @self._communicator.on(ClientSocketIOEvent.Init)
+        @self._communicator.on(ClientEvent.Init)
         def on_init():
             self.logger.info('on init')
             self.logger.info("local model initialized done.")
             self._communicator.invoke(
-                ServerSocketIOEvent.Ready, self._ctx_mgr.container_id, list(self._ctx_mgr.client_ids))
+                ServerEvent.Ready, self._ctx_mgr.container_id, list(self._ctx_mgr.client_ids))
 
-        @self._communicator.on(ClientSocketIOEvent.RequestUpdate)
+        @self._communicator.on(ClientEvent.RequestUpdate)
         def on_request_update(data_from_server: Mapping[str, Any]):
 
             # Mark the receive time
@@ -115,13 +115,13 @@ class Client(Node):
                     self.logger.info("Emit client_update")
                     try:
                         self._communicator.invoke(
-                            ServerSocketIOEvent.ResponseUpdate, response)
+                            ServerEvent.ResponseUpdate, response)
                         self.logger.info("sent trained model to server")
                     except Exception as e:
                         self.logger.error(e)
                     self.logger.info(f"Client {client_ctx.id} Emited update")
 
-        @self._communicator.on(ClientSocketIOEvent.RequestEvaluate)
+        @self._communicator.on(ClientEvent.RequestEvaluate)
         def on_request_evaluate(data_from_server: Mapping[str, Any]):
 
             time_receive_evaluate = time.time()
@@ -164,13 +164,13 @@ class Client(Node):
                     self.logger.info("Emit client evaluate")
                     try:
                         self._communicator.invoke(
-                            ServerSocketIOEvent.ResponseEvaluate, response)
+                            ServerEvent.ResponseEvaluate, response)
                         self.logger.info("sent evaluation results to server")
                     except Exception as e:
                         self.logger.error(e)
                     self.logger.info(f"Client {client_ctx.id} Emited evaluate")
 
-        @self._communicator.on(ClientSocketIOEvent.Stop)
+        @self._communicator.on(ClientEvent.Stop)
         def on_stop():
             for cid in self._ctx_mgr.client_ids:
                 with self._ctx_mgr.get(cid) as client_ctx:
@@ -179,6 +179,6 @@ class Client(Node):
             exit(0)
 
     def start(self):
-        self._communicator.invoke(ServerSocketIOEvent.WakeUp)
+        self._communicator.invoke(ServerEvent.WakeUp)
         self.logger.info("sent wakeup")
         self._communicator.wait()

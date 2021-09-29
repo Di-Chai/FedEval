@@ -223,25 +223,25 @@ class Server(Node):
     def _register_handles(self):
         # single-threaded async, no need to lock
 
-        @self._communicator.on(ServerSocketIOEvent.Connect)
+        @self._communicator.on(ServerEvent.Connect)
         def handle_connect():
             pass
 
-        @self._communicator.on(ServerSocketIOEvent.Reconnect)
+        @self._communicator.on(ServerEvent.Reconnect)
         def handle_reconnect():
             recovered_clients = self._communicator.handle_reconnection()
             self.logger.info(f'{recovered_clients} reconnected')
 
-        @self._communicator.on(ServerSocketIOEvent.Disconnect)
+        @self._communicator.on(ServerEvent.Disconnect)
         def handle_disconnect():
             disconnected_clients = self._communicator.handle_disconnection()
             self.logger.info(f'{disconnected_clients} disconnected')
 
-        @self._communicator.on(ServerSocketIOEvent.WakeUp)
+        @self._communicator.on(ServerEvent.WakeUp)
         def handle_wake_up():
-            self._communicator.invoke(ClientSocketIOEvent.Init)
+            self._communicator.invoke(ClientEvent.Init)
 
-        @self._communicator.on(ServerSocketIOEvent.Ready)
+        @self._communicator.on(ServerEvent.Ready)
         def handle_client_ready(container_id: ContainerId, client_ids: List[ClientId]):
             self.logger.info(
                 f'Container {container_id}, with clients {client_ids} are ready for training')
@@ -258,7 +258,7 @@ class Server(Node):
             else:
                 self.logger.warn("current_round is not equal to 0")
 
-        @self._communicator.on(ServerSocketIOEvent.ResponseUpdate)
+        @self._communicator.on(ServerEvent.ResponseUpdate)
         def handle_client_update(data: Mapping[str, Any]):
 
             if data['round_number'] != self._current_round:
@@ -275,7 +275,7 @@ class Server(Node):
             if not receive_all:
                 #TODO(fgh) raise an Exception
                 self.logger.error(
-                    f"not all the clients' responses are received during the handling of {ServerSocketIOEvent.ResponseUpdate.value}")
+                    f"not all the clients' responses are received during the handling of {ServerEvent.ResponseUpdate.value}")
                 return
 
             self.logger.info("Received update from all clients")
@@ -332,7 +332,7 @@ class Server(Node):
 
             cur_round_info['round_finish_time'] = time.time()   # TODO Q(fgh) 这个东西放在这里如果上面调用的是train_next_round那么这个计时合理吗？
 
-        @self._communicator.on(ServerSocketIOEvent.ResponseEvaluate)
+        @self._communicator.on(ServerEvent.ResponseEvaluate)
         def handle_client_evaluate(data: Mapping[str, Any]):
 
             if data['round_number'] != self._current_round:
@@ -477,7 +477,7 @@ class Server(Node):
                     self.logger.info(f'Server Receive(GB): {result_json["server_receive"]}')
 
                     # Stop all the clients
-                    self._communicator.invoke_all(ClientSocketIOEvent.Stop)
+                    self._communicator.invoke_all(ClientEvent.Stop)
                     # Call the server exit job
                     self._strategy.host_exit_job(self)
                     # Server job finish
@@ -509,7 +509,7 @@ class Server(Node):
         encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(encoding='utf8')
         data_send = {'round_number': self._current_round,
                      'weights_file_name': encoded_weight_file_path}
-        self._communicator.invoke_all(ClientSocketIOEvent.RequestUpdate,
+        self._communicator.invoke_all(ClientEvent.RequestUpdate,
                                       data_send,
                                       callees=selected_clients)
         self.logger.info('Finished sending update requests, waiting resp from clients')
@@ -531,7 +531,7 @@ class Server(Node):
             selected_clients = self._communicator.ready_client_ids
 
         self.logger.info(f'Sending eval requests to {len(selected_clients)} clients')
-        self._communicator.invoke_all(ClientSocketIOEvent.RequestEvaluate,
+        self._communicator.invoke_all(ClientEvent.RequestEvaluate,
                                       data_send,
                                       callees=selected_clients)
         self.logger.info('Waiting resp from clients')
