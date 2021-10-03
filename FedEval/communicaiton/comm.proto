@@ -1,0 +1,65 @@
+syntax = 'proto3';
+import 'google/protobuf/empty.proto';
+
+message RoundModelInfo {
+    int64 round_number = 1;
+    string weights_file_name = 2;
+    repeated int64 selected_clients = 3;
+}
+
+message UpdateResult {
+    int64 cid = 1;
+    int64 round_number = 2;
+    int64 local_round_number = 3;
+    string weights = 4;
+    int64 train_size = 5;
+    double train_loss = 6;
+    float time_receive_request = 7;
+    float time_start_update = 8;
+    float time_finish_update = 9;
+}
+
+message EvaluationResult {
+    int64 cid = 1;
+    int64 round_number = 2;
+    int64 local_round_number = 3;
+    float time_receive_request = 4;
+    float time_start_evaluate = 5;
+    float time_finish_evaluate = 6;
+    string evaluate = 7;    // Dict[str, Union[int, float]] in json
+}
+
+message Registration {
+    int64 container_id = 1;
+    repeated int64 client_ids = 2;
+}
+
+// message TrainingStatus {
+//     bool finished = 1;
+//     int64 rounds = 2;
+//     string log_dir = 3;
+//     # results = 4;
+// }
+
+service FederatedLearning {
+    rpc connect(stream ProtocolMessage) returns (stream ProtocolMessage) {}
+    // rpc wake_up(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    // rpc GetTrainingStatus(google.protobuf.Empty) returns (TrainingStatus) {}
+}
+
+// service FederatedLearningSlave {
+//     rpc init(google.protobuf.Empty) returns (Registration) {}  // 2
+//     rpc update(RoundModelInfo) returns (stream UpdateResult) {}
+//     rpc evaluate(RoundModelInfo) returns (stream EvaluationResult) {}
+// }
+
+message ProtocolMessage {
+    string event = 1;
+    oneof payload {
+        Registration registration = 2;
+        RoundModelInfo round_model_info = 3;
+        UpdateResult update_result = 4;
+        EvaluationResult evaluation_result = 5;
+        google.protobuf.Empty empty = 6;
+    }
+}

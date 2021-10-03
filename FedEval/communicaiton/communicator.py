@@ -60,7 +60,7 @@ class ClientCommunicator(Communicatior):
         pass
 
     @abstractmethod
-    def wait(self, seconds=None, **kw) -> None:
+    def wait(self, **kw) -> None:
         pass
 
 

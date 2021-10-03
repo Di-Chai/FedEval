@@ -37,8 +37,8 @@ class ClientFlaskCommunicator(ClientCommunicator):
     def invoke(self, event: ServerEvent, *args, **kwargs):
         return self._sio.emit(event2message(event), *args, **kwargs)
 
-    def wait(self, seconds=None, **kw) -> None:
-        self._sio.wait(seconds=seconds, **kw)
+    def wait(self, **kw) -> None:
+        self._sio.wait(**kw)
 
 
 class ServerFlaskCommunicator(ServerCommunicator):

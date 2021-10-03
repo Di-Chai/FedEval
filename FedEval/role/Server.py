@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional
 import numpy as np
 from flask import render_template, send_file
 
-from ..communicaiton import ServerFlaskCommunicator
+from ..communicaiton import ServerFlaskCommunicator, get_server_communicator
 from ..communicaiton.events import *
 from ..config import ClientId, ConfigurationManager, Role, ServerFlaskInterface
 from ..strategy import FedStrategyInterface
@@ -30,7 +30,8 @@ class Server(Node):
         self._init_logger()
         self._init_states()
 
-        self._communicator = ServerFlaskCommunicator()
+        # self._communicator = ServerFlaskCommunicator()
+        self._communicator = get_server_communicator()
         self._register_handles()
         self._register_services()
 

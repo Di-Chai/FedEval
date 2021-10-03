@@ -3,7 +3,7 @@ import os
 from abc import ABC, abstractmethod, abstractproperty
 from copy import deepcopy
 from enum import Enum
-from threading import Lock
+from threading import RLock
 from typing import List, Mapping, Optional, Sequence, TextIO, Tuple, Union
 
 import yaml
@@ -147,7 +147,14 @@ _RT_L_FILE_LEVEL_KEY = 'file_log_level'
 _RT_L_CONSOLE_LEVEL_KEY = 'console_log_level'
 _RT_L_DIR_PATH_KEY = 'log_dir'
 
+_RT_COMMUNICATION_KEY = 'communication'
+_RT_COMM_METHOD_KEY = 'method'
+_RT_COMM_PORT_KEY = 'port'
 _DEFAULT_RT_CFG: RawConfigurationDict = {
+    _RT_COMMUNICATION_KEY: {
+        _RT_COMM_METHOD_KEY: 'SocketIO',
+        _RT_COMM_PORT_KEY: 8000,
+    },
     _RT_LOG_KEY: {
         _RT_L_DIR_PATH_KEY: 'log/quickstart',
         _RT_L_BASE_LEVEL_KEY: 'INFO',
@@ -792,6 +799,16 @@ class _RuntimeConfig(_Configuraiton):
             raise AttributeError('GPU is not enabled.')
         return int(self._inner[_RT_DOCKER_KEY][_RT_D_GPU_NUM_KEY])
 
+    @property
+    def comm_method(self) -> str:
+        """the method/technique used for mechaine-wise communication in the experiment."""
+        return self._inner[_RT_COMMUNICATION_KEY][_RT_COMM_METHOD_KEY]
+
+    @property
+    def comm_port(self) -> int:
+        """the port for communication on the server side."""
+        return int(self._inner[_RT_COMMUNICATION_KEY][_RT_COMM_PORT_KEY])
+
 
 # --- Configuration Manager Interfaces ---
 class ConfigurationManagerInterface(ABC):
@@ -1021,7 +1038,7 @@ class ConfigurationManager(Singleton,
                            _CfgJsonInterface,
                            _CfgFileInterface,
                            _RoledConfigurationInterface):
-    __init_once_lock = Lock()   # thread lock for __initiated
+    __init_once_lock = RLock()   # thread lock for __initiated
     __initiated = False # whether this class has been initiated
 
     def __init__(self,

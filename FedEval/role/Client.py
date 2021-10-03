@@ -2,7 +2,7 @@ import os
 import time
 from typing import Any, Mapping
 
-from ..communicaiton import ClientFlaskCommunicator, ModelWeightsFlaskHandler
+from ..communicaiton import ClientFlaskCommunicator, ModelWeightsFlaskHandler, get_client_communicator
 from ..communicaiton.events import *
 from ..config import ConfigurationManager, Role, ServerFlaskInterface
 from ..utils.utils import obj_to_pickle_string
@@ -23,7 +23,8 @@ class Client(Node):
         container_id = int(os.environ.get('CONTAINER_ID', 0))
         self._init_logger(container_id)
         self._ctx_mgr = ClientContextManager(container_id, self._hyper_logger._log_dir_path)
-        self._communicator = ClientFlaskCommunicator()
+        # self._communicator = ClientFlaskCommunicator()
+        self._communicator = get_client_communicator()
 
         central_server_service_addr = cfg_mgr.runtime_config.central_server_listen_at
         listen_port = cfg_mgr.runtime_config.central_server_port
@@ -67,10 +68,10 @@ class Client(Node):
 
             # Get the selected clients
             selected_clients = data_from_server['selected_clients']
-
             self.logger.info('Debug: selected clients' + str(selected_clients))
 
             current_round = data_from_server['round_number']
+            encoded_weights_file_path: str = data_from_server['weights_file_name']
 
             for cid in selected_clients:
                 time_start_update = time.time()
@@ -82,8 +83,6 @@ class Client(Node):
                     # Download the parameter if the local model is not the latest
                     if (current_round - client_ctx.host_params_round) > 1:
                         client_ctx.host_params_round = current_round - 1
-                        # weights_file_name = weights_filename_pattern.format(client_ctx.host_params_round)
-                        encoded_weights_file_path: str = data_from_server['weights_file_name']
                         weights = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
                         client_ctx.strategy.set_host_params_to_local(weights, current_round=current_round)
                         self.logger.info(f"train received model: {encoded_weights_file_path}")
@@ -131,15 +130,11 @@ class Client(Node):
 
             current_round = data_from_server['round_number']
 
+            # Download the latest weights
+            encoded_weights_file_path: str = data_from_server['weights_file_name']
             for cid in selected_clients:
                 time_start_evaluate = time.time()
                 with self._ctx_mgr.get(cid) as client_ctx:
-                    # Download the latest weights
-                    encoded_weights_file_path: str = data_from_server['weights_file_name']
-                    # if weights_file_name is None and current_round > client_ctx.host_params_round:
-                    #     weights_file_name = weights_filename_pattern.format(current_round)
-
-                    # if weights_file_name:
                     client_ctx.host_params_round = current_round
                     weights = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
                     client_ctx.strategy.set_host_params_to_local(weights, current_round=current_round)

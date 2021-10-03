@@ -174,6 +174,7 @@ def generate_docker_compose_local(path):
             tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=%s' % (container_id % rt_cfg.gpu_num))
         else:
             tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=-1')
+        tmp['depends_on'] = ['server']
         dc['services']['container_%s' % container_id] = tmp
 
     with open("docker-compose.yml", 'w') as f:

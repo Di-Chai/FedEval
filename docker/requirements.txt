@@ -1,9 +1,14 @@
 # Communications
+# -- Web Service --
 Flask==1.1.2
+# -- SocketIO --
 Flask-SocketIO==4.3.1
 socketIO-client==0.7.2
 python-engineio==3.13.1
 python-socketio==4.6.0
+# -- gRPC --
+grpcio
+grpcio-tools
 
 # Computation
 numpy
