@@ -6,7 +6,7 @@ from .events import ClientEvent, ConnectionEvent, ServerEvent
 from .flask_communicator import (ClientFlaskCommunicator,
                                  ServerFlaskCommunicator, Sid)
 from .grpc_communicator import ClientGrpcCommunicator, ServerGrpcCommunicator
-from .model_weights_io import (ModelWeightsFlaskHandler,
+from .model_weights_io import (ModelWeightsHandler,
                                ModelWeightsIoInterface,
                                server_best_weight_filename,
                                weights_filename_pattern)

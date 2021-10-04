@@ -11,7 +11,7 @@ class ModelWeightsIoInterface(metaclass=ABCMeta):
         raise NotImplementedError
 
 
-class ModelWeightsFlaskHandler(ModelWeightsIoInterface):
+class ModelWeightsHandler(ModelWeightsIoInterface):
     def __init__(self, download_url_pattern: str):
         if '{}' not in download_url_pattern:
             raise ValueError(f"weights_download_url_pattern is not a pattern:" +

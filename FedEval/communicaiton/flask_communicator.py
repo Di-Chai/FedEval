@@ -7,12 +7,10 @@ from flask_socketio import SocketIO as ServerSocketIO
 from flask_socketio import emit
 from socketIO_client import SocketIO as ClientSocketIO
 
-from ..config import ConfigurationManager, ServerFlaskInterface
-from ..config.role import ClientId
+from ..config import ClientId, ConfigurationManager
 from ..role.container import NodeId
 from .communicator import ClientCommunicator, ServerCommunicator
 from .events import ClientEvent, ServerEvent, event2message
-from .model_weights_io import ModelWeightsFlaskHandler, ModelWeightsIoInterface
 
 Sid = Any           # from SocketIO
 
@@ -20,9 +18,6 @@ Sid = Any           # from SocketIO
 class ClientFlaskCommunicator(ClientCommunicator):
     def __init__(self) -> None:
         super().__init__()
-        weights_download_url = f'http://{self._host}:{self._port}{ServerFlaskInterface.DownloadPattern.value}'
-        self._model_weights_io_handler: ModelWeightsIoInterface = ModelWeightsFlaskHandler(
-            weights_download_url)
         self._sio = ClientSocketIO(self._host, self._port)
 
     def on(self, event: ClientEvent, *on_args, **on_kwargs):

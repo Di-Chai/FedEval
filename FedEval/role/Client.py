@@ -2,7 +2,7 @@ import os
 import time
 from typing import Any, Mapping
 
-from ..communicaiton import ClientFlaskCommunicator, ModelWeightsFlaskHandler, get_client_communicator
+from ..communicaiton import ModelWeightsHandler, get_client_communicator
 from ..communicaiton.events import *
 from ..config import ConfigurationManager, Role, ServerFlaskInterface
 from ..utils.utils import obj_to_pickle_string
@@ -29,7 +29,7 @@ class Client(Node):
         central_server_service_addr = cfg_mgr.runtime_config.central_server_listen_at
         listen_port = cfg_mgr.runtime_config.central_server_port
         download_url_pattern = f'{central_server_service_addr}:{listen_port}{ServerFlaskInterface.DownloadPattern.value}'
-        self._model_weights_io_handler = ModelWeightsFlaskHandler(download_url_pattern)
+        self._model_weights_io_handler = ModelWeightsHandler(download_url_pattern)
         self._register_handles()
         self.start()
 

@@ -361,8 +361,11 @@ class ClientGrpcCommunicator(ClientCommunicator):
             event = ClientEvent(response.event)
             if event == ClientEvent.Connect or event == ClientEvent.Disconnect or event == ClientEvent.Reconnect:
                 self._handlers[event]()
-            elif event == ClientEvent.Init or event == ClientEvent.Stop:
+            elif event == ClientEvent.Init:
                 self._handlers[event]()
+            elif event == ClientEvent.Stop:
+                self._handlers[event]()
+                return
             elif event == ClientEvent.RequestUpdate or event == ClientEvent.RequestEvaluate:
                 round_model_info = response.round_model_info
                 round_model_info = {

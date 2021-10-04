@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional
 import numpy as np
 from flask import render_template, send_file
 
-from ..communicaiton import ServerFlaskCommunicator, get_server_communicator
+from ..communicaiton import get_server_communicator
 from ..communicaiton.events import *
 from ..config import ClientId, ConfigurationManager, Role, ServerFlaskInterface
 from ..strategy import FedStrategyInterface
