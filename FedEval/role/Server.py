@@ -259,6 +259,7 @@ class Server(Node):
             if len(self._communicator.ready_client_ids) >= client_num and self._current_round == 0:
                 self.logger.info("start to federated learning.....")
                 self._training_start_time = int(round(time.time()))
+                del client_num
                 self.train_next_round()
             elif len(self._communicator.ready_client_ids) < client_num:
                 self.logger.warn("currently, not enough client worker running.....")
@@ -295,6 +296,7 @@ class Server(Node):
             latest_time_record['update_send'] = np.mean(receive_update_time)
             latest_time_record['update_run'] = np.mean(finish_update_time)
             latest_time_record['update_receive'] = np.mean(update_receive_time)
+            del receive_update_time, finish_update_time, update_receive_time
 
             # From request update, until receives all clients' update
             self._time_agg_train_start = time.time()
@@ -414,6 +416,7 @@ class Server(Node):
             latest_time_record['eval_send'] = np.mean(receive_eval_time)
             latest_time_record['eval_run'] = np.mean(finish_eval_time)
             latest_time_record['eval_receive'] = np.mean(eval_receive_time)
+            del receive_eval_time, finish_eval_time, eval_receive_time
 
             self._avg_test_metrics.append(avg_test_metrics)
             self._avg_val_metrics.append(avg_val_metrics)
@@ -480,6 +483,7 @@ class Server(Node):
                     self.logger.info(f'Total Rounds: {self._current_round}')
                     self.logger.info(f'Server Send(GB): {result_json["server_send"]}')
                     self.logger.info(f'Server Receive(GB): {result_json["server_receive"]}')
+                    del result_json
 
                     # Stop all the clients
                     self._communicator.invoke_all(ClientEvent.Stop)
@@ -490,6 +494,7 @@ class Server(Node):
             else:
                 results = self.snapshot_result(time.time())
                 self._hyper_logger.snapshot_results_into_file(results)
+                del results
                 self._hyper_logger.snapshot_config_into_files() # just for backward compatibility
                 self.logger.info("start to next round...")
                 self.train_next_round() #TODO(fgh) into loop form
