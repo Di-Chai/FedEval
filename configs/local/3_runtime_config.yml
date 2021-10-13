@@ -2,9 +2,9 @@ clients:
   bandwidth: 100Mbit
 docker:
   image: fedeval:gpu
-  num_containers: 40
-  enable_gpu: True
-  num_gpu: 8
+  num_containers: 100
+  enable_gpu: False
+  num_gpu: 0
 server:
   host: server
   listen: server
