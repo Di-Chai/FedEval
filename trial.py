@@ -12,6 +12,7 @@ args_parser.add_argument('--non_iid', '-i', type=str)
 args_parser.add_argument('--non_iid_class', '-n', type=int)
 args_parser.add_argument('--tune', '-t', type=str)
 args_parser.add_argument('--repeat', '-r', type=int, default=1)
+args_parser.add_argument('--log_dir', '-l', type=str, default='log/debug')
 args_parser.add_argument('--exec', '-e', type=str)
 args = args_parser.parse_args()
 
@@ -40,7 +41,6 @@ fine_tuned_params = {
     "shakespeare": {
         'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': None},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},
-
         'model': 'StackedLSTM'
     }
 }
@@ -94,7 +94,11 @@ model_config = {
         'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 3000, 'num_tolerance': 100
     }
 }
-runtime_config = {'server': {'num_clients': 100}, 'log_dir': 'log/nips', 'docker': {'num_containers': 100}}
+runtime_config = {
+    'server': {'num_clients': 100}, 
+    'log': {'log_dir': args.log_dir}, 
+    'docker': {'num_containers': 100}
+}
 
 if args.strategy == 'MFedSGD' or args.strategy == 'MFedAvg':
     model_config['FedModel']['momentum'] = 0.9
