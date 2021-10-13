@@ -114,7 +114,7 @@ if args.strategy == 'FedOpt':
     model_config['FedModel']['opt_name'] = 'fedadam'
 
 if args.strategy == 'FedSTC':
-    model_config['FedModel']['sparsity'] = 0.1
+    model_config['FedModel']['sparsity'] = 0.01
 
 if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
     model_config['MLModel']['hidden_units'] = 64
