@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod, abstractproperty
 from copy import deepcopy
 from enum import Enum
 from threading import RLock
-from typing import List, Mapping, Optional, Sequence, TextIO, Tuple, Union
+from typing import (Dict, List, Mapping, Optional, Sequence, TextIO, Tuple,
+                    Union)
 
 import yaml
 
@@ -328,7 +329,7 @@ class _DataConfig(_Configuraiton):
     @property
     def sample_size(self) -> int:
         """return the number of samples owned by each client."""
-        return self._inner[_D_SAMPLE_SIZE_KEY]
+        return int(self._inner[_D_SAMPLE_SIZE_KEY])
 
     @property
     def data_partition(self) -> Sequence[float]:
@@ -671,7 +672,7 @@ class _RuntimeConfig(_Configuraiton):
     def __init_machines(self) -> bool:
         if not self._has_machines():
             return False
-        self._machines: dict[_RT_Machine] = dict()
+        self._machines: Dict[str, _RT_Machine] = dict()
         for name in self._inner[_RT_MACHINES_KEY]:
             self._machines[name] = _RT_Machine(
                 self._inner[_RT_MACHINES_KEY][name], name == _RT_M_SERVER_NAME)
