@@ -2,12 +2,9 @@ FROM tensorflow/tensorflow:latest-devel-gpu
 
 # Install python & tools
 RUN apt update && \
-    apt install -y python3.8 python3-pip --fix-missing && \
     apt install -y iproute2 net-tools wget nload iftop unzip --fix-missing
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2 && \
-    ln -s /usr/bin/python3 /usr/bin/python && \
-    ln -s /usr/bin/pip3 /usr/bin/pip
+Add check_python_version.bash /root/
+RUN bash /root/check_python_version.bash
 
 # Install python requirements (using douban image)
 COPY requirements.txt /root/requirements.txt
