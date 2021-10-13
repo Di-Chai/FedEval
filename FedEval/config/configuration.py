@@ -428,7 +428,7 @@ class _ModelConfig(_Configuraiton):
         Returns:
             float: the learning rate on the server side.
         """
-        if self.strategy_name != 'FedOpt' or self.strategy_name != 'FedSCA':
+        if self.strategy_name != 'FedOpt' and self.strategy_name != 'FedSCA':
             raise AttributeError
         return float(self._strategy_cfg[_STRATEGY_ETA_KEY])
 
