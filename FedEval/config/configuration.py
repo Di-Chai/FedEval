@@ -117,8 +117,8 @@ _DEFAULT_MDL_CFG: RawConfigurationDict = {
 }
 
 # default runtime configurations
-_RT_CLIENTS_KEY = 'clients'
-_RT_C_BANDWIDTH_KEY = 'bandwidth'
+# _RT_CLIENTS_KEY = 'clients'
+# _RT_C_BANDWIDTH_KEY = 'bandwidth'
 
 _RT_SERVER_KEY = 'server'
 _RT_S_HOST_KEY = 'host'
@@ -151,10 +151,19 @@ _RT_L_DIR_PATH_KEY = 'log_dir'
 _RT_COMMUNICATION_KEY = 'communication'
 _RT_COMM_METHOD_KEY = 'method'
 _RT_COMM_PORT_KEY = 'port'
+_RT_COMM_LIMIT_FLAG_KEY = 'limit_network_resource'
+_RT_COMM_BANDWIDTH_UP_KEY = 'bandwidth_upload'
+_RT_COMM_BANDWIDTH_DOWN_KEY = 'bandwidth_download'
+_RT_COMM_LATENCY_KEY = 'latency'
+
 _DEFAULT_RT_CFG: RawConfigurationDict = {
     _RT_COMMUNICATION_KEY: {
         _RT_COMM_METHOD_KEY: 'SocketIO',
         _RT_COMM_PORT_KEY: 8000,
+        _RT_COMM_LIMIT_FLAG_KEY: True,
+        _RT_COMM_BANDWIDTH_UP_KEY: '30Mbit',
+        _RT_COMM_BANDWIDTH_DOWN_KEY: '10Mbit',
+        _RT_COMM_LATENCY_KEY: '50ms'
     },
     _RT_LOG_KEY: {
         _RT_L_DIR_PATH_KEY: 'log/quickstart',
@@ -168,9 +177,9 @@ _DEFAULT_RT_CFG: RawConfigurationDict = {
         _RT_D_GPU_ENABLE_KEY: False,
         _RT_D_GPU_NUM_KEY: 0,
     },
-    _RT_CLIENTS_KEY: {
-        _RT_C_BANDWIDTH_KEY: '100Mbit',
-    },
+    # _RT_CLIENTS_KEY: {
+    #     _RT_C_BANDWIDTH_KEY: '100Mbit',
+    # },
     _RT_SERVER_KEY: {
         _RT_S_HOST_KEY: 'server',
         _RT_S_LISTEN_KEY: 'server',
@@ -660,8 +669,8 @@ class _RuntimeConfig(_Configuraiton):
 
     @staticmethod
     def __check_items(config: RawConfigurationDict) -> None:
-        required_keys = [_RT_CLIENTS_KEY, _RT_DOCKER_KEY,
-                         _RT_SERVER_KEY, _RT_LOG_KEY]
+        required_keys = [_RT_DOCKER_KEY, _RT_SERVER_KEY,
+                         _RT_COMMUNICATION_KEY, _RT_LOG_KEY]
         for k in required_keys:
             assert k in config, ValueError(
                 _RuntimeConfig.__ITEM_CHECK_VALUE_ERROR_PATTERN.format(k))
@@ -701,9 +710,30 @@ class _RuntimeConfig(_Configuraiton):
         return deepcopy({name: v for name, v in self._machines if not v.is_server})
 
     @property
-    def client_bandwidth(self) -> str:
-        """the bandwidth of each client."""
-        return self._inner[_RT_CLIENTS_KEY][_RT_C_BANDWIDTH_KEY]
+    def limit_network_resource(self) -> bool:
+        """whether limit the network resource"""
+        return bool(self._inner[_RT_COMMUNICATION_KEY][_RT_COMM_LIMIT_FLAG_KEY])
+
+    @property
+    def bandwidth_upload(self) -> str:
+        """the bandwidth of each container."""
+        if not self.limit_network_resource:
+            raise AttributeError
+        return self._inner[_RT_COMMUNICATION_KEY][_RT_COMM_BANDWIDTH_UP_KEY]
+
+    @property
+    def bandwidth_download(self) -> str:
+        """the bandwidth of each container."""
+        if not self.limit_network_resource:
+            raise AttributeError
+        return self._inner[_RT_COMMUNICATION_KEY][_RT_COMM_BANDWIDTH_DOWN_KEY]
+
+    @property
+    def latency(self) -> str:
+        """the latency of each container."""
+        if not self.limit_network_resource:
+            raise AttributeError
+        return self._inner[_RT_COMMUNICATION_KEY][_RT_COMM_LATENCY_KEY]
 
     @property
     def image_label(self) -> str:
