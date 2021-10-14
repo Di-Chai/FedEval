@@ -311,9 +311,9 @@ class _DataConfig(_Configuraiton):
             str: the name of non-i.i.d. data partition strategy.
         """
         if self._non_iid:
-            if self._non_iid_strategy_name_check():
+            if not self._non_iid_strategy_name_check():
                 raise AttributeError(
-                    f'unregistered non-iid data partition srategy name: {self._non_iid_strategy_name}')
+                    f'unregistered non-iid data partition strategy name: {self._non_iid_strategy_name}')
             return self._non_iid_strategy_name
         else:
             raise AttributeError(_DataConfig._IID_EXCEPTiON_CONTENT)
