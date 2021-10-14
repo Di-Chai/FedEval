@@ -18,7 +18,7 @@ def generate_data(save_file=True):
     try:
         data = eval(d_cfg.dataset_name)()
     except ModuleNotFoundError:
-        print('Invalid dataset name', data_config['dataset'])
+        print('Invalid dataset name', d_cfg.dataset_name)
         return None
 
     if d_cfg.iid:
@@ -27,8 +27,12 @@ def generate_data(save_file=True):
     else:
         print('Generating Non-IID data')
         # TODO&Q (fgh) what does the "shared_data" stands for?
-        clients_data = data.non_iid_data(
-            shared_data=data_config['shared_data'], save_file=save_file)
+        # Di: In some FL mechanisms, the clients jointly create a shared datasets to do something, e.g., solving
+        #     the non-iid issue, or the server may need a centralized and trustful datasets to detect model poisoning.
+        # Di: temporally remove the shared data, could be added in the future if it's still needed
+        # clients_data = data.non_iid_data(
+        #     shared_data=data_config['shared_data'], save_file=save_file)
+        clients_data = data.non_iid_data(save_file=save_file)
     return clients_data
 
 
