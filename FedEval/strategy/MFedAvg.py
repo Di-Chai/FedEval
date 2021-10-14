@@ -21,7 +21,7 @@ class MFedAvg(FedAvg):
         agg_delta = [self.params[i] - agg_params[i] for i in range(len(self.params))]
         momentum = ConfigurationManager().model_config.momentum
         self.v = [
-            self.v[i] * momentum + agg_delta[i]
+            self.v[i] * momentum + agg_delta[i] * (1 - momentum)
             for i in range(len(self.params))
         ]
         self.params = [
