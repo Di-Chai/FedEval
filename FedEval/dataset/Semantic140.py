@@ -188,7 +188,7 @@ class semantic140(FedData):
             for l in f:
                 line = l.decode().split()
                 word = line[0]
-                word2vectors[word] = np.array(line[1:]).astype(np.float)
+                word2vectors[word] = np.array(line[1:]).astype(float)
 
         # Get x
         stemmer = PorterStemmer()
