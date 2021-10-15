@@ -2,6 +2,7 @@ import argparse
 import os
 
 from FedEval.run_util import run
+from multiprocessing import Process
 
 args_parser = argparse.ArgumentParser()
 args_parser.add_argument('--dataset', '-d', type=str)
@@ -149,11 +150,14 @@ params = {
 
 for _ in range(repeat):
     if args.tune is None:
-            run(execution=execution, mode=mode, config=config, new_config_dir_path=config + '_tmp', **params)
+        run(execution=execution, mode=mode, config=config, new_config_dir_path=config + '_tmp', **params)
     else:
         if args.tune == 'lr':
+            print('Debug, tune lr')
             for lr in tune_params['lr']:
                 params['model_config']['MLModel']['optimizer']['lr'] = lr
-                run(execution=execution, mode=mode, config=config, new_config_dir_path=config + '_tmp', **params)
+                p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
+                p.start()
+                p.join()
         else:
             raise ValueError('Unknown tuning params', args.tune)
