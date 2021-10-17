@@ -119,6 +119,35 @@ class Server(Node):
     def _refresh_evaluation_cache(self) -> None:
         self._c_eval = list()
 
+    def _get_recent_time_records(self, recent_num: int = 0) -> List:
+        time_record = [e for e in self._time_record if len(e.keys()) >= 6]
+        tmp = {'round', 'eval_receive_time'}
+        if len(time_record) > 0:
+            time_record.append({'round': 'Average'})
+            for key in time_record[0]:
+                if key not in tmp:
+                    time_record[-1][key] = np.mean([e[key] for e in time_record[:-1]])
+
+            time_record = time_record[-recent_num:]
+            # time_record = [time_record[i] for i in range(len(time_record)) if (len(time_record) - 6) <= i]
+        return time_record
+
+    def __get_avg_test_metric_keys(self) -> List[str]:
+        avg_test_metric = self._avg_test_metrics[0] if self._avg_test_metrics else {}
+        return [e for e in avg_test_metric.keys() if e != 'time']
+
+    def __get_avg_val_metric_keys(self) -> List[str]:
+        avg_val_metric = self._avg_val_metrics[0] if self._avg_val_metrics else {}
+        return [e for e in avg_val_metric.keys() if e != 'time']
+
+    def __get_cur_used_time(self) -> str:
+        stopped = self._STOP and self._training_stop_time is not None
+        train_stop_time = self._training_stop_time if stopped else round(time.time())
+        current_used_time = int(train_stop_time - self._training_start_time)
+        m, s = divmod(current_used_time, 60)
+        h, m = divmod(m, 60)
+        return "%02d:%02d:%02d" % (h, m, s)
+
     def _register_services(self):
         @self._communicator.route(ServerFlaskInterface.Dashboard.value)
         def dashboard():
@@ -128,30 +157,8 @@ class Server(Node):
                 the rendered dashboard web page.
             """
 
-            avg_test_metric = self._avg_test_metrics[0] if len(self._avg_test_metrics) > 0 else {}
-            avg_test_metric_keys = [e for e in avg_test_metric.keys() if e != 'time']
-
-            avg_val_metric = self._avg_val_metrics[0] if len(self._avg_val_metrics) > 0 else {}
-            avg_val_metric_keys = [e for e in avg_val_metric.keys() if e != 'time']
-
-            time_record = [e for e in self._time_record if len(e.keys()) >= 6]
-            if len(time_record) > 0:
-                time_record.append({'round': 'Average'})
-                for key in time_record[0]:
-                    if key not in ['round', 'eval_receive_time']:
-                        time_record[-1][key] = np.mean([e[key] for e in time_record[:-1]])
-
-                time_record = time_record[-6:]
-                # time_record = [time_record[i] for i in range(len(time_record)) if (len(time_record) - 6) <= i]
-
-            train_stop_time = self._training_stop_time if self._STOP and self._training_stop_time is not None else round(time.time())
-            current_used_time = int(train_stop_time - self._training_start_time)
-            m, s = divmod(current_used_time, 60)
-            h, m = divmod(m, 60)
-
             cfg_mgr = ConfigurationManager()
-            metrics = cfg_mgr.model_config.metrics
-            test_accuracy_key = f'test_{metrics[0]}'
+            test_accuracy_key = f'test_{cfg_mgr.model_config.metrics[0]}'
 
             return render_template(
                 'dashboard.html',
@@ -159,15 +166,15 @@ class Server(Node):
                 rounds=f"{self._current_round} / {cfg_mgr.model_config.max_round_num}",
                 num_online_clients=f"{cfg_mgr.num_of_clients_contacted_per_round} / {len(self._communicator.ready_client_ids)} / {cfg_mgr.runtime_config.client_num}",
                 avg_test_metric=self._avg_test_metrics,
-                avg_test_metric_keys=avg_test_metric_keys,
+                avg_test_metric_keys=self.__get_avg_test_metric_keys(),
                 avg_val_metric=self._avg_val_metrics,
-                avg_val_metric_keys=avg_val_metric_keys,
-                time_record=time_record,
-                current_used_time="%02d:%02d:%02d" % (h, m, s),
+                avg_val_metric_keys=self.__get_avg_val_metric_keys(),
+                time_record=self._get_recent_time_records(6),
+                current_used_time=self.__get_cur_used_time(),
                 test_accuracy=self._best_test_metric.get(test_accuracy_key, 0),
                 test_loss=self._best_test_metric.get('test_loss', 0),
-                server_send=self._server_send_bytes / (1<<30),
-                server_receive=self._server_receive_bytes / (1<<30),
+                server_send=self._server_send_bytes / (1<<30),  # in GB
+                server_receive=self._server_receive_bytes / (1<<30),    # in GB
             )
 
         # TMP use
@@ -177,8 +184,8 @@ class Server(Node):
                 'finished': self._server_job_finish,
                 'rounds': self._current_round,
                 'results': [
-                    None if len(self._avg_val_metrics) == 0 else self._avg_val_metrics[-1], 
-                    None if len(self._avg_test_metrics) == 0 else self._avg_test_metrics[-1]
+                    None if not self._avg_val_metrics else self._avg_val_metrics[-1], 
+                    None if not self._avg_test_metrics else self._avg_test_metrics[-1]
                     ],
                 'log_dir': self._hyper_logger.dir_path,
             })
