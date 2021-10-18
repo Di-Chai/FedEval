@@ -150,10 +150,12 @@ params = {
 
 for _ in range(repeat):
     if args.tune is None:
-        run(execution=execution, mode=mode, config=config, new_config_dir_path=config + '_tmp', **params)
+        p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
+        p.start()
+        p.join()
     else:
+        print('Tuning', args.tune)
         if args.tune == 'lr':
-            print('Debug, tune lr')
             for lr in tune_params['lr']:
                 params['model_config']['MLModel']['optimizer']['lr'] = lr
                 p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)

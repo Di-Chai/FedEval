@@ -117,7 +117,7 @@ class ClientContextManager:
         self._clients: Dict[ClientId, ClientContext] = dict()
         for cid in client_id_list:
             client_ctx = ClientContext(cid, fed_model_type, tmp_dir_path)
-            client_ctx.sleep()
+            # client_ctx.sleep()
             self._clients[cid] = client_ctx
 
         self._curr_client_ctx: ClientContext = list(self._clients.values())[0]
@@ -180,12 +180,13 @@ class ClientContextManager:
         if client_id not in self._clients:
             raise ValueError(f'unknown client with an ID of {client_id}')
         if self._curr_client_ctx.id != client_id:
-            if not self._curr_client_ctx.sleeping:
-                self._curr_client_ctx.sleep()
+            # if not self._curr_client_ctx.sleeping:
+            #     self._curr_client_ctx.sleep()
             self._curr_client_ctx = self._clients[client_id]
         if self._curr_client_ctx.sleeping:
             self._curr_client_ctx.wake_up()
         try:
+
             yield self._curr_client_ctx
         finally:
             pass
