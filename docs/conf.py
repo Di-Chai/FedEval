@@ -35,7 +35,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
-    'sphinx_markdown_tables',
+    'sphinx-markdown-tables',
     # 'recommonmark',
     'myst_parser',
 ]
