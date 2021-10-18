@@ -117,6 +117,8 @@ class ClientContextManager:
         self._clients: Dict[ClientId, ClientContext] = dict()
         for cid in client_id_list:
             client_ctx = ClientContext(cid, fed_model_type, tmp_dir_path)
+            # Di: it seems we do not need to sleep the clients
+            #     and it shows no effect to GPU usage.
             # client_ctx.sleep()
             self._clients[cid] = client_ctx
 
@@ -183,8 +185,8 @@ class ClientContextManager:
             # if not self._curr_client_ctx.sleeping:
             #     self._curr_client_ctx.sleep()
             self._curr_client_ctx = self._clients[client_id]
-        if self._curr_client_ctx.sleeping:
-            self._curr_client_ctx.wake_up()
+        # if self._curr_client_ctx.sleeping:
+        #     self._curr_client_ctx.wake_up()
         try:
 
             yield self._curr_client_ctx
