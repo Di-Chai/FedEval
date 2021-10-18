@@ -2,6 +2,7 @@ import argparse
 import os
 
 from FedEval.run_util import run
+from multiprocessing import Process
 
 args_parser = argparse.ArgumentParser()
 args_parser.add_argument('--dataset', '-d', type=str)
@@ -12,6 +13,7 @@ args_parser.add_argument('--non_iid', '-i', type=str)
 args_parser.add_argument('--non_iid_class', '-n', type=int)
 args_parser.add_argument('--tune', '-t', type=str)
 args_parser.add_argument('--repeat', '-r', type=int, default=1)
+args_parser.add_argument('--log_dir', '-l', type=str, default='log/debug')
 args_parser.add_argument('--exec', '-e', type=str)
 args = args_parser.parse_args()
 
@@ -40,7 +42,6 @@ fine_tuned_params = {
     "shakespeare": {
         'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': None},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},
-
         'model': 'StackedLSTM'
     }
 }
@@ -94,7 +95,11 @@ model_config = {
         'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 3000, 'num_tolerance': 100
     }
 }
-runtime_config = {'server': {'num_clients': 100}, 'log_dir': 'log/nips', 'docker': {'num_containers': 100}}
+runtime_config = {
+    'server': {'num_clients': 100}, 
+    'log': {'log_dir': args.log_dir}, 
+    'docker': {'num_containers': 100}
+}
 
 if args.strategy == 'MFedSGD' or args.strategy == 'MFedAvg':
     model_config['FedModel']['momentum'] = 0.9
@@ -110,7 +115,7 @@ if args.strategy == 'FedOpt':
     model_config['FedModel']['opt_name'] = 'fedadam'
 
 if args.strategy == 'FedSTC':
-    model_config['FedModel']['sparsity'] = 0.1
+    model_config['FedModel']['sparsity'] = 0.01
 
 if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
     model_config['MLModel']['hidden_units'] = 64
@@ -145,11 +150,14 @@ params = {
 
 for _ in range(repeat):
     if args.tune is None:
-            run(execution=execution, mode=mode, config=config, new_config_dir_path=config + '_tmp', **params)
+        run(execution=execution, mode=mode, config=config, new_config_dir_path=config + '_tmp', **params)
     else:
         if args.tune == 'lr':
+            print('Debug, tune lr')
             for lr in tune_params['lr']:
                 params['model_config']['MLModel']['optimizer']['lr'] = lr
-                run(execution=execution, mode=mode, config=config, new_config_dir_path=config + '_tmp', **params)
+                p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
+                p.start()
+                p.join()
         else:
             raise ValueError('Unknown tuning params', args.tune)

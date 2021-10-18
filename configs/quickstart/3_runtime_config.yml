@@ -1,5 +1,3 @@
-clients:
-  bandwidth: 100Mbit
 docker:
   image: fedeval:gpu
   num_containers: 10
@@ -19,3 +17,7 @@ log:
 communication:
   method: SocketIO
   port: 8000
+  limit_network_resource: True
+  bandwidth_upload: 10Mbit
+  bandwidth_download: 30Mbit
+  latency: 50ms

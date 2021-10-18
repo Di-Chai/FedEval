@@ -180,7 +180,8 @@ class ClientContextManager:
         if client_id not in self._clients:
             raise ValueError(f'unknown client with an ID of {client_id}')
         if self._curr_client_ctx.id != client_id:
-            self._curr_client_ctx.sleep()
+            if not self._curr_client_ctx.sleeping:
+                self._curr_client_ctx.sleep()
             self._curr_client_ctx = self._clients[client_id]
         if self._curr_client_ctx.sleeping:
             self._curr_client_ctx.wake_up()

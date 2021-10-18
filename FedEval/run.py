@@ -18,7 +18,7 @@ def generate_data(save_file=True):
     try:
         data = eval(d_cfg.dataset_name)()
     except ModuleNotFoundError:
-        print('Invalid dataset name', data_config['dataset'])
+        print('Invalid dataset name', d_cfg.dataset_name)
         return None
 
     if d_cfg.iid:
@@ -27,8 +27,12 @@ def generate_data(save_file=True):
     else:
         print('Generating Non-IID data')
         # TODO&Q (fgh) what does the "shared_data" stands for?
-        clients_data = data.non_iid_data(
-            shared_data=data_config['shared_data'], save_file=save_file)
+        # Di: In some FL mechanisms, the clients jointly create a shared datasets to do something, e.g., solving
+        #     the non-iid issue, or the server may need a centralized and trustful datasets to detect model poisoning.
+        # Di: temporally remove the shared data, could be added in the future if it's still needed
+        # clients_data = data.non_iid_data(
+        #     shared_data=data_config['shared_data'], save_file=save_file)
+        clients_data = data.non_iid_data(save_file=save_file)
     return clients_data
 
 
@@ -70,9 +74,20 @@ def generate_docker_compose_server(path):
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
-        'command': 'sh -c "python3 -W ignore -m FedEval.run -f run -r server -c {}"'.format(path),
+        'command': None,
         'container_name': 'server'
     }
+
+    if rt_cfg.limit_network_resource:
+        server_template['command'] = 'sh -c "' \
+                                     'tc qdisc add dev eth0 handle 1: root htb default 11' \
+                                     '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 1000Mbps' \
+                                     '&& tc class add dev eth0 parent 1:1 classid 1:11 htb rate {}' \
+                                     '&& tc qdisc add dev eth0 parent 1:11 handle 10: netem delay {}' \
+                                     '&& python3 -W ignore -m FedEval.run -f run -r server -c {}' \
+                                     '"'.format(rt_cfg.bandwidth_download, rt_cfg.latency, path)
+    else:
+        server_template['command'] = 'sh -c "python3 -W ignore -m FedEval.run -f run -r server -c {}"'.format(path)
 
     client_template = {
         'image': rt_cfg.image_label,
@@ -109,11 +124,20 @@ def generate_docker_compose_server(path):
             container_id = counter + i
             tmp = copy.deepcopy(client_template)
             tmp['container_name'] = 'container%s' % container_id
-            tmp['command'] = 'sh -c ' \
-                             '"export CONTAINER_ID={} ' \
-                             '&& tc qdisc add dev eth0 root tbf rate {} latency 10ms burst 60000kb ' \
-                             '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
-                container_id, rt_cfg.client_bandwidth, path)
+            if rt_cfg.limit_network_resource:
+                tmp['command'] = 'sh -c ' \
+                                 '"export CONTAINER_ID={} ' \
+                                 '&& tc qdisc add dev eth0 handle 1: root htb default 11 ' \
+                                 '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 1000Mbps ' \
+                                 '&& tc class add dev eth0 parent 1:1 classid 1:11 htb rate {} ' \
+                                 '&& tc qdisc add dev eth0 parent 1:11 handle 10: netem delay {} ' \
+                                 '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
+                    container_id, rt_cfg.bandwidth_upload, rt_cfg.latency, path)
+            else:
+                tmp['command'] = 'sh -c ' \
+                                 '"export CONTAINER_ID={} ' \
+                                 '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
+                    container_id, path)
             nvidia_device_env = (container_id % rt_cfg.gpu_num) if rt_cfg.gpu_enabled else -1
             tmp['environment'].append(f'NVIDIA_VISIBLE_DEVICES={nvidia_device_env}')
             dc['services'][f'container_{container_id}'] = tmp
@@ -137,10 +161,21 @@ def generate_docker_compose_local(path):
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
-        'command': 'sh -c "python3 -W ignore -m FedEval.run -f run -r server -c {}"'.format(path),
+        'command': None,
         'container_name': 'server',
         'networks': ['server-clients']
     }
+
+    if rt_cfg.limit_network_resource:
+        server_template['command'] = 'sh -c "' \
+                                     'tc qdisc add dev eth0 handle 1: root htb default 11' \
+                                     '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 1000Mbps' \
+                                     '&& tc class add dev eth0 parent 1:1 classid 1:11 htb rate {}' \
+                                     '&& tc qdisc add dev eth0 parent 1:11 handle 10: netem delay {}' \
+                                     '&& python3 -W ignore -m FedEval.run -f run -r server -c {}' \
+                                     '"'.format(rt_cfg.bandwidth_download, rt_cfg.latency, path)
+    else:
+        server_template['command'] = 'sh -c "python3 -W ignore -m FedEval.run -f run -r server -c {}"'.format(path)
 
     client_template = {
         'image': rt_cfg.image_label,
@@ -163,13 +198,20 @@ def generate_docker_compose_local(path):
     for container_id in range(rt_cfg.container_num):
         tmp = copy.deepcopy(client_template)
         tmp['container_name'] = 'container%s' % container_id
-        tmp['command'] = 'sh -c ' \
-                         '"export CONTAINER_ID={0} ' \
-                         '&& tc qdisc add dev eth0 root tbf rate {1} latency 50ms burst 15kb ' \
-                         '&& python3 -W ignore -m FedEval.run -f run -r client -c {2}"'.format(
-            container_id,
-            rt_cfg.client_bandwidth,
-            path)
+        if rt_cfg.limit_network_resource:
+            tmp['command'] = 'sh -c ' \
+                             '"export CONTAINER_ID={} ' \
+                             '&& tc qdisc add dev eth0 handle 1: root htb default 11 ' \
+                             '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 1000Mbps ' \
+                             '&& tc class add dev eth0 parent 1:1 classid 1:11 htb rate {} ' \
+                             '&& tc qdisc add dev eth0 parent 1:11 handle 10: netem delay {} ' \
+                             '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
+                container_id, rt_cfg.bandwidth_upload, rt_cfg.latency, path)
+        else:
+            tmp['command'] = 'sh -c ' \
+                             '"export CONTAINER_ID={} ' \
+                             '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
+                container_id, path)
         if rt_cfg.gpu_enabled:
             tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=%s' % (container_id % rt_cfg.gpu_num))
         else:

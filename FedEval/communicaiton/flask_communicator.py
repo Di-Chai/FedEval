@@ -39,9 +39,9 @@ class ClientFlaskCommunicator(ClientCommunicator):
 class ServerFlaskCommunicator(ServerCommunicator):
     def __init__(self) -> None:
         super().__init__()
-        current_path = os.path.dirname(os.path.abspath(__file__))
-        self._app = Flask(__name__, template_folder=os.path.join(current_path, 'templates'),
-                          static_folder=os.path.join(current_path, 'static'))
+        static_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'role')
+        self._app = Flask(__name__, template_folder=os.path.join(static_path, 'templates'),
+                          static_folder=os.path.join(static_path, 'static'))
         self._app.config['SECRET_KEY'] = ConfigurationManager().runtime_config.secret_key
         self._socketio = ServerSocketIO(self._app, max_http_buffer_size=1e20,
                                         async_handlers=True, ping_timeout=3600,
