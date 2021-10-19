@@ -8,7 +8,7 @@ Link to reproduction guidelines: https://di-chai.github.io/FedEval/Reproduce.htm
 
 ----
 
-[![Documentation Status](https://readthedocs.org/projects/fedeval/badge/?version=restructure)](https://fedeval.readthedocs.io/en/restructure/?badge=restructure)
+[![Documentation Status](https://readthedocs.org/projects/fedeval/badge/?version=latest)](https://fedeval.readthedocs.io/en/latest/?badge=latest)
 
 FedEval is a benchmarking platform with comprehensive evaluation model (i.e., iSpree model) for federated learning. The arxiv paper is available at: https://arxiv.org/abs/2011.09655
 
