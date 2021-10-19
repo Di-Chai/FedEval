@@ -1,5 +1,5 @@
 docker:
-  image: fedeval:gpu
+  image: fedeval:v1
   num_containers: 10
   enable_gpu: False
   num_gpu: 0
@@ -17,7 +17,7 @@ log:
 communication:
   method: SocketIO
   port: 8000
-  limit_network_resource: True
+  limit_network_resource: False
   bandwidth_upload: 10Mbit
   bandwidth_download: 30Mbit
   latency: 50ms

@@ -1,10 +1,8 @@
-FROM tensorflow/tensorflow:latest-devel-gpu
+FROM tensorflow/tensorflow:2.2.3-gpu-py3
 
 # Install python & tools
 RUN apt update && \
     apt install -y iproute2 net-tools wget nload iftop unzip --fix-missing
-Add check_python_version.bash /root/
-RUN bash /root/check_python_version.bash
 
 # Install python requirements (using douban image)
 COPY requirements.txt /root/requirements.txt

@@ -239,11 +239,11 @@ if __name__ == '__main__':
 
     # load configs
     with open(os.path.join(args.config, DEFAULT_D_CFG_FILENAME), 'r') as f:
-        data_config = yaml.load(f)
+        data_config = yaml.safe_load(f)
     with open(os.path.join(args.config, DEFAULT_MDL_CFG_FILENAME), 'r') as f:
-        model_config = yaml.load(f)
+        model_config = yaml.safe_load(f)
     with open(os.path.join(args.config, DEFAULT_RT_CFG_FILENAME), 'r') as f:
-        runtime_config = yaml.load(f)
+        runtime_config = yaml.safe_load(f)
     # init configurations
     ConfigurationManager(data_config, model_config, runtime_config)
 
