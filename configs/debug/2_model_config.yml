@@ -1,12 +1,12 @@
 FedModel:
-  name: FedAvg
+  name: LocalCentral
   # Shared params
   B: 8
-  C: 0.1
-  E: 10
-  max_rounds: 3000
+  C: 1.0
+  E: 1
+  max_rounds: 1
   num_tolerance: 300
-  rounds_between_val: 10
+  rounds_between_val: 1
   # FedSTC
   sparsity: 0.01
   # FedProx

@@ -1,6 +1,6 @@
 data_dir: data
-dataset: celeba
-non-iid: True
+dataset: mnist
+non-iid: False
 non-iid-class: 0 # Only work when non-iid = True
 non-iid-strategy: natural # Only work when non-iid = True
 normalize: true
