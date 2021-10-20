@@ -1,5 +1,7 @@
-import argparse
 import os
+import argparse
+import socket
+
 
 from FedEval.run_util import run
 from multiprocessing import Process
@@ -22,26 +24,31 @@ fine_tuned_params = {
     'mnist': {
         'FedAvg': {'B': 16, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.5},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'MLP'
     },
     'femnist': {
         'FedAvg': {'B': 8, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
+        'LocalCentral': {'B': 64},
         'model': 'LeNet'
     },
     'celeba': {
         'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': 0.05},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
+        'LocalCentral': {'B': 64},
         'model': 'LeNet'
     },
     "semantic140": {
         'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': 0.0001},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.05},
+        'LocalCentral': {'B': 64},
         'model': 'StackedLSTM'
     },
     "shakespeare": {
         'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': None},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},
+        'LocalCentral': {'B': 64},
         'model': 'StackedLSTM'
     }
 }
@@ -61,10 +68,6 @@ try:
         p = fine_tuned_params[args.dataset][parsed_strategy[args.strategy]]
     else:
         p = fine_tuned_params[args.dataset][args.strategy]
-    print('*' * 40)
-    print('Running %s, %s with' % (args.dataset, args.strategy), p)
-    print(args)
-    print('*' * 40)
 except KeyError:
     print('No params found')
     exit(1)
@@ -81,8 +84,9 @@ tune_params = {
 data_config = {
     'dataset': args.dataset, 'non-iid': True if args.non_iid.lower() == 'true' else False,
     # INF sample size / client
-    'sample_size': 300,
-    'non-iid-strategy': 'average' if args.dataset == 'mnist' else 'natural', 'non-iid-class': args.non_iid_class
+    'sample_size': 600,
+    'non-iid-strategy': 'average' if args.dataset == 'mnist' else 'natural', 
+    'non-iid-class': args.non_iid_class
 }
 model_config = {
     'MLModel': {
@@ -92,15 +96,41 @@ model_config = {
     },
     'FedModel': {
         'name': args.strategy,
-        'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 3000, 'num_tolerance': 100
+        'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 3000, 'num_tolerance': 100,
+        'rounds_between_val': 1,
     }
 }
 runtime_config = {
-    'server': {'num_clients': 100}, 
+    'server': {'num_clients': None}, 
     'log': {'log_dir': args.log_dir}, 
-    'docker': {'num_containers': 100}
+    'docker': {'num_containers': 100, 'enable_gpu': False, 'num_gpu': 0}
 }
 
+##################################################
+# Dataset Config
+if args.dataset == 'mnist':
+    data_config['sample_size'] = 600
+    runtime_config['server']['num_clients'] = 100
+
+if args.dataset == 'femnist':
+    runtime_config['server']['num_clients'] = 1989
+
+if args.dataset == 'celeba':
+    runtime_config['server']['num_clients'] = 5304
+
+if args.dataset == 'semantic140':
+    runtime_config['server']['num_clients'] = 161
+    model_config['MLModel']['embedding_dim'] = 0
+    model_config['MLModel']['loss'] = 'binary_crossentropy'
+    model_config['MLModel']['metrics'] = ['binary_accuracy']
+
+if args.dataset == 'shakespeare':
+    runtime_config['server']['num_clients'] = 1121
+    data_config['normalize'] = False
+    model_config['MLModel']['embedding_dim'] = 8
+
+##################################################
+# Strategy Config
 if args.strategy == 'MFedSGD' or args.strategy == 'MFedAvg':
     model_config['FedModel']['momentum'] = 0.9
 
@@ -117,30 +147,45 @@ if args.strategy == 'FedOpt':
 if args.strategy == 'FedSTC':
     model_config['FedModel']['sparsity'] = 0.01
 
+if args.strategy == 'LocalCentral':
+    model_config['FedModel']['C'] = 1.0
+    model_config['FedModel']['E'] = 3000
+    model_config['FedModel']['max_rounds'] = 1
+
 if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
     model_config['MLModel']['hidden_units'] = 64
 
-if args.dataset == 'semantic140':
-    data_config['normalize'] = False
-    model_config['MLModel']['embedding_dim'] = 0
-    model_config['MLModel']['loss'] = 'binary_crossentropy'
-    model_config['MLModel']['metrics'] = ['binary_accuracy']
-    model_config['FedModel']['max_rounds'] = 10000
-    model_config['FedModel']['num_tolerance'] = 500
-    
-    # TODO : Add GPU support in the future
-    # runtime_config['docker']['image'] = 'fedeval:gpu'
-    # runtime_config['docker']['enable_gpu'] = True
-    # runtime_config['docker']['num_gpu'] = 8
-    # runtime_config['docker']['num_containers'] = 100
+##################################################
+# Limit the max_epoch to 100 if doing LR tuning
+if args.tune == 'lr':
+    if args.strategy != 'LocalCentral':
+        model_config['FedModel']['max_rounds'] = 100
+    else:
+        model_config['FedModel']['E'] = 100
 
-if args.dataset == 'shakespeare':
-    data_config['normalize'] = False
-    model_config['MLModel']['embedding_dim'] = 8
-    tune_params['lr'] = [1e-1, 5e-1, 1.0]
+##################################################
+# Hardware Config
 
-if args.dataset == 'femnist':
-    model_config['FedModel']['num_tolerance'] = 500
+# def get_gpu_info_and_determin_container_nums():
+#     import pynvml
+#     pynvml.nvmlInit()
+#     num_gpus = pynvml.nvmlDeviceGetCount()
+#     num_containers = []
+#     for i in range(num_gpus):
+#         num_containers.append(
+#             int(pynvml.nvmlDeviceGetMemoryInfo(
+#             pynvml.nvmlDeviceGetHandleByIndex(i)).free 
+#             / 2**30)
+#         )
+#     num_containers = min(num_containers) * len(num_containers)
+#     return num_containers, num_gpus
+
+host_name = socket.gethostname()
+
+if host_name == "workstation":
+    runtime_config['docker']['enable_gpu'] = True
+    runtime_config['docker']['num_containers'] = 20
+    runtime_config['docker']['num_gpu'] = 2
 
 params = {
     'data_config': data_config,
@@ -149,6 +194,10 @@ params = {
 }
 
 for _ in range(repeat):
+    # print('*' * 40)
+    # print('Running %s, %s with' % (args.dataset, args.strategy), p)
+    # print(args)
+    # print('*' * 40)
     if args.tune is None:
         p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
         p.start()
