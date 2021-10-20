@@ -99,6 +99,8 @@ def generate_docker_compose_server(path):
 
     if rt_cfg.gpu_enabled:
         client_template['runtime'] = 'nvidia'
+        server_template['runtime'] = 'nvidia'
+        server_template['environment'] = ['NVIDIA_VISIBLE_DEVICES=0']
 
     with open('docker-compose-server.yml', 'w') as f:
         no_alias_dumper = yaml.dumper.SafeDumper
@@ -188,6 +190,8 @@ def generate_docker_compose_local(path):
 
     if rt_cfg.gpu_enabled:
         client_template['runtime'] = 'nvidia'
+        server_template['runtime'] = 'nvidia'
+        server_template['environment'] = ['NVIDIA_VISIBLE_DEVICES=0']
 
     dc = {
         'version': "2",
