@@ -30,25 +30,25 @@ fine_tuned_params = {
     'femnist': {
         'FedAvg': {'B': 8, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
-        'LocalCentral': {'B': 64},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'LeNet'
     },
     'celeba': {
         'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': 0.05},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
-        'LocalCentral': {'B': 64},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'LeNet'
     },
     "semantic140": {
         'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': 0.0001},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.05},
-        'LocalCentral': {'B': 64},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'StackedLSTM'
     },
     "shakespeare": {
         'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': None},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},
-        'LocalCentral': {'B': 64},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'StackedLSTM'
     }
 }
@@ -113,12 +113,15 @@ if args.dataset == 'mnist':
     runtime_config['server']['num_clients'] = 100
 
 if args.dataset == 'femnist':
+    data_config['sample_size'] = None
     runtime_config['server']['num_clients'] = 1989
 
 if args.dataset == 'celeba':
+    data_config['sample_size'] = None
     runtime_config['server']['num_clients'] = 5304
 
 if args.dataset == 'semantic140':
+    data_config['sample_size'] = None
     runtime_config['server']['num_clients'] = 161
     model_config['MLModel']['embedding_dim'] = 0
     model_config['MLModel']['loss'] = 'binary_crossentropy'
