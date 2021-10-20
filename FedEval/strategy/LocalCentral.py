@@ -6,10 +6,10 @@ import numpy as np
 import tensorflow as tf
 
 from ..config import ConfigurationManager, Role
-from .FedAvg import FedAvg
+from .FederatedStrategy import FedStrategy
 
 
-class LocalCentral(FedAvg):
+class LocalCentral(FedStrategy):
 
     def __init__(self):
         super().__init__()
@@ -17,7 +17,7 @@ class LocalCentral(FedAvg):
         cfg_mgr = ConfigurationManager()
         client_num = cfg_mgr.runtime_config.client_num
         data_dir = cfg_mgr.data_config.dir_name
-        if self.role == Role.Server:
+        if cfg_mgr.role == Role.Server:
             x_train = []
             y_train = []
             x_val = []
@@ -33,9 +33,9 @@ class LocalCentral(FedAvg):
                 y_val.append(data['y_val'])
                 x_test.append(data['x_test'])
                 y_test.append(data['y_test'])
-            self.train_data = {'x': np.array(x_train), 'y': np.array(y_train)}
-            self.val_data = {'x': np.array(x_val), 'y': np.array(y_val)}
-            self.test_data = {'x': np.array(x_test), 'y': np.array(y_test)}
+            self.train_data = {'x': np.concatenate(x_train, axis=0), 'y': np.concatenate(y_train, axis=0)}
+            self.val_data = {'x': np.concatenate(x_val, axis=0), 'y': np.concatenate(y_val, axis=0)}
+            self.test_data = {'x': np.concatenate(x_test, axis=0), 'y': np.concatenate(y_test, axis=0)}
             
             self.train_data_size = len(self.train_data['x'])
             self.val_data_size = len(self.val_data['x'])
@@ -44,9 +44,10 @@ class LocalCentral(FedAvg):
     def host_exit_job(self, host):
         train_loss, _ = self.fit_on_local_data()
         evaluate_results = self.local_evaluate()
-        host.result_json.update({'central_train': evaluate_results})
+        result_json = host.snapshot_result(None)
+        result_json.update({'central_train': evaluate_results})
         with open(os.path.join(host.log_dir, 'results.json'), 'w') as f:
-            json.dump(host.result_json, f)
+            json.dump(result_json, f)
 
     def update_host_params(self, client_params, aggregate_weights):
         return None
@@ -70,4 +71,4 @@ class LocalCentral(FedAvg):
         )
         train_loss = train_log.history['loss'][-1]
         self.local_params_cur = self._retrieve_local_params()
-        return train_loss, self.train_data_size
+        return train_loss, len(self.train_data['x'])

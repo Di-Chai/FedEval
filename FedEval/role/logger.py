@@ -88,3 +88,7 @@ class HyperLogger:
 
     def model_weight_file_path(self, round_num: int) -> str:
         return os.path.join(self.dir_path, weights_filename_pattern.format(round_num))
+
+    @property
+    def log_dir_path(self):
+        return self._log_dir_path

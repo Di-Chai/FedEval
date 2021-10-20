@@ -217,6 +217,7 @@ class Server(Node):
         return return_value
 
     def snapshot_result(self, cur_time: float) -> Mapping[str, Any]:
+        cur_time = self._training_stop_time or cur_time
         m, s = divmod(int(round(cur_time) - self._training_start_time), 60)
         h, m = divmod(m, 60)
         keys = ['update_send', 'update_run', 'update_receive', 'agg_server',
@@ -233,6 +234,10 @@ class Server(Node):
             'server_receive': self._server_receive_bytes / (1 << 30),
             'info_each_round': self._info_each_round
         }
+
+    @property
+    def log_dir(self):
+        return self._hyper_logger.log_dir_path
 
     def _register_handles(self):
         # single-threaded async, no need to lock

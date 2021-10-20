@@ -322,11 +322,11 @@ def download_from_server(remote_dirs, file_type):
 
 def _load_config(path):
     with open(os.path.join(path, '1_data_config.yml'), 'r') as f:
-        c1 = yaml.load(f)
+        c1 = yaml.safe_load(f)
     with open(os.path.join(path, '2_model_config.yml'), 'r') as f:
-        c2 = yaml.load(f)
+        c2 = yaml.safe_load(f)
     with open(os.path.join(path, '3_runtime_config.yml'), 'r') as f:
-        c3 = yaml.load(f)
+        c3 = yaml.safe_load(f)
     return c1, c2, c3
 
 
