@@ -66,6 +66,7 @@ class LogAnalysis:
                     break
 
         self.csv_result_keys = [
+            ['central_train$$test_accuracy', lambda x: [x] if x is None else [float(x)]],
             ['best_metric$$test_accuracy', lambda x: [float(x)]],
             ['total_time', lambda x: [int(x.split(':')[0])*60+int(x.split(':')[1])+int(x.split(':')[2])/60]],
             ['total_rounds', lambda x: [int(x)]],
@@ -116,7 +117,7 @@ class LogAnalysis:
     def parse_results(self):
         results = []
         for i in range(len(self.results)):
-            self.csv_result_keys[0][0] = 'best_metric$$test_%s' %\
+            self.csv_result_keys[1][0] = 'best_metric$$test_%s' %\
                                          self.configs[i]['model_config']['MLModel']['metrics'][0]
             tmp = []
             for key, process_func in self.csv_result_keys:
@@ -135,11 +136,22 @@ class LogAnalysis:
         results = [['Repeat'] + [e.split('$$')[-1] for e in self.diff_keys if e not in self.omit_keys]
                    + [e[0] for e in self.csv_result_keys]]
         for key in average_results:
-            average = np.mean(average_results[key], axis=0)
-            std = np.std(average_results[key], axis=0)
+            average = []
+            std = []
+            for k in range(len(average_results[key][0])):
+                tmp = []
+                for j in range(len(average_results[key])):
+                    if average_results[key][j][k] is not None:
+                        tmp.append(average_results[key][j][k])
+                if len(tmp) > 0:
+                    average.append('%.5f' % np.mean(tmp))
+                    std.append('%.5f' % np.std(tmp))
+                else:
+                    average.append('NA')
+                    std.append('NA')
             results.append(
                 [len(average_results[key])] + key.split('$$') +
-                ['%.5f(%.5f)' % (average[i], std[i]) for i in range(len(average))]
+                ['%s(%s)' % (average[i], std[i]) for i in range(len(average))]
             )
         return results
 
