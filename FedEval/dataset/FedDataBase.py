@@ -122,9 +122,6 @@ class FedData(metaclass=ABCMeta):
             non_iid_class_num = d_cfg.non_iid_class_num
             strategy = d_cfg.non_iid_strategy_name
 
-        # TODO(fgh) shared_data = d_cfg.xxx
-        sample_size = d_cfg.sample_size 
-
         local_dataset = []
 
         if strategy == 'natural':
@@ -141,6 +138,10 @@ class FedData(metaclass=ABCMeta):
                 local_dataset.append(self.generate_local_data(local_x=local_x, local_y=local_y))
 
         else:
+        
+            # TODO(fgh) shared_data = d_cfg.xxx
+            sample_size = d_cfg.sample_size
+
             sample_size = min(sample_size, int(len(self.x) / self.num_clients))
 
             train_size = int(sample_size * self.train_val_test[0])

@@ -202,7 +202,7 @@ if host_name == "workstation":
 
 if host_name == "gpu06":
     runtime_config['docker']['enable_gpu'] = True
-    runtime_config['docker']['num_containers'] = 100
+    runtime_config['docker']['num_containers'] = 80
     runtime_config['docker']['num_gpu'] = 8
 
 if host_name == "gpu05":
