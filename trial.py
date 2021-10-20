@@ -22,31 +22,31 @@ args = args_parser.parse_args()
 
 fine_tuned_params = {
     'mnist': {
-        'FedAvg': {'B': 16, 'C': 0.1, 'E': 10, 'lr': 0.1},
+        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.5},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'MLP'
     },
     'femnist': {
-        'FedAvg': {'B': 8, 'C': 0.1, 'E': 10, 'lr': 0.1},
+        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'LeNet'
     },
     'celeba': {
-        'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': 0.05},
+        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.05},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'LeNet'
     },
     "semantic140": {
-        'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': 0.0001},
+        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.0001},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.05},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'StackedLSTM'
     },
     "shakespeare": {
-        'FedAvg': {'B': 4, 'C': 0.1, 'E': 10, 'lr': None},
+        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'StackedLSTM'
@@ -78,12 +78,15 @@ mode = args.mode
 repeat = args.repeat
 
 tune_params = {
-    'lr': [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0]
+    'lr': [1e-4, 3e-4, 5e-4, 7e-4, 9e-4,
+           1e-3, 3e-3, 5e-3, 7e-3, 9e-3,
+           1e-2, 3e-2, 5e-2, 7e-2, 9e-2,
+           1e-1, 3e-1, 5e-1, 7e-1, 9e-1, 1.0]
 }
 
 data_config = {
-    'dataset': args.dataset, 'non-iid': True if args.non_iid.lower() == 'true' else False,
-    # INF sample size / client
+    'dataset': args.dataset, 
+    'non-iid': True if args.non_iid.lower() == 'true' else False,
     'sample_size': 600,
     'non-iid-strategy': 'average' if args.dataset == 'mnist' else 'natural', 
     'non-iid-class': args.non_iid_class
@@ -103,7 +106,13 @@ model_config = {
 runtime_config = {
     'server': {'num_clients': None}, 
     'log': {'log_dir': args.log_dir}, 
-    'docker': {'num_containers': 100, 'enable_gpu': False, 'num_gpu': 0}
+    'docker': {'num_containers': 100, 'enable_gpu': False, 'num_gpu': 0},
+    'communication': {
+        'limit_network_resource': True, 
+        'bandwidth_upload': '10Mbit', 
+        'bandwidth_download': '30Mbit',
+        'latency': '50ms'
+        }
 }
 
 ##################################################
@@ -165,6 +174,7 @@ if args.tune == 'lr':
         model_config['FedModel']['max_rounds'] = 100
     else:
         model_config['FedModel']['E'] = 100
+    runtime_config['communication']['limit_network_resource'] = False
 
 ##################################################
 # Hardware Config
@@ -186,6 +196,16 @@ if args.tune == 'lr':
 host_name = socket.gethostname()
 
 if host_name == "workstation":
+    runtime_config['docker']['enable_gpu'] = True
+    runtime_config['docker']['num_containers'] = 20
+    runtime_config['docker']['num_gpu'] = 2
+
+if host_name == "gpu06":
+    runtime_config['docker']['enable_gpu'] = True
+    runtime_config['docker']['num_containers'] = 100
+    runtime_config['docker']['num_gpu'] = 8
+
+if host_name == "gpu05":
     runtime_config['docker']['enable_gpu'] = True
     runtime_config['docker']['num_containers'] = 20
     runtime_config['docker']['num_gpu'] = 2
