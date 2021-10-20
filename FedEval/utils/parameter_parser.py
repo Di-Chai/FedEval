@@ -72,7 +72,7 @@ class ParamParser(ParamParserInterface):
                     print(e) # TODO(fgh) expose this exception
 
         mdl_cfg = cfg_mgr.model_config
-        mdl_cfg_inner = mdl_cfg.inner
+        mdl_cfg_inner = mdl_cfg.inner['MLModel']
         optimizer = tf.keras.optimizers.get(mdl_cfg.optimizer_name)
         for key, value in mdl_cfg_inner.get('optimizer', {}).items():
             if key != 'name' and hasattr(optimizer, key):
