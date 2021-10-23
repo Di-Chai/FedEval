@@ -293,7 +293,7 @@ class Server(Node):
                 receive_all = len(self._c_up) == num_clients_contacted_per_round
 
             if not receive_all:
-                self.logger.warn(
+                self.logger.debug(
                     f"not all the clients' responses are received during the handling of {ServerEvent.ResponseUpdate.value}")
                 return
 
