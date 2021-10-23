@@ -4,11 +4,13 @@ import json
 import os
 import platform
 import time
+import numpy as np
+import matplotlib.pyplot as plt
 
 import requests
 import yaml
 
-from .config.configuration import ConfigurationManager
+from .config.configuration import *
 
 sudo = ""
 
@@ -17,7 +19,7 @@ class LogAnalysis:
 
     def __init__(self, log_dir=os.path.join('log', 'server')):
         self.log_dir = log_dir
-        self.logs = os.listdir(log_dir)
+        self.logs = [e for e in os.listdir(log_dir) if not e.startswith('.')]
 
         self.configs = []
         self.results = []
@@ -78,8 +80,99 @@ class LogAnalysis:
         self.configs_diff = self.retrieve_diff_configs()
         self.csv_results = self.parse_results()
 
-        self.average_results = self.take_average()
+        self.average_results = self.aggregate_csv_results()
 
+    def plot(self, join_keys=('data_config$$dataset', ), label_keys=('model_config$$FedModel$$name', )):
+        
+        aggregate_results = {}
+        for i in range(len(self.configs)):
+            record = self.results[i]
+            join_keys_strings = '$$'.join([self.recursive_retrieve(self.configs[i], e) for e in join_keys])
+            label_keys_strings = '$$'.join([self.recursive_retrieve(self.configs[i], e) for e in label_keys])
+            # Find the best index
+            val_loss_list = [
+                record['info_each_round'][str(e + 1)]['val_loss'] for e in range(len(record['info_each_round']))
+            ]
+            best_index = val_loss_list.index(min(val_loss_list))
+            if best_index == 0:
+                continue
+            if self.configs[i]['data_config']['dataset'] == 'semantic140':
+                test_acc_key = 'test_binary_accuracy'
+            else:
+                test_acc_key = 'test_accuracy'
+            test_acc_list = [
+                record['info_each_round'][str(e+1)][test_acc_key] for e in range(len(record['info_each_round']))
+            ]
+            test_acc_list = test_acc_list[:best_index]
+            # CommRound to Accuracy
+            cr_to_acc = [e + 1 for e in range(len(record['info_each_round']))][:best_index]
+            # CommAmount to Accuracy
+            ca_avg_round = (record['server_send'] + record['server_receive']) / len(record['info_each_round'])
+            ca_avg_round_client = ca_avg_round / self.configs[i]['runtime_config']['server']['num_clients'] * 2**10  # MB
+            ca_to_acc = [(e+1) * ca_avg_round_client for e in range(len(record['info_each_round']))][:best_index]
+            # Time to Accuracy
+            time_to_acc = [record['info_each_round'][str(e+1)]['timestamp'] -
+                           record['info_each_round']['1']['timestamp']
+                           for e in range(1, len(record['info_each_round']))][:best_index]
+            
+            if join_keys_strings not in aggregate_results:
+                aggregate_results[join_keys_strings] = {}
+            if label_keys_strings not in aggregate_results[join_keys_strings]:
+                aggregate_results[join_keys_strings][label_keys_strings] = []
+
+            aggregate_results[join_keys_strings][label_keys_strings].append(
+                [cr_to_acc, ca_to_acc, time_to_acc, test_acc_list])
+        
+        def multi_to_single(data, tag):
+            max_length = max([len(e) for e in data])
+            max_length_index = [len(e) for e in data].index(max_length)
+            for i in range(len(data)):
+                if len(data[i]) != max_length:
+                    if tag == 'metric':
+                        data[i] = data[i] + data[max_length_index][-(max_length-len(data[i])):]
+                    elif tag == 'acc':
+                        data[i] = data[i] + [data[i][-1]] * (max_length - len(data[i]))
+                    else:
+                        raise ValueError
+            single_data = np.mean(data, axis=0)
+            return single_data
+        
+        def plot_one_image(key, result_key):
+            fig, ax = plt.subplots(1, 3, figsize=[30, 10])
+            for k2 in result_key:
+                ax[0].plot(result_key[k2][0], result_key[k2][-1], label=k2)
+                ax[1].plot(result_key[k2][1], result_key[k2][-1], label=k2)
+                ax[2].plot(result_key[k2][2], result_key[k2][-1], label=k2)
+            x_labels = ['CR', 'CA', 'Time']
+            for i in range(3):
+                ax[i].legend()
+                ax[i].grid()
+                ax[i].set_ylabel('Accuracy')
+                ax[i].set_xlabel(x_labels[i])
+            ax[1].set_title(key)
+            fig.tight_layout()
+            plt.savefig(os.path.join('log/images', '%s.png' % key), type="png", dpi=400)
+            plt.show()
+
+        for k1 in aggregate_results:
+            for k2 in aggregate_results[k1]:
+                if len(aggregate_results[k1][k2]) > 0:
+                    aggregate_results[k1][k2] = [
+                        multi_to_single([e[0] for e in aggregate_results[k1][k2]], tag='metric'),
+                        multi_to_single([e[1] for e in aggregate_results[k1][k2]], tag='metric'),
+                        multi_to_single([e[2] for e in aggregate_results[k1][k2]], tag='metric'),
+                        multi_to_single([e[3] for e in aggregate_results[k1][k2]], tag='acc'),
+                    ]
+            
+        if len(aggregate_results) == 0:
+            print('Not data to plot')
+            return None
+
+        for key, result_list in aggregate_results.items():
+            plot_one_image(key, result_list)
+        
+        print('debug')
+                
     def parse_dict_keys(self, config, front=''):
         dict_keys = []
         for key in config:
@@ -97,10 +190,11 @@ class LogAnalysis:
 
     def recursive_retrieve(self, dict_data, string_keys):
         string_keys = string_keys.split('$$')
-        for key in string_keys:
+        for i in range(len(string_keys)):
+            key = string_keys[i]
             if key not in dict_data:
                 return None
-            if isinstance(dict_data[key], dict):
+            if isinstance(dict_data[key], dict) and i < (len(string_keys)-1):
                 return self.recursive_retrieve(dict_data[key], '$$'.join(string_keys[1:]))
             else:
                 return dict_data[key]
@@ -125,7 +219,7 @@ class LogAnalysis:
             results.append(tmp)
         return results
 
-    def take_average(self):
+    def aggregate_csv_results(self):
         import numpy as np
         average_results = {}
         for i in range(len(self.configs_diff)):
