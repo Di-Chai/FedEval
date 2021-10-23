@@ -170,8 +170,6 @@ class LogAnalysis:
 
         for key, result_list in aggregate_results.items():
             plot_one_image(key, result_list)
-        
-        print('debug')
                 
     def parse_dict_keys(self, config, front=''):
         dict_keys = []
@@ -478,7 +476,7 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
         # TODO(fgh) import dict keies from config module
         runtime_config['server']['host'] = 'server'
         runtime_config['server']['listen'] = 'server'
-    if mode == 'server':
+    if mode == 'remote':
         runtime_config['server']['host'] = runtime_config['machines']['server']['host']
         runtime_config['server']['listen'] = '0.0.0.0'
     # --- configurations modification area end ---
@@ -500,7 +498,7 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
     if execution == 'stop':
         if mode == 'local':
             local_stop()
-        if mode == 'server':
+        if mode == 'remote':
             server_stop()
         exit(0)
 
@@ -518,7 +516,7 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
         )
         os.system(sudo + 'docker-compose up -d')
 
-    if mode == 'server':
+    if mode == 'remote':
 
         import paramiko
 
@@ -605,7 +603,7 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
         log_file = log_dir + '/train.log'
         result_file = log_dir + '/results.json'
 
-        if mode == 'server':
+        if mode == 'remote':
             os.makedirs(log_dir, exist_ok=True)
             download_from_server(remote_dirs=[log_dir], file_type=[
                                  '.yml', '.json', '.log'])
@@ -613,16 +611,16 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
     if mode == 'local':
         local_stop()
 
-    if mode == 'server':
+    if mode == 'remote':
         server_stop()
 
 
 if __name__ == '__main__':
     args_parser = argparse.ArgumentParser()
-    args_parser.add_argument('--execute', '-e', choices=('run', 'stop', 'upload', 'log'),
+    args_parser.add_argument('--execute', '-e', choices=('run', 'stop', 'upload', 'log', 'plot'),
                              help='Start or Stop the experiments')
-    args_parser.add_argument('--mode', '-m', choices=('server', 'local'),
-                             help='Run the experiments locally or at the server that presented the runtime_config')
+    args_parser.add_argument('--mode', '-m', choices=('remote', 'local'),
+                             help='Run the experiments locally or remotely that presented the runtime_config')
     args_parser.add_argument('--config', '-c', default='./',
                              help='The path to the config files, defaults to be ./')
     args_parser.add_argument('--path', '-p', help='path')
