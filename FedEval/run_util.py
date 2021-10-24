@@ -6,6 +6,7 @@ import platform
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 14})
 
 import requests
 import yaml
@@ -87,8 +88,8 @@ class LogAnalysis:
         aggregate_results = {}
         for i in range(len(self.configs)):
             record = self.results[i]
-            join_keys_strings = '$$'.join([self.recursive_retrieve(self.configs[i], e) for e in join_keys])
-            label_keys_strings = '$$'.join([self.recursive_retrieve(self.configs[i], e) for e in label_keys])
+            join_keys_strings = '-'.join([str(self.recursive_retrieve(self.configs[i], e)) for e in join_keys])
+            label_keys_strings = '-'.join([str(self.recursive_retrieve(self.configs[i], e)) for e in label_keys])
             # Find the best index
             val_loss_list = [
                 record['info_each_round'][str(e + 1)]['val_loss'] for e in range(len(record['info_each_round']))
