@@ -84,7 +84,11 @@ class LogAnalysis:
         self.average_results = self.aggregate_csv_results()
 
     def plot(self, join_keys=('data_config$$dataset', ), label_keys=('model_config$$FedModel$$name', )):
-        
+
+        num_colors = 10
+        line_styles = ['solid', 'dashed', 'dashdot', 'dotted']
+        color_map = plt.get_cmap('gist_rainbow')
+
         aggregate_results = {}
         for i in range(len(self.configs)):
             record = self.results[i]
@@ -140,10 +144,18 @@ class LogAnalysis:
         
         def plot_one_image(key, result_key):
             fig, ax = plt.subplots(1, 3, figsize=[30, 10])
-            for k2 in result_key:
-                ax[0].plot(result_key[k2][0], result_key[k2][-1], label=k2)
-                ax[1].plot(result_key[k2][1], result_key[k2][-1], label=k2)
-                ax[2].plot(result_key[k2][2], result_key[k2][-1], label=k2)
+            counter = 0
+            for k2 in sorted(result_key.keys()):
+                line0 = ax[0].plot(result_key[k2][0], result_key[k2][-1], label=k2)
+                line1 = ax[1].plot(result_key[k2][1], result_key[k2][-1], label=k2)
+                line2 = ax[2].plot(result_key[k2][2], result_key[k2][-1], label=k2)
+                for line in [line0, line1, line2]:
+                    # line[0].set_color(color_map(counter//len(line_styles)*float(len(line_styles))/num_colors))
+                    # line[0].set_linestyle(line_styles[counter % len(line_styles)])
+                    line[0].set_color(color_map(float(counter % num_colors) / num_colors))
+                    line[0].set_linestyle(line_styles[counter//num_colors])
+                counter += 1
+
             x_labels = ['CR', 'CA', 'Time']
             for i in range(3):
                 ax[i].legend()
