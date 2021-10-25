@@ -20,22 +20,41 @@ args_parser.add_argument('--exec', '-e', type=str)
 args = args_parser.parse_args()
 
 
+"""
+Tuned learning rate:
+CelebA: 
+    FedSGD: 0.03
+FEMNIST:
+    FedAvg: 0.3
+    FedSGD: 0.009
+    FedSTC: 0.005
+MNIST:
+    FedAvg: 0.7
+    FedOpt: 0.5
+    FedSGD: 0.07
+    FedSTC: 0.3
+    
+"""
+
 fine_tuned_params = {
     'mnist': {
-        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.5},
+        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.7},
+        'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
+        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.3},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.07},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'MLP'
     },
     'femnist': {
-        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
+        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.009},
+        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.005},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'LeNet'
     },
     'celeba': {
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.05},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.03},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
         'model': 'LeNet'
     },
@@ -207,8 +226,13 @@ if host_name == "gpu06":
 
 if host_name == "gpu05":
     runtime_config['docker']['enable_gpu'] = True
-    runtime_config['docker']['num_containers'] = 20
+    runtime_config['docker']['num_containers'] = 40
     runtime_config['docker']['num_gpu'] = 2
+
+if host_name == "ministation":
+    runtime_config['docker']['enable_gpu'] = True
+    runtime_config['docker']['num_containers'] = 10
+    runtime_config['docker']['num_gpu'] = 1
 
 params = {
     'data_config': data_config,
