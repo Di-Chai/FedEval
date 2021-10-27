@@ -224,6 +224,11 @@ class _Configuraiton(object):
         """
         return deepcopy(self._inner)
 
+    @staticmethod
+    def _config_filter(config):
+        # No filter by default
+        return config
+
 
 class _DataConfig(_Configuraiton):
     _IID_EXCEPTiON_CONTENT = 'The dataset is configured as iid.'
@@ -253,6 +258,13 @@ class _DataConfig(_Configuraiton):
             raise ValueError(f'values in {_D_PARTITION_KEY} are too small.')
         partition = [i / summation for i in partition]
         self._partition = partition
+
+    @staticmethod
+    def _config_filter(config):
+        if not config[_D_NI_ENABLE_KEY]:
+            config[_D_NI_CLASS_KEY] = None
+            config[_D_NI_STRATEGY_KEY] = None
+        return config
 
     @property
     def dir_name(self) -> str:
@@ -364,7 +376,24 @@ class _ModelConfig(_Configuraiton):
 
         self._unit_size: List[int] = [
             int(i) for i in self._ml_cfg[_ML_UNITS_SIZE_KEY]]
-
+    
+    @staticmethod
+    def _config_filter(config):
+        # Fed Model filters
+        if config[_STRATEGY_KEY][_STRATEGY_NAME_KEY] != 'FedSTC':
+            config[_STRATEGY_KEY][_STRATEGY_FEDSTC_SPARSITY_KEY] = None
+        if config[_STRATEGY_KEY][_STRATEGY_NAME_KEY] != 'FedProx':
+            config[_STRATEGY_KEY][_STRATEGY_FEDPROX_MU_KEY] = None
+        if config[_STRATEGY_KEY][_STRATEGY_NAME_KEY] != 'FedOpt':
+            config[_STRATEGY_KEY][_STRATEGY_FEDOPT_TAU_KEY] = None
+            config[_STRATEGY_KEY][_STRATEGY_FEDOPT_NAME_KEY] = None
+            config[_STRATEGY_KEY][_STRATEGY_FEDOPT_BETA1_KEY] = None
+            config[_STRATEGY_KEY][_STRATEGY_FEDOPT_BETA2_KEY] = None
+        if config[_STRATEGY_KEY][_STRATEGY_NAME_KEY] != 'FedOpt' and \
+            config[_STRATEGY_KEY][_STRATEGY_NAME_KEY] != 'FedSCA':
+            config[_STRATEGY_KEY][_STRATEGY_ETA_KEY] = None
+        return config
+    
     @staticmethod
     def __check_raw_config(config: RawConfigurationDict) -> None:
         _ModelConfig.__check_runtime_config_shallow_structure(config)
@@ -601,6 +630,13 @@ class _RT_Machine(_Configuraiton):
         _RT_Machine.__check_items(machine_config, is_server)
         super().__init__(machine_config)
         self._is_server = is_server
+
+    @staticmethod
+    def _config_filter(config):
+        if not config[_RT_COMMUNICATION_KEY][_RT_COMM_LIMIT_FLAG_KEY]:
+            config[_RT_COMMUNICATION_KEY][_RT_COMM_BANDWIDTH_UP_KEY] = None
+            config[_RT_COMMUNICATION_KEY][_RT_COMM_BANDWIDTH_DOWN_KEY] = None
+            config[_RT_COMMUNICATION_KEY][_RT_COMM_LATENCY_KEY] = None
 
     @staticmethod
     def __check_items(config: RawConfigurationDict, is_server: bool = False) -> None:
