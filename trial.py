@@ -24,6 +24,7 @@ args = args_parser.parse_args()
 Tuned learning rate:
 CelebA: 
     FedSGD: 0.03
+    LocalCentral: 0.001
 FEMNIST:
     FedAvg: 0.3
     FedSGD: 0.009
@@ -33,7 +34,9 @@ MNIST:
     FedOpt: 0.5
     FedSGD: 0.07
     FedSTC: 0.3
-    
+    FedProx: 0.5
+    LocalCentral: 0.5
+
 """
 
 fine_tuned_params = {
@@ -195,6 +198,13 @@ if args.tune == 'lr':
         model_config['FedModel']['E'] = 100
     runtime_config['communication']['limit_network_resource'] = False
 
+# TMP Remove
+if args.tune == 'lr' and args.strategy == 'LocalCentral':
+    if args.dataset == 'femnist':
+        tune_params['lr'] = [7e-3, 9e-3,
+           1e-2, 3e-2, 5e-2, 7e-2, 9e-2,
+           1e-1, 3e-1, 5e-1, 7e-1, 9e-1, 1.0]
+
 ##################################################
 # Hardware Config
 
@@ -216,7 +226,7 @@ host_name = socket.gethostname()
 
 if host_name == "workstation":
     runtime_config['docker']['enable_gpu'] = True
-    runtime_config['docker']['num_containers'] = 20
+    runtime_config['docker']['num_containers'] = 10
     runtime_config['docker']['num_gpu'] = 2
 
 if host_name == "gpu06":
