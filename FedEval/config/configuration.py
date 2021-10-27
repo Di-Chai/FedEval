@@ -210,7 +210,7 @@ _DEFAULT_RT_CFG: RawConfigurationDict = {
 # --- Configuration Entities ---
 class _Configuraiton(object):
     def __init__(self, config: RawConfigurationDict) -> None:
-        self._inner: RawConfigurationDict = config
+        self._inner: RawConfigurationDict = self._config_filter(config)
 
     @property
     def inner(self) -> RawConfigurationDict:
