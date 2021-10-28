@@ -68,8 +68,8 @@ if host_name == "gpu06":
 
     # os.system("python3 -W ignore trial.py -d celeba -s FedSGD "
     #           "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
-    os.system("python3 -W ignore trial.py -d celeba -s FedAvg "
-              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
+    # os.system("python3 -W ignore trial.py -d celeba -s FedAvg "
+    #           "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
     os.system("python3 -W ignore trial.py -d celeba -s FedSTC "
               "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
     os.system("python3 -W ignore trial.py -d celeba -s FedProx "
