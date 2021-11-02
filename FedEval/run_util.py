@@ -98,8 +98,9 @@ class LogAnalysis:
             val_loss_list = [
                 record['info_each_round'][str(e + 1)]['val_loss'] for e in range(len(record['info_each_round']))
             ]
-            best_index = val_loss_list.index(min(val_loss_list))
-            if best_index == 0:
+            # best_index = val_loss_list.index(min(val_loss_list))
+            best_index = len(val_loss_list)
+            if best_index <= 1:
                 continue
             if self.configs[i]['data_config']['dataset'] == 'semantic140':
                 test_acc_key = 'test_binary_accuracy'
@@ -116,14 +117,16 @@ class LogAnalysis:
             ca_avg_round_client = ca_avg_round / self.configs[i]['runtime_config']['server']['num_clients'] * 2**10  # MB
             ca_to_acc = [(e+1) * ca_avg_round_client for e in range(len(record['info_each_round']))][:best_index]
             # Time to Accuracy
-            time_to_acc = [record['info_each_round'][str(e+1)]['timestamp'] -
-                           record['info_each_round']['1']['timestamp']
-                           for e in range(1, len(record['info_each_round']))][:best_index]
+            time_to_acc = [0] + [record['info_each_round'][str(e+1)]['timestamp'] -
+                                 record['info_each_round']['1']['timestamp']
+                                 for e in range(1, len(record['info_each_round']))][:best_index]
             
             if join_keys_strings not in aggregate_results:
                 aggregate_results[join_keys_strings] = {}
             if label_keys_strings not in aggregate_results[join_keys_strings]:
                 aggregate_results[join_keys_strings][label_keys_strings] = []
+
+            assert len(cr_to_acc) == len(ca_to_acc) == len(time_to_acc) == len(test_acc_list)
 
             aggregate_results[join_keys_strings][label_keys_strings].append(
                 [cr_to_acc, ca_to_acc, time_to_acc, test_acc_list])
