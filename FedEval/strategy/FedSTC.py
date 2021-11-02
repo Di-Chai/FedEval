@@ -1,4 +1,7 @@
+import copy
 import gc
+import os
+
 gc.set_threshold(700, 10, 5)
 import numpy as np
 from scipy.sparse import lil_matrix
@@ -6,6 +9,9 @@ from scipy.sparse import lil_matrix
 from ..config import ConfigurationManager, Role
 from .FederatedStrategy import FedStrategy
 from .utils import aggregate_weighted_average
+
+import sys
+import psutil
 
 
 def sparse_mask(value_list, p=0.01):
@@ -111,23 +117,19 @@ class FedSTC(FedStrategy):
             self.ml_model.set_weights(new_local_params)
 
     def update_host_params(self, client_params, aggregate_weights):
-        client_params = [[e[i].toarray().reshape(self.server_residual[i].shape)
-                          for i in range(len(e))] for e in client_params]
+        param_shapes = [e.shape for e in self.server_residual]
         delta_W = aggregate_weighted_average(client_params, aggregate_weights)
+        del client_params
+        delta_W = [delta_W[i].toarray().reshape(param_shapes[i]) for i in range(len(param_shapes))]
         delta_W_plus_r = [
-            self.stc(delta_W[i] + self.server_residual[i],
+            self.stc(delta_W[i].copy() + self.server_residual[i].copy(),
                      sparsity=ConfigurationManager().model_config.stc_sparsity)
             for i in range(len(delta_W))
         ]
         # update the residual
         self.server_residual = [
-            self.server_residual[i] + delta_W[i] - delta_W_plus_r[i]
-            for i in range(len(self.server_residual))
+            self.server_residual[i].copy() + delta_W[i].copy() - delta_W_plus_r[i].copy()
+            for i in range(len(param_shapes))
         ]
         # Compress the stc(delta_w + R) and return
-        result = [self.compress(e.reshape([-1, ])) for e in delta_W_plus_r]
-        del delta_W
-        del delta_W_plus_r
-        del client_params
-        gc.collect()
-        return result
+        return [self.compress(e.reshape([-1, ])) for e in delta_W_plus_r]
