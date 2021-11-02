@@ -194,16 +194,7 @@ if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
 if args.tune == 'lr':
     if args.strategy != 'LocalCentral':
         model_config['FedModel']['max_rounds'] = 100
-    else:
-        model_config['FedModel']['E'] = 100
     runtime_config['communication']['limit_network_resource'] = False
-
-# TMP Remove
-if args.tune == 'lr' and args.strategy == 'LocalCentral':
-    if args.dataset == 'femnist':
-        tune_params['lr'] = [7e-3, 9e-3,
-           1e-2, 3e-2, 5e-2, 7e-2, 9e-2,
-           1e-1, 3e-1, 5e-1, 7e-1, 9e-1, 1.0]
 
 ##################################################
 # Hardware Config
@@ -251,10 +242,6 @@ params = {
 }
 
 for _ in range(repeat):
-    # print('*' * 40)
-    # print('Running %s, %s with' % (args.dataset, args.strategy), p)
-    # print(args)
-    # print('*' * 40)
     if args.tune is None:
         p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
         p.start()
