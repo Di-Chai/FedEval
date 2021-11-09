@@ -39,12 +39,23 @@ Finished Tuning Learning Rates
               "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
     os.system("python3 -W ignore trial.py -d celeba -s FedAvg "
               "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
+              
+    os.system("python3 -W ignore trial.py -d semantic140 -s FedSGD "
+              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
+    os.system("python3 -W ignore trial.py -d semantic140 -s FedAvg "
+              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
+    os.system("python3 -W ignore trial.py -d semantic140 -s FedSTC "
+              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
+    os.system("python3 -W ignore trial.py -d semantic140 -s FedProx "
+              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
+    os.system("python3 -W ignore trial.py -d semantic140 -s FedOpt "
+              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
 
 """
 
 host_name = socket.gethostname()
 
-if host_name == 'ministation':
+if host_name == 'workstation':
     os.system("python -W ignore trial.py -d mnist -s LocalCentral "
               "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
     os.system("python -W ignore trial.py -d femnist -s LocalCentral "
@@ -80,14 +91,5 @@ if host_name == "gpu06":
 
 if host_name == "workstation":
 
-    os.system("python3 -W ignore trial.py -d semantic140 -s FedSGD "
-              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
-    os.system("python3 -W ignore trial.py -d semantic140 -s FedAvg "
-              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
-    os.system("python3 -W ignore trial.py -d semantic140 -s FedSTC "
-              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
-    os.system("python3 -W ignore trial.py -d semantic140 -s FedProx "
-              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
-    os.system("python3 -W ignore trial.py -d semantic140 -s FedOpt "
-              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
+    pass
 

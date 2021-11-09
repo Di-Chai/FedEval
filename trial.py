@@ -24,11 +24,18 @@ args = args_parser.parse_args()
 Tuned learning rate:
 CelebA: 
     FedSGD: 0.03
+    FedAvg: 0.3
+    FedProx: 0.1
+    FedSTC: 
+    FedOpt: 0.5
     LocalCentral: 0.001
 FEMNIST:
-    FedAvg: 0.3
     FedSGD: 0.009
+    FedAvg: 0.3
     FedSTC: 0.005
+    FedProx: 0.3
+    FedOpt: 0.3
+    LocalCentral:
 MNIST:
     FedAvg: 0.7
     FedOpt: 0.5
@@ -36,41 +43,65 @@ MNIST:
     FedSTC: 0.3
     FedProx: 0.5
     LocalCentral: 0.5
-
+Sent140:
+    FedSGD: 0.009
+    FedAvg: 0.05
+    FedSTC: 0.007
+    FedProx: 0.03
+    FedOpt: 0.1
+    LocalCentral: 
+Shake:
+    FedSGD: 0.1
+    FedAvg:
+    FedSTC:
+    FedProx:
+    FedOpt:
+    LocalCentral:
 """
 
 fine_tuned_params = {
     'mnist': {
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.7},
+        'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.3},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.07},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': None},
         'model': 'MLP'
     },
     'femnist': {
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
+        'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
+        'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.009},
         'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.005},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': None},
         'model': 'LeNet'
     },
     'celeba': {
-        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.05},
+        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
+        'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
+        'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.03},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': None},
         'model': 'LeNet'
     },
     "semantic140": {
-        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.0001},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.05},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
+        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.05},
+        'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.03},
+        'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.009},
+        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.007},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': None},
         'model': 'StackedLSTM'
     },
     "shakespeare": {
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.5},
+        'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
+        'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
+        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': None},
         'model': 'StackedLSTM'
     }
 }
@@ -217,12 +248,12 @@ host_name = socket.gethostname()
 
 if host_name == "workstation":
     runtime_config['docker']['enable_gpu'] = True
-    runtime_config['docker']['num_containers'] = 10
+    runtime_config['docker']['num_containers'] = 20
     runtime_config['docker']['num_gpu'] = 2
 
 if host_name == "gpu06":
     runtime_config['docker']['enable_gpu'] = True
-    runtime_config['docker']['num_containers'] = 60
+    runtime_config['docker']['num_containers'] = 80
     runtime_config['docker']['num_gpu'] = 8
 
 if host_name == "gpu05":
@@ -235,24 +266,31 @@ if host_name == "ministation":
     runtime_config['docker']['num_containers'] = 10
     runtime_config['docker']['num_gpu'] = 1
 
+if host_name == "mac.local":
+    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['num_containers'] = 10
+    runtime_config['docker']['num_gpu'] = 0
+
 params = {
     'data_config': data_config,
     'model_config': model_config,
     'runtime_config': runtime_config
 }
 
-for _ in range(repeat):
-    if args.tune is None:
-        p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
-        p.start()
-        p.join()
-    else:
-        print('Tuning', args.tune)
-        if args.tune == 'lr':
-            for lr in tune_params['lr']:
-                params['model_config']['MLModel']['optimizer']['lr'] = lr
-                p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
-                p.start()
-                p.join()
+if __name__ == '__main__':
+
+    for _ in range(repeat):
+        if args.tune is None:
+            p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
+            p.start()
+            p.join()
         else:
-            raise ValueError('Unknown tuning params', args.tune)
+            print('Tuning', args.tune)
+            if args.tune == 'lr':
+                for lr in tune_params['lr']:
+                    params['model_config']['MLModel']['optimizer']['lr'] = lr
+                    p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
+                    p.start()
+                    p.join()
+            else:
+                raise ValueError('Unknown tuning params', args.tune)
