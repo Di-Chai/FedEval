@@ -1,4 +1,5 @@
 from .FedImage import *
+from .FedMatrix import *
 from .Semantic140 import *
 from .Shakespeare import *
 
@@ -27,6 +28,9 @@ def get_data_shape(dataset_name: str):
     elif dataset_name == 'semantic140':
         x_size = (None, 25, 200)
         y_size = (None, 1)
+    elif dataset_name == 'wine':
+        x_size = (6480, 12)
+        y_size = (6480, 2)
     else:
         raise ValueError('Unknown dataset', dataset_name)
     return x_size, y_size
