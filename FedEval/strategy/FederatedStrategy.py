@@ -2,6 +2,7 @@ import random
 from abc import ABCMeta, abstractmethod, abstractproperty
 from typing import Any, List, Mapping, Optional, Union
 
+from enum import Enum
 from ..callbacks import *
 from ..config import ClientId, ConfigurationManager, Role
 from ..model import *
@@ -10,10 +11,25 @@ from .utils import aggregate_weighted_average
 
 ModelWeights = Any  # weights of DL model
 
+
+class HostParamsType(Enum):
+    Uniform = 'uniform'
+    Personalized = 'personalized'
+
+
 class FedStrategyHostInterface(metaclass=ABCMeta):
+
+    @abstractproperty
+    def host_params_type(self):
+        """
+        Returns the same parameters for all parties or personalized ML model
+        """
+        raise NotImplementedError
+
     @abstractmethod
-    def host_get_init_params(self) -> ModelWeights:
-        """get the initial model params/weights from its machine/deep learning model.
+    def retrieve_host_download_info(self) -> (ModelWeights, str):
+        """get the host download information,
+           e.g., model params/weights from its machine/deep learning model.
 
         Raises:
             NotImplementedError: raised when called but not overriden.
@@ -225,7 +241,11 @@ class FedStrategy(FedStrategyInterface):
         self._init_states()
         self._init_model()
         self._config_callback()
+        self._init_host_params_type()
         self.logger = logger
+
+    def _init_host_params_type(self):
+        self._host_params_type = HostParamsType.Uniform
 
     def set_logger(self, logger) -> None:
         self.logger = logger
@@ -263,6 +283,10 @@ class FedStrategy(FedStrategyInterface):
     def param_parser(self) -> ParamParserInterface:
         return self._param_parser
 
+    @property
+    def host_params_type(self):
+        return self._host_params_type
+
     @param_parser.setter
     def param_parser(self, value: ParamParserInterface):
         self._param_parser = value
@@ -273,15 +297,16 @@ class FedStrategy(FedStrategyInterface):
         self._client_id = client_id
         self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(self._client_id)
 
-    def host_get_init_params(self) -> ModelWeights:
-        self.params = self.ml_model.get_weights()
-        return self.params
+    def retrieve_host_download_info(self) -> ModelWeights:
+        if self.params is None:
+            return self.ml_model.get_weights()
+        else:
+            return self.params
 
-    def update_host_params(self, client_params, aggregate_weights) -> ModelWeights:
+    def update_host_params(self, client_params, aggregate_weights) -> None:
         if self._has_callback():
             client_params = self.callback.on_host_aggregate_begin(client_params)
         self.params = aggregate_weighted_average(client_params, aggregate_weights)
-        return self.params
 
     def host_exit_job(self, host):
         if self._has_callback():

@@ -1,6 +1,7 @@
 import base64
 import datetime
 import json
+import pickle
 import os
 import threading
 import time
@@ -18,6 +19,7 @@ from ..utils import pickle_string_to_obj  # TODO(fgh) remove from this file
 from .container import ContainerId
 from .logger import HyperLogger
 from .node import Node
+from ..strategy.FederatedStrategy import HostParamsType
 
 
 class Server(Node):
@@ -36,7 +38,10 @@ class Server(Node):
         self._register_services()
 
         # save the init weights
-        self._hyper_logger.snapshot_model_weights_into_file(self._current_params, self._current_round)
+        self._current_params = self._strategy.retrieve_host_download_info()
+        self._hyper_logger.snapshot_model_weights_into_file(
+            self._current_params, self._current_round,
+            self._strategy.host_params_type)
 
     def _construct_fed_model(self):
         """Construct a federated model according to `self.model_config` and bind it to `self.fed_model`.
@@ -110,7 +115,6 @@ class Server(Node):
     def _init_states(self):
         self._init_statistical_states()
         self._init_control_states()
-        self._current_params = self._strategy.host_get_init_params()
         self._init_metric_states()
 
     def _refresh_update_cache(self) -> None:
@@ -192,12 +196,16 @@ class Server(Node):
 
         @self._communicator.route(ServerFlaskInterface.DownloadPattern.value.format('<encoded_file_path>'), methods=['GET'])
         def download_file(encoded_file_path: str):
-            file_path = base64.b64decode(encoded_file_path.encode(
+            file_path = base64.urlsafe_b64decode(encoded_file_path.encode(
                 encoding='utf8')).decode(encoding='utf8')
+
+            print('*'*30)
+            print('debug', file_path)
+            print('*'*30)
             if os.path.isfile(file_path):
                 return send_file(file_path, as_attachment=True)
             else:
-                return json.dumps({'status': 404, 'msg': 'file not found'})
+                return pickle.dumps({'status': 404, 'msg': 'file not found'})
 
     # cur_round could None
     def aggregate_train_loss(self, client_losses, client_sizes, cur_round):
@@ -318,9 +326,11 @@ class Server(Node):
             aggregate_weights = np.array([x['train_size'] for x in self._c_up]).astype(np.float)
             aggregate_weights /= np.sum(aggregate_weights)
 
-            self._current_params = self._strategy.update_host_params(
-                client_params, aggregate_weights)
-            self._hyper_logger.snapshot_model_weights_into_file(self._current_params, self._current_round)
+            self._strategy.update_host_params(client_params, aggregate_weights)
+            self._current_params = self._strategy.retrieve_host_download_info()
+            self._hyper_logger.snapshot_model_weights_into_file(
+                self._current_params, self._current_round, self._strategy.host_params_type
+            )
 
             aggr_train_loss = self.aggregate_train_loss(
                 [x['train_loss'] for x in self._c_up],
@@ -527,35 +537,64 @@ class Server(Node):
         self._refresh_update_cache()
 
         previous_round = self._current_round - 1
-        weight_file_path = self._hyper_logger.model_weight_file_path(previous_round)
-        encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(encoding='utf8')
-        data_send = {'round_number': self._current_round,
-                     'weights_file_name': encoded_weight_file_path}
-        self._communicator.invoke_all(ClientEvent.RequestUpdate,
-                                      data_send,
-                                      callees=selected_clients)
+
+        if self._strategy.host_params_type == HostParamsType.Uniform:
+            weight_file_path = self._hyper_logger.model_weight_file_path(previous_round)
+            encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(encoding='utf8')
+            data_send = {'round_number': self._current_round,
+                         'weights_file_name': encoded_weight_file_path}
+            self._communicator.invoke_all(ClientEvent.RequestUpdate,
+                                          data_send,
+                                          callees=selected_clients)
+        else:
+            for client_id in selected_clients:
+                weight_file_path = self._hyper_logger.model_weight_file_path(previous_round, client_id=client_id)
+                encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(
+                    encoding='utf8')
+                data_send = {'round_number': self._current_round,
+                             'weights_file_name': encoded_weight_file_path}
+                self._communicator.invoke_all(
+                    ClientEvent.RequestUpdate, data_send, callees=[client_id]
+                )
         self.logger.info('Finished sending update requests, waiting resp from clients')
 
     def evaluate(self, selected_clients=None, eval_best_model=False):
         self.logger.info('Starting eval')
         self._refresh_evaluation_cache()
-        data_send = { 'round_number': self._current_round }
-        weight_file_path = (
-            self._hyper_logger.server_side_best_model_weight_file_path 
-            if eval_best_model else 
-            self._hyper_logger.model_weight_file_path(self._current_round))
-        encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(encoding='utf8')
-        data_send['weights_file_name'] = encoded_weight_file_path
 
-        # retrieval send information
-        if selected_clients is None:
-            # selected_clients = self.fed_model.host_select_evaluate_clients(self._communicator.ready_client_ids)
-            selected_clients = self._communicator.ready_client_ids
+        data_send = {'round_number': self._current_round}
+        if self._strategy.host_params_type == HostParamsType.Uniform:
+            weight_file_path = (
+                self._hyper_logger.server_side_best_model_weight_file_path
+                if eval_best_model else
+                self._hyper_logger.model_weight_file_path(self._current_round))
+            encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(
+                encoding='utf8')
+            data_send['weights_file_name'] = encoded_weight_file_path
+            # retrieval send information
+            if selected_clients is None:
+                # selected_clients = self.fed_model.host_select_evaluate_clients(self._communicator.ready_client_ids)
+                selected_clients = self._communicator.ready_client_ids
 
-        self.logger.info(f'Sending eval requests to {len(selected_clients)} clients')
-        self._communicator.invoke_all(ClientEvent.RequestEvaluate,
-                                      data_send,
-                                      callees=selected_clients)
+            self.logger.info(f'Sending eval requests to {len(selected_clients)} clients')
+            self._communicator.invoke_all(ClientEvent.RequestEvaluate,
+                                          data_send,
+                                          callees=selected_clients)
+        else:
+            for client_id in (selected_clients or self._communicator.ready_client_ids):
+                weight_file_path = (
+                    self._hyper_logger.server_side_best_model_weight_file_path
+                    if eval_best_model else
+                    self._hyper_logger.model_weight_file_path(self._current_round, client_id=client_id)
+                )
+                encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(
+                    encoding='utf8')
+                data_send['weights_file_name'] = encoded_weight_file_path
+                self.logger.info(f'Sending eval requests to client {client_id}')
+                self._communicator.invoke_all(
+                    ClientEvent.RequestEvaluate, data_send, callees=[client_id]
+                )
+
         self.logger.info('Waiting resp from clients')
 
     def start(self):

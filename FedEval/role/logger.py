@@ -9,6 +9,7 @@ from ..communicaiton import (server_best_weight_filename,
                              weights_filename_pattern)
 from ..config import ConfigurationManager
 from ..utils.utils import obj_to_pickle_string
+from ..strategy.FederatedStrategy import HostParamsType
 
 
 class HyperLogger:
@@ -65,19 +66,36 @@ class HyperLogger:
         with open(os.path.join(self._log_dir_path, 'results.json'), 'w') as f:
             json.dump(results, f)
 
-    def snapshot_model_weights_into_file(self, weights, round_num: int) -> None:
-        obj_to_pickle_string(
-            weights,
-            self.model_weight_file_path(round_num)
-        )
-        # Keep the latest 5 weights
-        all_files_in_model_dir = os.listdir(self._log_dir_path)
-        matched_model_files = [
-            re.match(r'model_([0-9]+).pkl', e) for e in all_files_in_model_dir]
-        matched_model_files = [e for e in matched_model_files if e is not None]
-        for matched_model in matched_model_files:
-            if round_num - int(matched_model.group(1)) >= 5:
-                os.remove(os.path.join(self._log_dir_path, matched_model.group(0)))
+    def snapshot_model_weights_into_file(self, weights, round_num: int, host_params_type: str) -> None:
+        def only_keep_k_model_files(path, k=5):
+            # Keep the latest k weights
+            all_files_in_model_dir = os.listdir(path)
+            matched_model_files = [
+                re.match(r'model_([0-9]+).pkl', e) for e in all_files_in_model_dir]
+            matched_model_files = [e for e in matched_model_files if e is not None]
+            for matched_model in matched_model_files:
+                if round_num - int(matched_model.group(1)) >= 5:
+                    os.remove(os.path.join(self._log_dir_path, matched_model.group(0)))
+        if weights is None:
+            return None
+        if host_params_type == HostParamsType.Uniform:
+            obj_to_pickle_string(
+                weights,
+                self.model_weight_file_path(round_num)
+            )
+            only_keep_k_model_files(self._log_dir_path, k=5)
+        elif host_params_type == HostParamsType.Personalized:
+            for client_id in weights:
+                client_model_path = self.model_weight_file_path(round_num, client_id=client_id)
+                if not os.path.isdir(client_model_path):
+                    os.makedirs(client_model_path, exist_ok=True)
+                obj_to_pickle_string(
+                    weights[client_id],
+                    self.model_weight_file_path(round_num, client_id=client_id)
+                )
+                only_keep_k_model_files(client_model_path)
+        else:
+            raise NotImplementedError
 
     def snap_server_side_best_model_weights_into_file(self, weights) -> None:
         obj_to_pickle_string(weights, file_path=self.server_side_best_model_weight_file_path)
@@ -86,8 +104,11 @@ class HyperLogger:
     def server_side_best_model_weight_file_path(self) -> str:
         return os.path.join(self.dir_path, server_best_weight_filename)
 
-    def model_weight_file_path(self, round_num: int) -> str:
-        return os.path.join(self.dir_path, weights_filename_pattern.format(round_num))
+    def model_weight_file_path(self, round_num: int, client_id=None) -> str:
+        if client_id is None:
+            return os.path.join(self.dir_path, weights_filename_pattern.format(round_num))
+        else:
+            return os.path.join(self.dir_path, str(client_id), weights_filename_pattern.format(round_num))
 
     @property
     def log_dir_path(self):
