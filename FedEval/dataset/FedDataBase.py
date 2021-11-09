@@ -148,13 +148,25 @@ class FedData(metaclass=ABCMeta):
             val_size = int(sample_size * self.train_val_test[1])
             test_size = int(sample_size * self.train_val_test[2])
 
-            manual_val_x = self.x[-(val_size + test_size) * self.num_clients:-test_size * self.num_clients]
-            manual_val_y = self.y[-(val_size + test_size) * self.num_clients:-test_size * self.num_clients]
-            manual_test_x = self.x[-test_size * self.num_clients:]
-            manual_test_y = self.y[-test_size * self.num_clients:]
+            if val_size > 0:
+                manual_val_x = self.x[-(val_size + test_size) * self.num_clients:-test_size * self.num_clients]
+                manual_val_y = self.y[-(val_size + test_size) * self.num_clients:-test_size * self.num_clients]
+            else:
+                manual_val_x = []
+                manual_val_y = []
+            if test_size > 0:
+                manual_test_x = self.x[-test_size * self.num_clients:]
+                manual_test_y = self.y[-test_size * self.num_clients:]
+            else:
+                manual_test_x = []
+                manual_test_y = []
 
-            xy = list(zip(self.x[:-(val_size + test_size) * self.num_clients],
-                          self.y[:-(val_size + test_size) * self.num_clients]))
+            if val_size > 0 or test_size > 0:
+                xy = list(zip(self.x[:-(val_size + test_size) * self.num_clients],
+                              self.y[:-(val_size + test_size) * self.num_clients]))
+            else:
+                xy = list(zip(self.x, self.y))
+
             sorted_xy = sorted(xy, key=lambda x: np.argmax(x[1]), reverse=False)
             x = np.array([e[0] for e in sorted_xy], dtype=np.float32)
             y = np.array([e[1] for e in sorted_xy], dtype=np.float32)
@@ -190,10 +202,10 @@ class FedData(metaclass=ABCMeta):
                 local_y = np.concatenate(local_y, axis=0)
                 local_dataset.append({
                     'x_train': local_x, 'y_train': local_y,
-                    'x_val': manual_val_x[i * val_size: (i + 1) * val_size],
-                    'y_val': manual_val_y[i * val_size: (i + 1) * val_size],
-                    'x_test': manual_test_x[i * test_size: (i + 1) * test_size],
-                    'y_test': manual_test_y[i * test_size: (i + 1) * test_size],
+                    'x_val': [] if val_size == 0 else manual_val_x[i * val_size: (i + 1) * val_size],
+                    'y_val': [] if val_size == 0 else manual_val_y[i * val_size: (i + 1) * val_size],
+                    'x_test': [] if test_size == 0 else manual_test_x[i * test_size: (i + 1) * test_size],
+                    'y_test': [] if test_size == 0 else manual_test_y[i * test_size: (i + 1) * test_size],
                 })
 
         if shared_data > 0:
