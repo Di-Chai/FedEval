@@ -60,7 +60,7 @@ class FedSCA(FedAvg):
         self.server_c = [np.zeros(e) for e in param_shapes]
         self.client_c = [np.zeros(e) for e in param_shapes]
 
-    def host_get_init_params(self):
+    def retrieve_host_download_info(self):
         self.params = self.ml_model.get_weights()
         return self.params, self.server_c
 
