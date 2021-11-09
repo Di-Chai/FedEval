@@ -51,6 +51,14 @@ Finished Tuning Learning Rates
     os.system("python3 -W ignore trial.py -d semantic140 -s FedOpt "
               "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
 
+    os.system("python3 -W ignore trial.py -d celeba -s FedProx "
+              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
+    os.system("python3 -W ignore trial.py -d celeba -s FedOpt "
+              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
+
+    os.system("python3 -W ignore trial.py -d shakespeare -s FedSGD "
+              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
+
 """
 
 host_name = socket.gethostname()
@@ -67,10 +75,11 @@ if host_name == 'workstation':
     os.system("python -W ignore trial.py -d shakespeare -s LocalCentral "
               "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
 
-if host_name == 'gpu05':
-
-    os.system("python3 -W ignore trial.py -d shakespeare -s FedSGD "
+if host_name == "gpu05":
+    
+    os.system("python3 -W ignore trial.py -d celeba -s FedSTC "
               "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
+    
     os.system("python3 -W ignore trial.py -d shakespeare -s FedAvg "
               "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
     os.system("python3 -W ignore trial.py -d shakespeare -s FedSTC "
@@ -79,17 +88,3 @@ if host_name == 'gpu05':
               "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
     os.system("python3 -W ignore trial.py -d shakespeare -s FedOpt "
               "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
-
-if host_name == "gpu06":
-    
-    os.system("python3 -W ignore trial.py -d celeba -s FedSTC "
-              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
-    os.system("python3 -W ignore trial.py -d celeba -s FedProx "
-              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
-    os.system("python3 -W ignore trial.py -d celeba -s FedOpt "
-              "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
-
-if host_name == "workstation":
-
-    pass
-
