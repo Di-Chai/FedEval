@@ -27,14 +27,15 @@ class LogAnalysis:
         for log in self.logs:
             try:
                 c1, c2, c3 = _load_config(os.path.join(log_dir, log))
+                with open(os.path.join(log_dir, log, 'results.json'), 'r') as f:
+                    results = json.load(f)
+                self.results.append(results)
+                self.configs.append({'data_config': c1, 'model_config': c2, 'runtime_config': c3})
+                print('Get log', log)
             except FileNotFoundError:
                 print('Config not found in', log, 'skip to next')
                 continue
-            self.configs.append({'data_config': c1, 'model_config': c2, 'runtime_config': c3})
-            print('Get log', log)
-            with open(os.path.join(log_dir, log, 'results.json'), 'r') as f:
-                self.results.append(json.load(f))
-
+        
         self.omit_keys = [
             'runtime_config$$machines',
             'runtime_config$$server'
@@ -167,8 +168,8 @@ class LogAnalysis:
                 ax[i].set_xlabel(x_labels[i])
             ax[1].set_title(key)
             fig.tight_layout()
-            plt.savefig(os.path.join('log/images', '%s.png' % key), type="png", dpi=400)
-            plt.show()
+            plt.savefig(os.path.join('log/images', '%s.png' % key), dpi=400)
+            plt.close()
 
         for k1 in aggregate_results:
             for k2 in aggregate_results[k1]:
@@ -633,7 +634,7 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
 
 if __name__ == '__main__':
     args_parser = argparse.ArgumentParser()
-    args_parser.add_argument('--execute', '-e', choices=('run', 'stop', 'upload', 'log', 'plot'),
+    args_parser.add_argument('--execute', '-e', choices=('run', 'stop', 'upload', 'log'),
                              help='Start or Stop the experiments')
     args_parser.add_argument('--mode', '-m', choices=('remote', 'local'),
                              help='Run the experiments locally or remotely that presented the runtime_config')
