@@ -59,6 +59,7 @@ _STRATEGY_FETCHSGD_COL_NUM_KEY = 'num_col'
 _STRATEGY_FETCHSGD_ROW_NUM_KEY = 'num_row'
 _STRATEGY_FETCHSGD_BLOCK_NUM_KEY = 'num_block'
 _STRATEGY_FETCHSGD_TOP_K_KEY = 'top_k'
+_STRATEGY_FEDSVD_BLOCK = 'block_size'
 
 _ML_KEY = 'MLModel'
 _ML_NAME_KEY = 'name'
@@ -621,6 +622,15 @@ class _ModelConfig(_Configuraiton):
         More info available at https://export.arxiv.org/abs/2007.07682.
         """
         return int(self._ml_cfg[_STRATEGY_KEY][_STRATEGY_FETCHSGD_TOP_K_KEY])
+
+    @property
+    def block_size(self) -> int:
+        """
+        block size of FedSVD
+        """
+        if self.strategy_name != 'FedSVD':
+            raise AttributeError
+        return int(self._strategy_cfg[_STRATEGY_FEDSVD_BLOCK])
 
 
 class _RT_Machine(_Configuraiton):
