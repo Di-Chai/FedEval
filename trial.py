@@ -161,7 +161,7 @@ runtime_config = {
     'log': {'log_dir': args.log_dir}, 
     'docker': {'num_containers': 100, 'enable_gpu': False, 'num_gpu': 0},
     'communication': {
-        'limit_network_resource': True, 
+        'limit_network_resource': False,
         'bandwidth_upload': '10Mbit', 
         'bandwidth_download': '30Mbit',
         'latency': '50ms'
