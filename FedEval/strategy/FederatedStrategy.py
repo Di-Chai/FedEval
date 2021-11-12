@@ -1,15 +1,13 @@
 import random
 from abc import ABCMeta, abstractmethod, abstractproperty
 from enum import Enum
-from typing import Any, List, Mapping, Optional, Tuple, Union
+from typing import Iterable, List, Mapping, Optional, Tuple, Union
 
+from ..aggregater import ModelWeights, aggregate_weighted_average
 from ..callbacks import *
 from ..config import ClientId, ConfigurationManager, Role
 from ..model import *
 from ..utils import ParamParser, ParamParserInterface
-from .utils import aggregate_weighted_average
-
-ModelWeights = Any  # weights of DL model
 
 
 class HostParamsType(Enum):
@@ -36,23 +34,23 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
 
         Returns:
             ModelWeights: the weights/params of its inner machine/deep learning model.
+            TODO(fgh): the meaning of the str in the return type/
         """
         raise NotImplementedError
 
     @abstractmethod
-    def update_host_params(self, client_params, aggregate_weights) -> ModelWeights:
+    def update_host_params(self, client_params: Iterable[ModelWeights], aggregate_weights: Iterable[Union[float, int]]) -> None:
         """update central server's model params/weights with
         the aggregated params received from clients.
 
         Args:
-            client_params: TODO(fgh)
-            aggregate_weights: TODO(fgh)
+            client_params (Iterable[ModelWeights]): the weights form different clients, ordered like [params1, params2, ...]
+            aggregate_weights (Iterable[Union[float, int]]): aggregate weights of different clients, usually set according to the
+                clients' training sample size. E.g., A, B, and C have 10, 20, and 30 images, then the
+                aggregate_weights can be `[1/6, 1/3, 1/2]` or `[10, 20, 30]`. 
 
         Raises:
             NotImplementedError: raised when called but not overriden.
-
-        Returns:
-            ModelWeights: the updated model params/weights, equals to params of self.
         """
         raise NotImplementedError
 

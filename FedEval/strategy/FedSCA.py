@@ -2,10 +2,10 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.training import gen_training_ops
 
+from ..aggregater import aggregate_weighted_average
 from ..config.configuration import ConfigurationManager
 from ..utils import ParamParser
 from .FedAvg import FedAvg
-from .utils import aggregate_weighted_average
 
 
 class FedSCAOptimizer(tf.keras.optimizers.Optimizer):
@@ -62,6 +62,7 @@ class FedSCA(FedAvg):
 
     def retrieve_host_download_info(self):
         self.params = self.ml_model.get_weights()
+        # TODO(fgh): return type is inconsistent with the parent class
         return self.params, self.server_c
 
     def set_host_params_to_local(self, host_params, current_round):

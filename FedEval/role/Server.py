@@ -323,10 +323,8 @@ class Server(Node):
 
             # current train
             client_params = [x['weights'] for x in self._c_up]
-            aggregate_weights = np.array([x['train_size'] for x in self._c_up]).astype(np.float)
-            aggregate_weights /= np.sum(aggregate_weights)
-
-            self._strategy.update_host_params(client_params, aggregate_weights)
+            train_dataset_sizes = [x['train_size'] for x in self._c_up]
+            self._strategy.update_host_params(client_params, train_dataset_sizes)
             self._current_params = self._strategy.retrieve_host_download_info()
             self._hyper_logger.snapshot_model_weights_into_file(
                 self._current_params, self._current_round, self._strategy.host_params_type
@@ -351,7 +349,7 @@ class Server(Node):
             cur_round_info['time_train_run'] = latest_time_record['update_send']
             cur_round_info['time_train_receive'] = latest_time_record['update_receive']
             cur_round_info['time_train_agg'] = latest_time_record['agg_server']
-            cur_round_info['round_finish_time'] = time.time()   # TODO Q(fgh) 这个东西放在这里如果上面调用的是train_next_round那么这个计时合理吗？
+            cur_round_info['round_finish_time'] = time.time()
 
             # Collect the send and received bytes
             self._server_receive_bytes, self._server_send_bytes = self._communicator.get_comm_in_and_out()
