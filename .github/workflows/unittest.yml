@@ -7,6 +7,7 @@ on:
     branches: [ restruture ]
 
   workflow_dispatch:
+    branches: [ restruture ]
 
 jobs:
   build:
