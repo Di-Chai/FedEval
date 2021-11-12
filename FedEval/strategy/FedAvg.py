@@ -5,7 +5,6 @@ from ..config.configuration import ConfigurationManager
 from ..model import *
 from ..utils import ParamParser
 from .FederatedStrategy import FedStrategy
-from .utils import *
 
 
 class FedAvg(FedStrategy):
