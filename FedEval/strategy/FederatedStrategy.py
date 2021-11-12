@@ -1,8 +1,8 @@
 import random
 from abc import ABCMeta, abstractmethod, abstractproperty
-from typing import Any, List, Mapping, Optional, Union
-
 from enum import Enum
+from typing import Any, List, Mapping, Optional, Tuple, Union
+
 from ..callbacks import *
 from ..config import ClientId, ConfigurationManager, Role
 from ..model import *
@@ -27,7 +27,7 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def retrieve_host_download_info(self) -> (ModelWeights, str):
+    def retrieve_host_download_info(self) -> Tuple[ModelWeights, str]:
         """get the host download information,
            e.g., model params/weights from its machine/deep learning model.
 
