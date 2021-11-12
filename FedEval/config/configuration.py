@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod, abstractproperty
 from copy import deepcopy
 from enum import Enum
 from threading import RLock
-from typing import (Dict, List, Mapping, Optional, Sequence, TextIO, Tuple,
+from typing import (Any, Dict, List, Mapping, Optional, Sequence, TextIO, Tuple,
                     Union)
 
 import yaml
@@ -13,7 +13,7 @@ from .filename_checker import check_filename
 from .role import Role
 from .singleton import Singleton
 
-RawConfigurationDict = Mapping[str, Optional[Union[str, int]]]
+RawConfigurationDict = Mapping[str, Any]
 
 DEFAULT_D_CFG_FILENAME = '1_data_config.yml'
 DEFAULT_MDL_CFG_FILENAME = '2_model_config.yml'
@@ -226,7 +226,7 @@ class _Configuraiton(object):
         return deepcopy(self._inner)
 
     @staticmethod
-    def _config_filter(config):
+    def _config_filter(config: RawConfigurationDict) -> RawConfigurationDict:
         # No filter by default
         return config
 
@@ -261,7 +261,7 @@ class _DataConfig(_Configuraiton):
         self._partition = partition
 
     @staticmethod
-    def _config_filter(config):
+    def _config_filter(config: RawConfigurationDict) -> RawConfigurationDict:
         if not config[_D_NI_ENABLE_KEY]:
             config[_D_NI_CLASS_KEY] = None
             config[_D_NI_STRATEGY_KEY] = None
@@ -379,7 +379,7 @@ class _ModelConfig(_Configuraiton):
             int(i) for i in self._ml_cfg[_ML_UNITS_SIZE_KEY]]
     
     @staticmethod
-    def _config_filter(config):
+    def _config_filter(config: RawConfigurationDict) -> RawConfigurationDict:
         # Fed Model filters
         if config[_STRATEGY_KEY][_STRATEGY_NAME_KEY] != 'FedSTC':
             config[_STRATEGY_KEY][_STRATEGY_FEDSTC_SPARSITY_KEY] = None
@@ -642,13 +642,6 @@ class _RT_Machine(_Configuraiton):
         self._is_server = is_server
 
     @staticmethod
-    def _config_filter(config):
-        if not config[_RT_COMMUNICATION_KEY][_RT_COMM_LIMIT_FLAG_KEY]:
-            config[_RT_COMMUNICATION_KEY][_RT_COMM_BANDWIDTH_UP_KEY] = None
-            config[_RT_COMMUNICATION_KEY][_RT_COMM_BANDWIDTH_DOWN_KEY] = None
-            config[_RT_COMMUNICATION_KEY][_RT_COMM_LATENCY_KEY] = None
-
-    @staticmethod
     def __check_items(config: RawConfigurationDict, is_server: bool = False) -> None:
         required_keys = [_RT_M_ADDRESS_KEY, _RT_M_WORK_DIR_KEY,
                          _RT_M_PORT_KEY, _RT_M_USERNAME_KEY, _RT_M_SK_FILENAME_KEY]
@@ -712,6 +705,14 @@ class _RuntimeConfig(_Configuraiton):
         _RuntimeConfig.__check_items(runtime_config)
         super().__init__(runtime_config)
         self.__init_machines()
+
+    @staticmethod
+    def _config_filter(config: RawConfigurationDict) -> RawConfigurationDict:
+        if not config[_RT_COMMUNICATION_KEY][_RT_COMM_LIMIT_FLAG_KEY]:
+            config[_RT_COMMUNICATION_KEY][_RT_COMM_BANDWIDTH_UP_KEY] = None
+            config[_RT_COMMUNICATION_KEY][_RT_COMM_BANDWIDTH_DOWN_KEY] = None
+            config[_RT_COMMUNICATION_KEY][_RT_COMM_LATENCY_KEY] = None
+        return config
 
     @staticmethod
     def __check_items(config: RawConfigurationDict) -> None:

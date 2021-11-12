@@ -102,4 +102,4 @@ class DataConfigTestCase(TestCase):
         for sep in possible_seps:
             self.assertFalse(sep in self.cfg.dir_name)
 
-# TODO(fgh) add tests for config conversions 
+# TODO(fgh) add tests for config conversions and filters
