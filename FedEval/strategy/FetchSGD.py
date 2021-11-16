@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from csvec import CSVec
 
+from ..aggregater import normalize_weights
 from ..config.configuration import ConfigurationManager
 from .FedAvg import FedAvg
 
@@ -54,6 +55,7 @@ class FetchSGD(FedAvg):
     def update_host_params(self, client_params, aggregate_weights):
         mdl_cfg = ConfigurationManager().model_config
         # Aggregate sketches
+        aggregate_weights = normalize_weights(aggregate_weights)
         agg_tables = np.sum([client_params[i] * aggregate_weights[i] for i in range(len(client_params))], axis=0)
         # Momentum
         self.momentum *= mdl_cfg.momentum

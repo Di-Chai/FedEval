@@ -1,17 +1,13 @@
-import copy
 import gc
-import os
 
 gc.set_threshold(700, 10, 5)
+
 import numpy as np
 from scipy.sparse import lil_matrix
 
+from ..aggregater import aggregate_weighted_average
 from ..config import ConfigurationManager, Role
 from .FederatedStrategy import FedStrategy
-from .utils import aggregate_weighted_average
-
-import sys
-import psutil
 
 
 def sparse_mask(value_list, p=0.01):

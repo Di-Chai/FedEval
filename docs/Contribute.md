@@ -224,7 +224,7 @@ import pickle
 import numpy as np
 import tensorflow as tf
 
-from .utils import *
+from ..aggregater import aggregate_weighted_average
 from ..model import *
 from ..dataset import get_data_shape
 from ..utils import ParamParser

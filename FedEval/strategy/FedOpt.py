@@ -1,8 +1,8 @@
 import numpy as np
 
+from ..aggregater import aggregate_weighted_average
 from ..config import ConfigurationManager, Role
 from .FedAvg import FedAvg
-from .utils import aggregate_weighted_average
 
 
 class FedOpt(FedAvg):

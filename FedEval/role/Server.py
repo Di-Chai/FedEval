@@ -336,7 +336,7 @@ class Server(Node):
             cur_round_info['time_train_run'] = latest_time_record['update_send']
             cur_round_info['time_train_receive'] = latest_time_record['update_receive']
             cur_round_info['time_train_agg'] = latest_time_record['agg_server']
-            cur_round_info['round_finish_time'] = time.time()   # TODO Q(fgh) 这个东西放在这里如果上面调用的是train_next_round那么这个计时合理吗？
+            cur_round_info['round_finish_time'] = time.time()
 
             # Collect the send and received bytes
             self._server_receive_bytes, self._server_send_bytes = self._communicator.get_comm_in_and_out()

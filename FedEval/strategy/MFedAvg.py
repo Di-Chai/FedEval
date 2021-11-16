@@ -1,9 +1,9 @@
 import numpy as np
 
+from ..aggregater import aggregate_weighted_average
 from ..config import ConfigurationManager, Role
 from ..model import *
 from .FedAvg import FedAvg
-from .utils import *
 
 
 class MFedAvg(FedAvg):
