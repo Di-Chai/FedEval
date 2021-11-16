@@ -88,7 +88,11 @@ class Client(Node):
                         self.logger.info(f"train received model: {encoded_weights_file_path}")
 
                     # fit on local and retrieve new uploading params
-                    train_loss, train_data_size = client_ctx.strategy.fit_on_local_data()
+                    client_fit_results = client_ctx.strategy.fit_on_local_data()
+                    if client_fit_results:
+                        train_loss, train_data_size = client_fit_results
+                    else:
+                        train_loss, train_data_size = -1, -1
                     self.logger.info(f"Local train loss {train_loss}")
 
                     upload_data = client_ctx.strategy.retrieve_local_upload_info()
@@ -141,6 +145,7 @@ class Client(Node):
                     self.logger.info(f"eval received model: {encoded_weights_file_path}")
 
                     evaluate = client_ctx.strategy.local_evaluate()
+                    evaluate = evaluate or {}
 
                     self.logger.info("Local Evaluate" + str(evaluate))
 
