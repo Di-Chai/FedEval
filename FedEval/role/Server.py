@@ -37,11 +37,7 @@ class Server(Node):
         self._register_handles()
         self._register_services()
 
-        # save the init weights
-        self._current_params = self._strategy.retrieve_host_download_info()
-        self._hyper_logger.snapshot_model_weights_into_file(
-            self._current_params, self._current_round,
-            self._strategy.host_params_type)
+        self._current_params = None
 
     def _construct_fed_model(self):
         """Construct a federated model according to `self.model_config` and bind it to `self.fed_model`.
@@ -109,8 +105,6 @@ class Server(Node):
 
         self._c_up = []                                      # clients' updates of this round
         self._c_eval = []                                    # clients' evaluations of this round
-
-        self._lazy_update = False
 
     def _init_states(self):
         self._init_statistical_states()
@@ -198,10 +192,6 @@ class Server(Node):
         def download_file(encoded_file_path: str):
             file_path = base64.urlsafe_b64decode(encoded_file_path.encode(
                 encoding='utf8')).decode(encoding='utf8')
-
-            print('*'*30)
-            print('debug', file_path)
-            print('*'*30)
             if os.path.isfile(file_path):
                 return send_file(file_path, as_attachment=True)
             else:
@@ -293,12 +283,11 @@ class Server(Node):
                 #TODO(fgh) raise an Exception
                 return
 
-            num_clients_contacted_per_round = ConfigurationManager().num_of_clients_contacted_per_round
             data['weights'] = pickle_string_to_obj(data['weights'])
             data['time_receive_update'] = time.time()
             with self._thread_lock:
                 self._c_up.append(data)
-                receive_all = len(self._c_up) == num_clients_contacted_per_round
+                receive_all = len(self._c_up) == len(self._strategy.train_selected_clients)
 
             if not receive_all:
                 self.logger.debug(
@@ -327,10 +316,6 @@ class Server(Node):
             aggregate_weights /= np.sum(aggregate_weights)
 
             self._strategy.update_host_params(client_params, aggregate_weights)
-            self._current_params = self._strategy.retrieve_host_download_info()
-            self._hyper_logger.snapshot_model_weights_into_file(
-                self._current_params, self._current_round, self._strategy.host_params_type
-            )
 
             aggr_train_loss = self.aggregate_train_loss(
                 [x['train_loss'] for x in self._c_up],
@@ -368,12 +353,10 @@ class Server(Node):
                 #TODO(fgh) raise an Exception
                 return
 
-            rt_cfg = ConfigurationManager().runtime_config
-            num_clients_contacted_per_round = ConfigurationManager().num_of_clients_contacted_per_round
             with self._thread_lock:
                 data['time_receive_evaluate'] = time.time()
                 self._c_eval.append(data)
-                num_clients_required = num_clients_contacted_per_round if self._lazy_update and not self._STOP else rt_cfg.client_num
+                num_clients_required = len(self._strategy.eval_selected_clients)
                 receive_all = len(self._c_eval) == num_clients_required
 
             if not receive_all:
@@ -451,68 +434,70 @@ class Server(Node):
             cur_round_info['time_eval_receive'] = latest_time_record['eval_receive']
             cur_round_info['time_eval_agg'] = latest_time_record['server_eval']
 
-            if self._STOP:
-                # Another round of testing after the training is finished
-                self._best_test_metric_full = full_test_metric
+            if self._best_val_metric is None or \
+                    (current_metric is not None and self._best_val_metric > current_metric):
+                self._best_val_metric = current_metric
+                self._best_round = self._current_round
+                self._invalid_tolerate = 0
                 self._best_test_metric.update(avg_test_metrics)
+                self._hyper_logger.snap_server_side_best_model_weights_into_file(
+                    self._current_params)
+                self.logger.info(str(self._best_test_metric))
+                self._best_test_metric_full = full_test_metric
             else:
-                if self._best_val_metric is None or self._best_val_metric > current_metric:
-                    self._best_val_metric = current_metric
-                    self._best_round = self._current_round
-                    self._invalid_tolerate = 0
-                    self._best_test_metric.update(avg_test_metrics)
-                    self._hyper_logger.snap_server_side_best_model_weights_into_file(
-                        self._current_params)
-                    self.logger.info(str(self._best_test_metric))
-                    if not self._lazy_update:
-                        self._best_test_metric_full = full_test_metric
-                else:
-                    self._invalid_tolerate += 1
+                self._invalid_tolerate += 1
 
-                if self._invalid_tolerate > ConfigurationManager().model_config.tolerance_num:
-                    self.logger.info("converges! starting test phase..")
-                    self._STOP = True
+            if self._invalid_tolerate > ConfigurationManager().model_config.tolerance_num:
+                self.logger.info("converges! starting test phase..")
+                self._STOP = True
 
-                max_round_num = ConfigurationManager().model_config.max_round_num
-                if self._current_round >= max_round_num:
-                    self.logger.info("get to maximum step, stop...")
-                    self._STOP = True
+            max_round_num = ConfigurationManager().model_config.max_round_num
+            if self._current_round >= max_round_num:
+                self.logger.info("get to maximum step, stop...")
+                self._STOP = True
+
+            if self._strategy.stop:
+                self._STOP = True
 
             # Collect the send and received bytes
             self._server_receive_bytes, self._server_send_bytes = self._communicator.get_comm_in_and_out()
 
             if self._STOP:
-                # Another round of testing after the training is finished
-                if self._lazy_update and self._best_test_metric_full is None:
-                    self.evaluate(self._communicator.ready_client_ids, eval_best_model=True)
-                else:
-                    self.logger.info("== done ==")
-                    self.logger.info("Federated training finished ... ")
-                    self.logger.info("best full test metric: " +
-                                        json.dumps(self._best_test_metric_full))
-                    self.logger.info("best model at round {}".format(self._best_round))
-                    for key in self._best_test_metric:
-                        self.logger.info(
-                            "get best test {} {}".format(key, self._best_test_metric[key])
-                        )
-                    self._training_stop_time = int(round(time.time()))
-                    # Time
-                    result_json = self.snapshot_result(self._training_stop_time)
-                    self._hyper_logger.snapshot_results_into_file(result_json)
-                    self._hyper_logger.snapshot_config_into_files()
-                    self.logger.info(f'Total time: {result_json["total_time"]}')
-                    self.logger.info(f'Time Detail: {result_json["time_detail"]}')
-                    self.logger.info(f'Total Rounds: {self._current_round}')
-                    self.logger.info(f'Server Send(GB): {result_json["server_send"]}')
-                    self.logger.info(f'Server Receive(GB): {result_json["server_receive"]}')
-                    del result_json
+                self.logger.info("== done ==")
+                self.logger.info("Federated training finished ... ")
+                self.logger.info("best full test metric: " +
+                                    json.dumps(self._best_test_metric_full))
+                self.logger.info("best model at round {}".format(self._best_round))
+                for key in self._best_test_metric:
+                    self.logger.info(
+                        "get best test {} {}".format(key, self._best_test_metric[key])
+                    )
+                self._training_stop_time = int(round(time.time()))
+                # Time
+                result_json = self.snapshot_result(self._training_stop_time)
+                self._hyper_logger.snapshot_results_into_file(result_json)
+                self._hyper_logger.snapshot_config_into_files()
+                self.logger.info(f'Total time: {result_json["total_time"]}')
+                self.logger.info(f'Time Detail: {result_json["time_detail"]}')
+                self.logger.info(f'Total Rounds: {self._current_round}')
+                self.logger.info(f'Server Send(GB): {result_json["server_send"]}')
+                self.logger.info(f'Server Receive(GB): {result_json["server_receive"]}')
+                del result_json
 
-                    # Stop all the clients
-                    self._communicator.invoke_all(ClientEvent.Stop)
-                    # Call the server exit job
-                    self._strategy.host_exit_job(self)
-                    # Server job finish
-                    self._server_job_finish = True
+                # Clean cached models, while the best model will be kept
+                if self._strategy.host_params_type == HostParamsType.Uniform:
+                    self._hyper_logger.clear_snapshot(round_num=self._current_round, latest_k=0)
+                else:
+                    self._hyper_logger.clear_snapshot(
+                        round_num=self._current_round,
+                        latest_k=0, client_id_list=self._communicator.ready_client_ids
+                    )
+                # Stop all the clients
+                self._communicator.invoke_all(ClientEvent.Stop)
+                # Call the server exit job
+                self._strategy.host_exit_job(self)
+                # Server job finish
+                self._server_job_finish = True
             else:
                 results = self.snapshot_result(time.time())
                 self._hyper_logger.snapshot_results_into_file(results)
@@ -538,6 +523,13 @@ class Server(Node):
 
         previous_round = self._current_round - 1
 
+        if not self._hyper_logger.is_snapshot_exist(
+                round_num=previous_round, host_params_type=self._strategy.host_params_type,
+                client_id_list=selected_clients):
+            self._current_params = self._strategy.retrieve_host_download_info()
+            self._hyper_logger.snapshot_model_weights_into_file(
+                self._current_params, previous_round, self._strategy.host_params_type)
+
         if self._strategy.host_params_type == HostParamsType.Uniform:
             weight_file_path = self._hyper_logger.model_weight_file_path(previous_round)
             encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(encoding='utf8')
@@ -558,9 +550,18 @@ class Server(Node):
                 )
         self.logger.info('Finished sending update requests, waiting resp from clients')
 
-    def evaluate(self, selected_clients=None, eval_best_model=False):
+    def evaluate(self, eval_best_model=False):
         self.logger.info('Starting eval')
         self._refresh_evaluation_cache()
+
+        selected_clients = self._strategy.host_select_evaluate_clients(self._communicator.ready_client_ids)
+
+        if not self._hyper_logger.is_snapshot_exist(
+                round_num=self._current_round, host_params_type=self._strategy.host_params_type,
+                client_id_list=selected_clients or self._communicator.ready_client_ids):
+            self._current_params = self._strategy.retrieve_host_download_info()
+            self._hyper_logger.snapshot_model_weights_into_file(
+                self._current_params, self._current_round, self._strategy.host_params_type)
 
         data_send = {'round_number': self._current_round}
         if self._strategy.host_params_type == HostParamsType.Uniform:

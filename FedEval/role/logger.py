@@ -18,7 +18,7 @@ class HyperLogger:
     def __init__(self, name: str, log_dir_name: str) -> None:
         self._name = name
         rt_cfg = ConfigurationManager().runtime_config
-        
+
         logger = logging.getLogger(name)
         lvl = eval(HyperLogger._LOG_LEVEL_EVAL_PATTERN.format(rt_cfg.base_log_level))
         logger.setLevel(lvl)
@@ -67,15 +67,6 @@ class HyperLogger:
             json.dump(results, f)
 
     def snapshot_model_weights_into_file(self, weights, round_num: int, host_params_type: str) -> None:
-        def only_keep_k_model_files(path, k=5):
-            # Keep the latest k weights
-            all_files_in_model_dir = os.listdir(path)
-            matched_model_files = [
-                re.match(r'model_([0-9]+).pkl', e) for e in all_files_in_model_dir]
-            matched_model_files = [e for e in matched_model_files if e is not None]
-            for matched_model in matched_model_files:
-                if round_num - int(matched_model.group(1)) >= 5:
-                    os.remove(os.path.join(self._log_dir_path, matched_model.group(0)))
         if weights is None:
             return None
         if host_params_type == HostParamsType.Uniform:
@@ -83,19 +74,58 @@ class HyperLogger:
                 weights,
                 self.model_weight_file_path(round_num)
             )
-            only_keep_k_model_files(self._log_dir_path, k=5)
+            self.clear_snapshot(round_num=round_num, latest_k=1)
         elif host_params_type == HostParamsType.Personalized:
             for client_id in weights:
                 client_model_path = self.model_weight_file_path(round_num, client_id=client_id)
-                if not os.path.isdir(client_model_path):
-                    os.makedirs(client_model_path, exist_ok=True)
+                if not os.path.isdir(os.path.dirname(client_model_path)):
+                    os.makedirs(os.path.dirname(client_model_path), exist_ok=True)
                 obj_to_pickle_string(
                     weights[client_id],
                     self.model_weight_file_path(round_num, client_id=client_id)
                 )
-                only_keep_k_model_files(client_model_path)
+            self.clear_snapshot(round_num=round_num, latest_k=1, client_id_list=list(weights.keys()))
         else:
             raise NotImplementedError
+
+    def clear_snapshot(self, round_num: int, client_id_list: list = None, latest_k: int = 1):
+        def only_keep_k_model_files(path, k):
+            # Keep the latest k weights
+            matched_model_files = [
+                [re.match(r'model_([0-9]+).pkl', e), e] for e in os.listdir(path)
+                if re.match(r'model_([0-9]+).pkl', e)
+            ]
+            for match, file in matched_model_files:
+                if round_num - int(match.group(1)) >= k:
+                    try:
+                        os.remove(os.path.join(path, file))
+                    except FileNotFoundError:
+                        # Model does not exist, skip
+                        pass
+        if client_id_list is None:
+            only_keep_k_model_files(
+                os.path.dirname(self.model_weight_file_path(round_num=round_num)), k=latest_k
+            )
+        else:
+            for client_id in client_id_list:
+                only_keep_k_model_files(
+                    os.path.dirname(self.model_weight_file_path(round_num=round_num, client_id=client_id)),
+                    k=latest_k
+                )
+
+    def is_snapshot_exist(self, round_num: int, host_params_type: str, client_id_list: list = ()):
+        if host_params_type == HostParamsType.Uniform:
+            if os.path.isfile(self.model_weight_file_path(round_num)):
+                return True
+            else:
+                return False
+        elif host_params_type == HostParamsType.Personalized:
+            assert len(client_id_list) > 0
+            for client_id in client_id_list:
+                client_model_path = self.model_weight_file_path(round_num, client_id=client_id)
+                if not os.path.isfile(client_model_path):
+                    return False
+            return True
 
     def snap_server_side_best_model_weights_into_file(self, weights) -> None:
         obj_to_pickle_string(weights, file_path=self.server_side_best_model_weight_file_path)

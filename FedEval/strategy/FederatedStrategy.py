@@ -26,6 +26,48 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
         """
         raise NotImplementedError
 
+    @host_params_type.setter
+    def host_params_type(self, value):
+        """
+        Set host_params_type
+        """
+        raise NotImplementedError
+
+    @abstractproperty
+    def stop(self):
+        """
+        Server-side train stop flag
+        """
+        raise NotImplementedError
+
+    @abstractproperty
+    def train_selected_clients(self):
+        """
+        Returns the selected clients for training
+        """
+        raise NotImplementedError
+
+    @train_selected_clients.setter
+    def train_selected_clients(self, value):
+        """
+        Set the selected clients for training
+        """
+        raise NotImplementedError
+
+    @abstractproperty
+    def eval_selected_clients(self):
+        """
+        Returns the selected clients for evaluation
+        """
+        raise NotImplementedError
+
+    @eval_selected_clients.setter
+    def eval_selected_clients(self, value):
+        """
+        Set the selected clients for evaluation
+        """
+        raise NotImplementedError
+
     @abstractmethod
     def retrieve_host_download_info(self) -> (ModelWeights, str):
         """get the host download information,
@@ -241,11 +283,11 @@ class FedStrategy(FedStrategyInterface):
         self._init_states()
         self._init_model()
         self._config_callback()
-        self._init_host_params_type()
         self.logger = logger
-
-    def _init_host_params_type(self):
         self._host_params_type = HostParamsType.Uniform
+        self._train_selected_clients: list = None
+        self._eval_selected_clients: list = None
+        self._stop = False
 
     def set_logger(self, logger) -> None:
         self.logger = logger
@@ -260,9 +302,8 @@ class FedStrategy(FedStrategyInterface):
         if role == Role.Server:
             self.params = None
             self.gradients = None
-            # TMP
-            self.num_clients_contacted_per_round = cfg_mgr.num_of_clients_contacted_per_round
             self.train_selected_clients = None
+            self.eval_selected_clients = None
         elif role == Role.Client:
             self.local_params_pre = None
             self.local_params_cur = None
@@ -283,13 +324,37 @@ class FedStrategy(FedStrategyInterface):
     def param_parser(self) -> ParamParserInterface:
         return self._param_parser
 
+    @param_parser.setter
+    def param_parser(self, value: ParamParserInterface):
+        self._param_parser = value
+
     @property
     def host_params_type(self):
         return self._host_params_type
 
-    @param_parser.setter
-    def param_parser(self, value: ParamParserInterface):
-        self._param_parser = value
+    @host_params_type.setter
+    def host_params_type(self, value):
+        self._host_params_type = value
+
+    @property
+    def train_selected_clients(self):
+        return self._train_selected_clients
+
+    @train_selected_clients.setter
+    def train_selected_clients(self, value):
+        self._train_selected_clients = value
+
+    @property
+    def eval_selected_clients(self):
+        return self._eval_selected_clients
+
+    @property
+    def stop(self):
+        return self._stop
+
+    @eval_selected_clients.setter
+    def eval_selected_clients(self, value):
+        self._eval_selected_clients = value
 
     def load_data_with(self, client_id) -> None:
         if ConfigurationManager().role != Role.Client:
@@ -313,11 +378,12 @@ class FedStrategy(FedStrategyInterface):
             self.callback.on_host_exit()
 
     def host_select_train_clients(self, ready_clients: List[ClientId]) -> List[ClientId]:
-        self.train_selected_clients = random.sample(list(ready_clients), self.num_clients_contacted_per_round)
+        self.train_selected_clients = random.sample(list(ready_clients), cfg_mgr.num_of_clients_contacted_per_round)
         return self.train_selected_clients
 
     def host_select_evaluate_clients(self, ready_clients: List[ClientId]) -> List[ClientId]:
-        return [e for e in self.train_selected_clients if e in ready_clients]
+        self.eval_selected_clients = ready_clients
+        return self.eval_selected_clients
 
     def set_host_params_to_local(self, host_params: ModelWeights, current_round: int):
         if self._has_callback():
