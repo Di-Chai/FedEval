@@ -60,6 +60,8 @@ _STRATEGY_FETCHSGD_ROW_NUM_KEY = 'num_row'
 _STRATEGY_FETCHSGD_BLOCK_NUM_KEY = 'num_block'
 _STRATEGY_FETCHSGD_TOP_K_KEY = 'top_k'
 _STRATEGY_FEDSVD_BLOCK = 'block_size'
+_STRATEGY_FEDSVD_MODE = 'fedsvd_mode'
+_STRATEGY_FEDSVD_TOPK = 'fedsvd_top_k'
 
 _ML_KEY = 'MLModel'
 _ML_NAME_KEY = 'name'
@@ -631,6 +633,27 @@ class _ModelConfig(_Configuraiton):
         if self.strategy_name != 'FedSVD':
             raise AttributeError
         return int(self._strategy_cfg[_STRATEGY_FEDSVD_BLOCK])
+
+    @property
+    def svd_mode(self) -> str:
+        """
+        block size of FedSVD
+        """
+        if self.strategy_name != 'FedSVD':
+            raise AttributeError
+        assert self._strategy_cfg[_STRATEGY_FEDSVD_MODE] in ['svd', 'pca'],\
+            f'Unknown FedSVD Mode: {self._strategy_cfg[_STRATEGY_FEDSVD_MODE]}, ' \
+            f'should be either svd or pca'
+        return str(self._strategy_cfg[_STRATEGY_FEDSVD_MODE])
+
+    @property
+    def svd_top_k(self) -> int:
+        """
+        block size of FedSVD
+        """
+        if self.strategy_name != 'FedSVD':
+            raise AttributeError
+        return int(self._strategy_cfg[_STRATEGY_FEDSVD_TOPK])
 
 
 class _RT_Machine(_Configuraiton):
