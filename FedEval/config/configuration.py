@@ -1,5 +1,6 @@
 import json
 import os
+import datetime
 from abc import ABC, abstractmethod, abstractproperty
 from copy import deepcopy
 from enum import Enum
@@ -937,6 +938,10 @@ class ConfigurationManagerInterface(ABC):
     def runtime_config(self) -> RawConfigurationDict:
         raise NotImplementedError
 
+    @abstractproperty
+    def job_id(self):
+        raise NotImplementedError
+
 
 class ClientConfigurationManagerInterface(ABC):
     """an interface of ConfigurationManager from the client side,
@@ -1154,6 +1159,8 @@ class ConfigurationManager(Singleton,
                 self._mdl_cfg: _ModelConfig = _ModelConfig(model_config)
                 self._rt_cfg: _RuntimeConfig = _RuntimeConfig(runtime_config)
 
+                self._job_id = os.environ.get('UNIFIED_JOB_ID', datetime.datetime.now().strftime('%Y_%m%d_%H%M%S'))
+
                 self._init_file_names()
                 self._encoding = _DEFAULT_ENCODING
                 self.__init_role()
@@ -1167,6 +1174,11 @@ class ConfigurationManager(Singleton,
         self._mdl_cfg_filename = model_config_filename
         self._rt_cfg_filename = runtime_config_filename
         # TODO(fgh) add unit tests for this method in test_config.py
+
+    @property
+    @Singleton.thread_safe_ensurance
+    def job_id(self) -> str:
+        return str(self._job_id)
 
     @property
     @Singleton.thread_safe_ensurance
