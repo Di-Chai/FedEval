@@ -51,10 +51,10 @@ class FedOpt(FedAvg):
             self.v = [self.beta2 * self.v[i] + (1 - self.beta2) * self.cur_delta_x[i]**2
                       for i in range(len(self.cur_delta_x))]
 
-        self.params = [
-            self.params[i] + self.eta * self.cur_delta_x[i] / (np.sqrt(self.v[i]) + self.tau)
-            for i in range(len(self.params))
+        self.host_params = [
+            self.host_params[i] + self.eta * self.cur_delta_x[i] / (np.sqrt(self.v[i]) + self.tau)
+            for i in range(len(self.host_params))
         ]
 
-        return self.params
+        return self.host_params
 

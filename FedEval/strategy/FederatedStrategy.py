@@ -18,6 +18,20 @@ class HostParamsType(Enum):
 class FedStrategyHostInterface(metaclass=ABCMeta):
 
     @abstractproperty
+    def host_params(self):
+        """
+        Returns: Host parameters
+        """
+        raise NotImplementedError
+
+    @host_params.setter
+    def host_params(self):
+        """
+        Set host params
+        """
+        raise NotImplementedError
+
+    @abstractproperty
     def host_params_type(self):
         """
         Returns the same parameters for all parties or personalized ML model
@@ -67,7 +81,7 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def retrieve_host_download_info(self) -> Tuple[ModelWeights, str]:
+    def host_get_init_params(self) -> Tuple[ModelWeights, str]:
         """get the host download information,
            e.g., model params/weights from its machine/deep learning model.
 
@@ -140,6 +154,14 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
 
 
 class FedStrategyPeerInterface(metaclass=ABCMeta):
+
+    @abstractproperty
+    def client_id(self):
+        """
+        Returns: Client ID
+        """
+        raise NotImplementedError
+
     @abstractmethod
     def set_host_params_to_local(self, host_params: ModelWeights, current_round: int):
         """update the current local ML/DL model's params with params received
@@ -298,11 +320,14 @@ class FedStrategy(FedStrategyInterface):
         cfg_mgr = ConfigurationManager()
         role = cfg_mgr.role
         if role == Role.Server:
-            self.params = None
+            self._host_params = None
+            self._host_download_info = None
             self.gradients = None
+            self._client_id = None
             self.train_selected_clients = None
             self.eval_selected_clients = None
         elif role == Role.Client:
+            self._client_params = None
             self.local_params_pre = None
             self.local_params_cur = None
         else:
@@ -317,6 +342,10 @@ class FedStrategy(FedStrategyInterface):
 
     def _has_callback(self) -> bool:
         return self.callback is not None and isinstance(self.callback, CallBack)
+
+    @property
+    def client_id(self):
+        return self._client_id
 
     @property
     def param_parser(self) -> ParamParserInterface:
@@ -338,6 +367,14 @@ class FedStrategy(FedStrategyInterface):
     def train_selected_clients(self):
         return self._train_selected_clients
 
+    @property
+    def host_params(self):
+        return self._host_params
+
+    @host_params.setter
+    def host_params(self, value):
+        self._host_params = value
+
     @train_selected_clients.setter
     def train_selected_clients(self, value):
         self._train_selected_clients = value
@@ -358,25 +395,28 @@ class FedStrategy(FedStrategyInterface):
         if ConfigurationManager().role != Role.Client:
             raise TypeError(f"This {self.__class__.__name__}'s role is not a {Role.Client.value}.")
         self._client_id = client_id
-        self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(self._client_id)
+        self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(self.client_id)
 
-    def retrieve_host_download_info(self) -> ModelWeights:
-        if self.params is None:
-            return self.ml_model.get_weights()
-        else:
-            return self.params
+    def host_get_init_params(self) -> ModelWeights:
+        # By default, the host params will be downloaded
+        if self.host_params is None:
+            self.host_params = self.ml_model.get_weights()
+        return self.host_params
 
     def update_host_params(self, client_params, aggregate_weights) -> None:
         if self._has_callback():
             client_params = self.callback.on_host_aggregate_begin(client_params)
-        self.params = aggregate_weighted_average(client_params, aggregate_weights)
+        # update host params
+        self.host_params = aggregate_weighted_average(client_params, aggregate_weights)
+        return self.host_params
 
     def host_exit_job(self, host):
         if self._has_callback():
             self.callback.on_host_exit()
 
     def host_select_train_clients(self, ready_clients: List[ClientId]) -> List[ClientId]:
-        self.train_selected_clients = random.sample(list(ready_clients), cfg_mgr.num_of_clients_contacted_per_round)
+        self.train_selected_clients = random.sample(
+            list(ready_clients), ConfigurationManager().num_of_clients_contacted_per_round)
         return self.train_selected_clients
 
     def host_select_evaluate_clients(self, ready_clients: List[ClientId]) -> List[ClientId]:

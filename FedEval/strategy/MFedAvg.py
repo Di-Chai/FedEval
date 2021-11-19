@@ -16,19 +16,19 @@ class MFedAvg(FedAvg):
 
     def update_host_params(self, client_params, aggregate_weights):
         if self.v is None:
-            self.v = [np.zeros(e.shape) for e in self.params]
+            self.v = [np.zeros(e.shape) for e in self.host_params]
         agg_params = aggregate_weighted_average(client_params, aggregate_weights)
-        agg_delta = [self.params[i] - agg_params[i] for i in range(len(self.params))]
+        agg_delta = [self.host_params[i] - agg_params[i] for i in range(len(self.host_params))]
         momentum = ConfigurationManager().model_config.momentum
         self.v = [
             self.v[i] * momentum + agg_delta[i] * (1 - momentum)
-            for i in range(len(self.params))
+            for i in range(len(self.host_params))
         ]
-        self.params = [
-            self.params[i] - self.v[i]
-            for i in range(len(self.params))
+        self.host_params = [
+            self.host_params[i] - self.v[i]
+            for i in range(len(self.host_params))
         ]
-        return self.params
+        return self.host_params
 
 
 class MFedSGD(MFedAvg):

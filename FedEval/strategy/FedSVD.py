@@ -79,7 +79,6 @@ class FedSVDStatus(enum.Enum):
     Factorization = 'factorization'
     RemoveMask = 'remove_mask'
     Evaluate = 'evaluate'
-    Finish = 'finish'
 
 
 class FedSVD(FedStrategy):
@@ -98,7 +97,7 @@ class FedSVD(FedStrategy):
             self._m = None
             self._ns = None
             self._client_ids_on_receiving = None
-            self._fed_svd_status = FedSVDStatus.Init
+            self._fed_svd_status = None
             self._random_seed_of_p: int = None
             self._q: list = None
             self._process_of_sending_q: dict = {}
@@ -106,10 +105,6 @@ class FedSVD(FedStrategy):
             self._apply_mask_progress: int = 0
             self._pxq = []
             self._masked_u = None
-            # For evaluation
-            self._evaluate_u = None
-            self._evaluate_sigma = None
-            self._evaluate_v = None
 
         if ConfigurationManager().role is Role.Client:
             # Client
@@ -138,7 +133,7 @@ class FedSVD(FedStrategy):
         self.train_selected_clients = ready_clients
         return self.train_selected_clients
 
-    def retrieve_host_download_info(self):
+    def _retrieve_host_download_info(self):
         # Masking Server
         if self._fed_svd_status is FedSVDStatus.Init:
             # Wait for the clients to send n and m
@@ -192,8 +187,10 @@ class FedSVD(FedStrategy):
         elif self._fed_svd_status is FedSVDStatus.Evaluate:
             return {client_id: {'fed_svd_status': self._fed_svd_status}
                     for client_id in self.train_selected_clients}
-        elif self._fed_svd_status is FedSVDStatus.Finish:
-            return {'u': self._evaluate_u, 'sigma': self._evaluate_sigma, 'v': self._evaluate_v}
+
+    def host_get_init_params(self):
+        self._fed_svd_status = FedSVDStatus.Init
+        return self._retrieve_host_download_info()
 
     def update_host_params(self, client_params, *args):
         if self._fed_svd_status is FedSVDStatus.Init:
@@ -216,13 +213,10 @@ class FedSVD(FedStrategy):
         elif self._fed_svd_status is FedSVDStatus.RemoveMask:
             self._fed_svd_status = FedSVDStatus.Evaluate
         elif self._fed_svd_status is FedSVDStatus.Evaluate:
-            # Only for evaluation, and the server should not receive results from clients in real applications
-            u_sigma_v = sorted(client_params, key=lambda x: x['client_id'])
-            self._evaluate_u = u_sigma_v[0]['u']
-            self._evaluate_sigma = u_sigma_v[0]['sigma']
-            self._evaluate_v = np.concatenate([e['v'] for e in client_params], axis=-1)
-            self._fed_svd_status = FedSVDStatus.Finish
+            # FedSVD Finished
             self._stop = True
+            return None
+        return self._retrieve_host_download_info()
 
     def _server_svd(self):
         self._pxq = np.concatenate(self._pxq, axis=-1)
@@ -344,13 +338,14 @@ class FedSVD(FedStrategy):
 
     def local_evaluate(self):
         if self._current_status is FedSVDStatus.Evaluate:
-            if ConfigurationManager().model_config.svd_mode == 'svd' and\
+            if ConfigurationManager().model_config.svd_mode == 'svd' and \
                     ConfigurationManager().model_config.svd_top_k == -1:
                 recovered_data = self._u @ np.diag(self._sigma) @ self._local_vt
                 reconstruct_mae_error = np.mean(np.abs(recovered_data - self.train_data['x']))
                 reconstruct_rmse_error = np.sqrt(np.mean(np.square(recovered_data - self.train_data['x'])))
                 return {
-                    'test_mae': reconstruct_mae_error, 'test_rmse': reconstruct_rmse_error,
+                    'test_mae': reconstruct_mae_error,
+                    'test_rmse': reconstruct_rmse_error,
                     'test_size': self._local_n,
                 }
 
@@ -361,10 +356,7 @@ class FedSVD(FedStrategy):
             return {'client_id': self._client_id, 'mn': self.train_data['x'].shape}
         elif self._current_status is FedSVDStatus.ApplyMask:
             return self._sliced_pqx_with_secure_agg
-        elif self._current_status is FedSVDStatus.RemoveMask:
-            # Only for evaluation
-            # and the clients should not upload local results to server in real application
-            if self._client_id == 0:
-                return {'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'v': self._local_vt}
-            else:
-                return {'client_id': self._client_id, 'v': self._local_vt}
+
+    def client_exit_job(self, client):
+        with open(os.path.join(client._hyper_logger.dir_path, f'fedsvd_client_{self.client_id}.pkl'), 'wb') as f:
+            pickle.dump({'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt}, f)
