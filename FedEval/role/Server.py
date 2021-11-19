@@ -37,7 +37,7 @@ class Server(Node):
         self._register_handles()
         self._register_services()
 
-        self._current_params = None
+        self._current_upload_info = None
 
     def _construct_fed_model(self):
         """Construct a federated model according to `self.model_config` and bind it to `self.fed_model`.
@@ -84,8 +84,8 @@ class Server(Node):
         self._time_agg_eval_start: Optional[float] = None
         self._time_agg_eval_end: Optional[float] = None
         self._time_record: List[Dict[str, Any]] = []
-        self._training_start_time: int = int(time.time())    # seconds
-        self._training_stop_time: Optional[int] = None       # seconds
+        self._training_start_time: float = time.time()   # seconds
+        self._training_stop_time: float = None       # seconds
 
         # network traffic
         self._server_send_bytes: int = 0
@@ -140,7 +140,7 @@ class Server(Node):
 
     def __get_cur_used_time(self) -> str:
         stopped = self._STOP and self._training_stop_time is not None
-        train_stop_time = self._training_stop_time if stopped else round(time.time())
+        train_stop_time = round(self._training_stop_time) if stopped else round(time.time())
         current_used_time = int(train_stop_time - self._training_start_time)
         m, s = divmod(current_used_time, 60)
         h, m = divmod(m, 60)
@@ -199,7 +199,7 @@ class Server(Node):
 
     # cur_round could None
     def aggregate_train_loss(self, client_losses, client_sizes, cur_round):
-        cur_time = int(round(time.time()) - self._training_start_time)
+        cur_time = int(round(time.time()) - round(self._training_start_time))
         total_size = sum(client_sizes)
         # weighted sum
         aggr_loss = sum(client_losses[i] / total_size * client_sizes[i]
@@ -216,7 +216,7 @@ class Server(Node):
 
     def snapshot_result(self, cur_time: float) -> Mapping[str, Any]:
         cur_time = self._training_stop_time or cur_time
-        m, s = divmod(int(round(cur_time) - self._training_start_time), 60)
+        m, s = divmod(int(round(cur_time) - int(round(self._training_start_time))), 60)
         h, m = divmod(m, 60)
         keys = ['update_send', 'update_run', 'update_receive', 'agg_server',
                 'eval_send', 'eval_run', 'eval_receive', 'server_eval']
@@ -226,6 +226,7 @@ class Server(Node):
             'best_metric': self._best_test_metric,
             'best_metric_full': self._best_test_metric_full,
             'total_time': f'{h}:{m}:{s}',
+            'total_time_in_seconds': cur_time - self._training_start_time,
             'time_detail': str(avg_time_records),
             'total_rounds': self._current_round,
             'server_send': self._server_send_bytes / (1 << 30),
@@ -268,7 +269,7 @@ class Server(Node):
             client_num = ConfigurationManager().runtime_config.client_num
             if len(self._communicator.ready_client_ids) >= client_num and self._current_round == 0:
                 self.logger.info("start to federated learning.....")
-                self._training_start_time = int(round(time.time()))
+                self._training_start_time = time.time()
                 del client_num
                 self.train_next_round()
             elif len(self._communicator.ready_client_ids) < client_num:
@@ -313,9 +314,14 @@ class Server(Node):
             # current train
             client_params = [x['weights'] for x in self._c_up]
             aggregate_weights = np.array([x['train_size'] for x in self._c_up]).astype(np.float)
-            aggregate_weights /= np.sum(aggregate_weights)
 
-            self._strategy.update_host_params(client_params, aggregate_weights)
+            # update host params and retrieve download information
+            self._current_upload_info = self._strategy.update_host_params(client_params, aggregate_weights)
+            # Save the model weights
+            self._hyper_logger.snapshot_model_weights_into_file(
+                self._current_upload_info, self._current_round,
+                self._strategy.host_params_type
+            )
 
             aggr_train_loss = self.aggregate_train_loss(
                 [x['train_loss'] for x in self._c_up],
@@ -441,7 +447,7 @@ class Server(Node):
                 self._invalid_tolerate = 0
                 self._best_test_metric.update(avg_test_metrics)
                 self._hyper_logger.snap_server_side_best_model_weights_into_file(
-                    self._current_params)
+                    self._current_upload_info)
                 self.logger.info(str(self._best_test_metric))
                 self._best_test_metric_full = full_test_metric
             else:
@@ -472,7 +478,7 @@ class Server(Node):
                     self.logger.info(
                         "get best test {} {}".format(key, self._best_test_metric[key])
                     )
-                self._training_stop_time = int(round(time.time()))
+                self._training_stop_time = time.time()
                 # Time
                 result_json = self.snapshot_result(self._training_stop_time)
                 self._hyper_logger.snapshot_results_into_file(result_json)
@@ -526,9 +532,10 @@ class Server(Node):
         if not self._hyper_logger.is_snapshot_exist(
                 round_num=previous_round, host_params_type=self._strategy.host_params_type,
                 client_id_list=selected_clients):
-            self._current_params = self._strategy.retrieve_host_download_info()
+            if self._current_upload_info is None:
+                self._current_upload_info = self._strategy.host_get_init_params()
             self._hyper_logger.snapshot_model_weights_into_file(
-                self._current_params, previous_round, self._strategy.host_params_type)
+                self._current_upload_info, previous_round, self._strategy.host_params_type)
 
         if self._strategy.host_params_type == HostParamsType.Uniform:
             weight_file_path = self._hyper_logger.model_weight_file_path(previous_round)
@@ -558,10 +565,9 @@ class Server(Node):
 
         if not self._hyper_logger.is_snapshot_exist(
                 round_num=self._current_round, host_params_type=self._strategy.host_params_type,
-                client_id_list=selected_clients or self._communicator.ready_client_ids):
-            self._current_params = self._strategy.retrieve_host_download_info()
+                client_id_list=selected_clients):
             self._hyper_logger.snapshot_model_weights_into_file(
-                self._current_params, self._current_round, self._strategy.host_params_type)
+                self._current_upload_info, self._current_round, self._strategy.host_params_type)
 
         data_send = {'round_number': self._current_round}
         if self._strategy.host_params_type == HostParamsType.Uniform:
