@@ -1,5 +1,6 @@
 import argparse
 import copy
+import datetime
 import json
 import os
 import platform
@@ -519,17 +520,19 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
             server_stop()
         exit(0)
 
+    UNIFIED_JOB_ID = datetime.datetime.now().strftime('%Y_%m%d_%H%M%S')
+
     if mode == 'local':
         current_path = os.path.abspath('./')
         os.system(
-            sudo + 'docker run -it --rm -v {0}:{0} -w {0} '
+            sudo + 'docker run -it --rm -e UNIFIED_JOB_ID={3} -v {0}:{0} -w {0} '
             '{1} python3 -W ignore -m FedEval.run -f data -c {2}'
-            .format(current_path, rt_cfg.image_label, new_config_dir_path)
+            .format(current_path, rt_cfg.image_label, new_config_dir_path, UNIFIED_JOB_ID)
         )
         os.system(
-            sudo + 'docker run -it --rm -v {0}:{0} -w {0} '
+            sudo + 'docker run -it --rm -e UNIFIED_JOB_ID={3} -v {0}:{0} -w {0} '
             '{1} python3 -W ignore -m FedEval.run -f compose-local -c {2}'
-            .format(current_path, rt_cfg.image_label, new_config_dir_path)
+            .format(current_path, rt_cfg.image_label, new_config_dir_path, UNIFIED_JOB_ID)
         )
         os.system(sudo + 'docker-compose up -d')
 
@@ -554,17 +557,17 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
 
             if not machine.is_server:
                 _, stdout, stderr = ssh.exec_command(
-                    sudo + 'docker run -i --rm -v {0}:{0} -w {0} '
+                    sudo + 'docker run -i --rm -e UNIFIED_JOB_ID={3} -v {0}:{0} -w {0} '
                     '{1} python3 -W ignore -m FedEval.run -f data -c {2}'
-                    .format(remote_path, rt_cfg.image_label, new_config_dir_path)
+                    .format(remote_path, rt_cfg.image_label, new_config_dir_path, UNIFIED_JOB_ID)
                 )
                 print(''.join(stdout.readlines()))
                 print(''.join(stderr.readlines()))
 
             _, stdout, stderr = ssh.exec_command(
-                sudo + 'docker run -i --rm -v {0}:{0} -w {0} '
+                sudo + 'docker run -i --rm -e UNIFIED_JOB_ID={3} -v {0}:{0} -w {0} '
                 '{1} python3 -W ignore -m FedEval.run -f compose-server -c {2}'
-                .format(remote_path, rt_cfg.image_label, new_config_dir_path)
+                .format(remote_path, rt_cfg.image_label, new_config_dir_path, UNIFIED_JOB_ID)
             )
             print(''.join(stdout.readlines()))
             print(''.join(stderr.readlines()))

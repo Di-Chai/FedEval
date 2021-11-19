@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import time
+import hashlib
 from typing import Any, Mapping
 
 from ..communicaiton import (server_best_weight_filename,
@@ -23,9 +24,10 @@ class HyperLogger:
         lvl = eval(HyperLogger._LOG_LEVEL_EVAL_PATTERN.format(rt_cfg.base_log_level))
         logger.setLevel(lvl)
 
-        time_str = time.strftime('%Y_%m%d_%H%M%S', time.localtime())
         _log_dir_path = os.path.join(
-            rt_cfg.log_dir_path, log_dir_name, time_str)
+            rt_cfg.log_dir_path, log_dir_name,
+            ConfigurationManager().job_id + '_' +
+            hashlib.md5(';'.join(ConfigurationManager().to_jsons()).encode()).hexdigest()[:6])
         self._log_dir_path = os.path.abspath(_log_dir_path)
         os.makedirs(self._log_dir_path, exist_ok=True)
         log_file_path = os.path.join(self._log_dir_path, 'train.log')
@@ -112,6 +114,8 @@ class HyperLogger:
                     os.path.dirname(self.model_weight_file_path(round_num=round_num, client_id=client_id)),
                     k=latest_k
                 )
+                if latest_k <= 0:
+                    os.rmdir(os.path.dirname(self.model_weight_file_path(round_num=round_num, client_id=client_id)))
 
     def is_snapshot_exist(self, round_num: int, host_params_type: str, client_id_list: list = ()):
         if host_params_type == HostParamsType.Uniform:
