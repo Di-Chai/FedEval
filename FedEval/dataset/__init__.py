@@ -31,6 +31,9 @@ def get_data_shape(dataset_name: str):
     elif dataset_name == 'wine':
         x_size = (6480, 12)
         y_size = (6480, 2)
+    elif dataset_name == 'mnist_matrix':
+        x_size = (60000, 784)
+        y_size = (60000, 10)
     else:
         raise ValueError('Unknown dataset', dataset_name)
     return x_size, y_size
