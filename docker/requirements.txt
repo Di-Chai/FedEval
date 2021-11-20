@@ -13,6 +13,7 @@ grpcio-tools
 # Computation
 numpy
 scipy
+sklearn
 pandas
 torch==1.8.0
 
