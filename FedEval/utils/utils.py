@@ -8,7 +8,7 @@ import numpy as np
 def obj_to_pickle_string(x, file_path=None):
     if file_path is not None:
         with open(file_path, 'wb') as output:
-            pickle.dump(x, output)
+            pickle.dump(x, output, protocol=4)
         return file_path
     else:
         return codecs.encode(pickle.dumps(x), "base64").decode()

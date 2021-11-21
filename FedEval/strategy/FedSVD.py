@@ -359,4 +359,7 @@ class FedSVD(FedStrategy):
 
     def client_exit_job(self, client):
         with open(os.path.join(client._hyper_logger.dir_path, f'fedsvd_client_{self.client_id}.pkl'), 'wb') as f:
-            pickle.dump({'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt}, f)
+            pickle.dump(
+                {'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt}, f,
+                protocol=4
+            )
