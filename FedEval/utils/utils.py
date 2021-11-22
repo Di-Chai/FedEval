@@ -19,10 +19,8 @@ def obj_to_pickle_string(x, file_path=None):
 def pickle_string_to_obj(s):
     if ".pkl" in s:
         df = open(s, "rb")
-        print("load model from file")
         return pickle.load(df)
     else:
-        print("load model from byte")
         return pickle.loads(codecs.decode(s.encode(), "base64"))
 
 

@@ -62,12 +62,10 @@ def retrieve_array_from_list(q, start, end):
     for i in range(1, len(size_of_q)):
         if start > size_of_q[i]:
             continue
-        print(start - size_of_q[i - 1], min(end - size_of_q[i - 1], size_of_q[i] - size_of_q[i - 1]))
         results.append(
             [start, size_of_q[i-1], q[i - 1][start - size_of_q[i - 1]:min(end - size_of_q[i - 1], size_of_q[i] - size_of_q[i - 1])]]
         )
         start += len(results[-1][-1])
-        # print(start, end)
         if start >= end or start >= size_of_q[-1]:
             return results
 
