@@ -1,6 +1,8 @@
 import os
 import enum
 import pickle
+import time
+import json
 import numpy as np
 
 from .FederatedStrategy import FedStrategy, HostParamsType
@@ -13,7 +15,6 @@ from ..utils import ParamParser, ParamParserInterface
 
 def generate_orthogonal_matrix(
         n, reuse=False, block_reduce=None, random_seed=None, only_inverse=False):
-
     if random_seed:
         np.random.seed(random_seed)
 
@@ -63,7 +64,8 @@ def retrieve_array_from_list(q, start, end):
         if start > size_of_q[i]:
             continue
         results.append(
-            [start, size_of_q[i-1], q[i - 1][start - size_of_q[i - 1]:min(end - size_of_q[i - 1], size_of_q[i] - size_of_q[i - 1])]]
+            [start, size_of_q[i - 1],
+             q[i - 1][start - size_of_q[i - 1]:min(end - size_of_q[i - 1], size_of_q[i] - size_of_q[i - 1])]]
         )
         start += len(results[-1][-1])
         if start >= end or start >= size_of_q[-1]:
@@ -103,6 +105,10 @@ class FedSVD(FedStrategy):
             self._apply_mask_progress: int = 0
             self._pxq = []
             self._masked_u = None
+            # Only for evaluation
+            self._evaluation_u = None
+            self._evaluation_sigma = None
+            self._evaluation_vt = None
 
         if ConfigurationManager().role is Role.Client:
             # Client
@@ -206,21 +212,26 @@ class FedSVD(FedStrategy):
             del client_params
             if self._apply_mask_progress == sum(self._ns):
                 self._fed_svd_status = FedSVDStatus.Factorization
-                self._server_svd()
+                self._masked_u, self._sigma, self._masked_vt = self._server_svd(np.concatenate(self._pxq, axis=-1))
+                del self._pxq
                 self._fed_svd_status = FedSVDStatus.RemoveMask
         elif self._fed_svd_status is FedSVDStatus.RemoveMask:
             self._fed_svd_status = FedSVDStatus.Evaluate
         elif self._fed_svd_status is FedSVDStatus.Evaluate:
             # FedSVD Finished
             self._stop = True
+            # Only for evaluation, and the clients should not upload local results in real applications
+            client_params_sorted = sorted(client_params, key=lambda x: x['client_id'])
+            self._evaluation_u = client_params_sorted[0]['u']
+            self._evaluation_sigma = client_params_sorted[0]['sigma']
+            self._evaluation_vt = np.concatenate([e['vt'] for e in client_params_sorted], axis=-1)
             return None
         return self._retrieve_host_download_info()
 
-    def _server_svd(self):
-        self._pxq = np.concatenate(self._pxq, axis=-1)
+    def _server_svd(self, data_matrix):
         if ConfigurationManager().model_config.svd_top_k == -1:
             # We do not need to compute the full matrices when the matrix is not full rank
-            self._masked_u, self._sigma, self._masked_vt = np.linalg.svd(self._pxq, full_matrices=False)
+            return np.linalg.svd(data_matrix, full_matrices=False)
         elif ConfigurationManager().model_config.svd_top_k > 0:
             assert ConfigurationManager().model_config.svd_top_k <= min(self._m, sum(self._ns))
             truncated_svd = TruncatedSVD(
@@ -228,10 +239,12 @@ class FedSVD(FedStrategy):
             )
             # By default, we firstly compute the left truncated singular vectors
             truncated_svd.fit(self._pxq.T)
-            self._masked_u = truncated_svd.components_.T
-            self._sigma = truncated_svd.singular_values_
+            masked_u = truncated_svd.components_.T
+            sigma = truncated_svd.singular_values_
             if ConfigurationManager().model_config.svd_mode == 'svd':
-                self._masked_vt = np.diag(self._sigma ** -1) @ self._masked_u.T @ self._pxq
+                masked_vt = np.diag(self._sigma ** -1) @ self._masked_u.T @ self._pxq
+                return masked_u, sigma, masked_vt
+            return masked_u, sigma, None
         else:
             raise ValueError(f'Unknown svd top k {ConfigurationManager().model_config.svd_top_k}')
 
@@ -252,7 +265,7 @@ class FedSVD(FedStrategy):
             self._masked_u = host_params['masked_u']
             self._sigma = host_params['sigma']
             self._masked_vt = host_params['masked_vt']
-    
+
     def _generate_masked_data_in_secure_agg(self, shape, base=None):
         if base is not None:
             assert shape[0] == base.shape[0] and shape[1] == base.shape[1]
@@ -307,11 +320,12 @@ class FedSVD(FedStrategy):
                             x_slice_index += self._received_q_masks[j][-1].shape[0]
                             j += 1
                         matrix_base.append(self._p_times_x
-                            [:, x_slice_index:x_slice_index + self._received_q_masks[j][-1].shape[0]] @
-                            self._received_q_masks[j][-1]
-                            [:, counter-self._received_q_masks[j][1]:
-                                min(slice_end-self._received_q_masks[j][1], self._received_q_masks[j][-1].shape[-1])]
-                        )
+                                           [:, x_slice_index:x_slice_index + self._received_q_masks[j][-1].shape[0]] @
+                                           self._received_q_masks[j][-1]
+                                           [:, counter - self._received_q_masks[j][1]:
+                                               min(slice_end - self._received_q_masks[j][1],
+                                                   self._received_q_masks[j][-1].shape[-1])]
+                                           )
                     else:
                         matrix_base.append(np.zeros([self._local_m, slice_end - max_index]))
                     counter += matrix_base[-1].shape[-1]
@@ -331,7 +345,7 @@ class FedSVD(FedStrategy):
             # Remove the mask of VT
             vt = []
             for i, j, data in self._received_q_masks:
-                vt.append(self._masked_vt[:, j:j+data.shape[1]] @ data.T)
+                vt.append(self._masked_vt[:, j:j + data.shape[1]] @ data.T)
             self._local_vt = np.concatenate(vt, axis=-1)
 
     def local_evaluate(self):
@@ -345,19 +359,97 @@ class FedSVD(FedStrategy):
                     'test_mae': reconstruct_mae_error,
                     'test_rmse': reconstruct_rmse_error,
                     'test_size': self._local_n,
+                    'val_loss': reconstruct_rmse_error,
+                    'val_size': self._local_n,
                 }
+        return None
 
     def retrieve_local_upload_info(self):
         if self._current_status is FedSVDStatus.Init:
             self.train_data['x'] = self.train_data['x'].T
+            self.train_data['x'] = self.train_data['x'].astype(np.float64)
             self._local_m, self._local_n = self.train_data['x'].shape
             return {'client_id': self._client_id, 'mn': self.train_data['x'].shape}
         elif self._current_status is FedSVDStatus.ApplyMask:
             return self._sliced_pqx_with_secure_agg
+        elif self._current_status is FedSVDStatus.Evaluate:
+            # Only for evaluation, and the clients should not upload local results in real applications
+            if self.client_id == 0:
+                return {'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt}
+            else:
+                return {'client_id': self._client_id, 'vt': self._local_vt}
 
-    def client_exit_job(self, client):
-        with open(os.path.join(client._hyper_logger.dir_path, f'fedsvd_client_{self.client_id}.pkl'), 'wb') as f:
-            pickle.dump(
-                {'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt}, f,
-                protocol=4
-            )
+    # def client_exit_job(self, client):
+    #     if self.client_id == 0:
+    #         save_results = {'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt}
+    #     else:
+    #         save_results = {'client_id': self._client_id, 'vt': self._local_vt}
+    #     with open(os.path.join(client.log_dir, f'fedsvd_client_{self.client_id}.pkl'), 'wb') as f:
+    #         pickle.dump(save_results, f, protocol=4)
+
+    def host_exit_job(self, host):
+
+        def mse(x1, x2):
+            return np.mean((x1 - x2) ** 2)
+
+        def signed_rmse(x1, x2):
+            res = []
+            for i in range(x1.shape[0]):
+                signed_error = min(mse(x1[i], x2[i]), mse(x1[i], -x2[i]))
+                res.append(signed_error)
+            return np.sqrt(np.sum(res) / x1.shape[0])
+
+        def project_distance(u1, u2, block=1000):
+            distance_sum = 0
+            for i in range(0, len(u1), block):
+                for j in range(0, len(u1), block):
+                    distance_sum += np.sum(
+                        (u1[i:i+block]@u1[j:j+block].T - u2[i:i+block]@u2[j:j+block].T) ** 2
+                    )
+            return np.sqrt(distance_sum)
+
+        cfg_mgr = ConfigurationManager()
+        client_num = cfg_mgr.runtime_config.client_num
+        data_dir = cfg_mgr.data_config.dir_name
+        # Load clients' data for evaluation
+        x_train = []
+        for client_id in range(client_num):
+            with open(os.path.join(data_dir, 'client_%s.pkl' % client_id), 'rb') as f:
+                data = pickle.load(f)
+            x_train.append(data['x_train'])
+        x_train = np.concatenate(x_train, axis=0)
+        # Centralized SVD
+        c_svd_start = time.time()
+        c_u, c_sigma, c_vt = self._server_svd(x_train.T.astype(np.float64))
+        c_svd_end = time.time()
+
+        # Filter out the very small singular values before calculating the metrics
+        if (c_sigma < 10e-10).any():
+            significant_index = np.where(c_sigma < 10e-10)[0][0]
+            c_sigma = c_sigma[:significant_index]
+            c_u = c_u[:, :significant_index]
+            c_vt = c_vt[:significant_index, :]
+            self._evaluation_sigma = self._evaluation_sigma[:significant_index]
+            self._evaluation_u = self._evaluation_u[:, :significant_index]
+            self._evaluation_vt = self._evaluation_vt[:significant_index, :]
+
+        # RMSE metric
+        singular_value_rmse = signed_rmse(c_sigma, self._evaluation_sigma)
+        singular_vector_rmse = signed_rmse(c_u.T, self._evaluation_u.T)
+        if ConfigurationManager().model_config.svd_mode == 'svd':
+            singular_vector_rmse += signed_rmse(c_vt, self._evaluation_vt)
+            singular_vector_rmse /= 2
+
+        singular_vector_project_distance = project_distance(c_u, self._evaluation_u)
+        if ConfigurationManager().model_config.svd_mode == 'svd':
+            singular_vector_project_distance += project_distance(c_vt.T, self._evaluation_vt.T)
+
+        result_json = host.snapshot_result(None)
+        result_json.update({
+            'local_svd_time': c_svd_end - c_svd_start,
+            'singular_value_rmse': singular_value_rmse,
+            'singular_vector_rmse': singular_vector_rmse,
+            'singular_vector_project_distance': singular_vector_project_distance,
+        })
+        with open(os.path.join(host.log_dir, 'results.json'), 'w') as f:
+            json.dump(result_json, f)
