@@ -45,7 +45,7 @@ class ServerFlaskCommunicator(ServerCommunicator):
                           static_folder=os.path.join(static_path, 'static'))
         self._app.config['SECRET_KEY'] = ConfigurationManager().runtime_config.secret_key
         log = logging.getLogger('werkzeug')
-        log.setLevel(eval(f'logging.{ConfigurationManager().runtime_config.console_log_level}'))
+        log.setLevel(logging.ERROR)
         self._socketio = ServerSocketIO(self._app, max_http_buffer_size=1e20,
                                         async_handlers=True, ping_timeout=3600,
                                         ping_interval=1800, cors_allowed_origins='*')
