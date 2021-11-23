@@ -37,6 +37,10 @@ class Client(Node):
         self._hyper_logger = HyperLogger('container', f'Container{container_id}')
         self.logger = self._hyper_logger.get()
 
+    @property
+    def log_dir(self):
+        return self._hyper_logger.log_dir_path
+
     def _register_handles(self):
         @self._communicator.on(ClientEvent.Connect)
         def on_connect():

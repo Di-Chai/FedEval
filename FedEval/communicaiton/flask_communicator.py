@@ -1,4 +1,5 @@
 import os
+import logging
 from functools import wraps
 from typing import Any, Callable, Dict, Iterable, Optional, Tuple
 
@@ -43,6 +44,8 @@ class ServerFlaskCommunicator(ServerCommunicator):
         self._app = Flask(__name__, template_folder=os.path.join(static_path, 'templates'),
                           static_folder=os.path.join(static_path, 'static'))
         self._app.config['SECRET_KEY'] = ConfigurationManager().runtime_config.secret_key
+        log = logging.getLogger('werkzeug')
+        log.setLevel(logging.ERROR)
         self._socketio = ServerSocketIO(self._app, max_http_buffer_size=1e20,
                                         async_handlers=True, ping_timeout=3600,
                                         ping_interval=1800, cors_allowed_origins='*')
