@@ -30,3 +30,21 @@ class mnist_matrix(FedData):
         self.num_class = np.max(y) + 1
         y = tf.keras.utils.to_categorical(y, self.num_class)
         return x, y
+
+
+class ml25m_matrix(FedData):
+    def load_data(self):
+        ranking=np.load('ranking.npy').T
+        x=np.zeros((1001,59047)) #162542 users 59047 movies
+        for item in ranking:
+            #print(item[0],item[1],item[2])
+            x[int(item[0])][int(item[1])]=item[2]
+            if item[0]>=1000:
+                break
+        y = np.zeros((x.shape[0],1), dtype=int)
+        self.num_class = np.max(y) + 1
+        y = tf.keras.utils.to_categorical(y, self.num_class)
+        print("finish loading ")
+        return x,y
+
+
