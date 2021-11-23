@@ -29,6 +29,7 @@ _D_NI_STRATEGY_KEY = 'non-iid-strategy'
 _D_NORMALIZE_KEY = 'normalize'
 _D_SAMPLE_SIZE_KEY = 'sample_size'
 _D_PARTITION_KEY = 'train_val_test'
+_D_SYNTHETIC_FEATURE = 'synthetic_features'
 _DEFAULT_D_CFG: RawConfigurationDict = {
     _D_DIR_KEY: 'data',
     _D_NAME_KEY: 'mnist',
@@ -37,7 +38,8 @@ _DEFAULT_D_CFG: RawConfigurationDict = {
     _D_NI_STRATEGY_KEY: 'average',
     _D_NORMALIZE_KEY: True,
     _D_SAMPLE_SIZE_KEY: 300,
-    _D_PARTITION_KEY: [0.8, 0.1, 0.1]
+    _D_PARTITION_KEY: [0.8, 0.1, 0.1],
+    _D_SYNTHETIC_FEATURE: 1000
 }
 
 # default model configurations
@@ -369,6 +371,12 @@ class _DataConfig(_Configuraiton):
             Sequence[float]: [train data ratio, test data ration, validation data ration]
         """
         return self._partition
+
+    @property
+    def synthetic_features(self):
+        if self.dataset_name != 'synthetic_matrix':
+            raise AttributeError
+        return self._inner[_D_SYNTHETIC_FEATURE]
 
 
 class _ModelConfig(_Configuraiton):
