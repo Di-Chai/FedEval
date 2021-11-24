@@ -40,12 +40,12 @@ def generate_orthogonal_matrix(
         q = []
         for i in range(len(qs)):
             sub_n = qs[i]
-            piece_file_name = os.path.join(orthogonal_matrix_cache_dir, file_name + f'_piece{i}')
+            piece_file_name = file_name + f'_piece{i}'
             if reuse and piece_file_name in existing:
                 if memory_efficient:
-                    tmp = piece_file_name
+                    tmp = os.path.join(orthogonal_matrix_cache_dir, piece_file_name)
                 else:
-                    with open(piece_file_name, 'rb') as f:
+                    with open(os.path.join(orthogonal_matrix_cache_dir, piece_file_name), 'rb') as f:
                         tmp = pickle.load(f)
             else:
                 tmp = generate_orthogonal_matrix(
@@ -53,11 +53,11 @@ def generate_orthogonal_matrix(
                     random_seed=random_seed if random_seed is None else (random_seed + i),
                 )
                 if reuse:
-                    with open(piece_file_name, 'wb') as f:
+                    with open(os.path.join(orthogonal_matrix_cache_dir, piece_file_name), 'wb') as f:
                         pickle.dump(tmp, f, protocol=4)
                     if memory_efficient:
                         del tmp
-                        tmp = piece_file_name
+                        tmp = os.path.join(orthogonal_matrix_cache_dir, piece_file_name)
             q.append(tmp)
     else:
         cache_file_name = os.path.join(orthogonal_matrix_cache_dir, file_name)
