@@ -247,6 +247,10 @@ class FedSVD(FedStrategy):
                 del self._pxq
                 self._fed_svd_status = FedSVDStatus.RemoveMask
         elif self._fed_svd_status is FedSVDStatus.RemoveMask:
+            # Release memory
+            del self._masked_u
+            del self._masked_vt
+            del self._sigma
             self._fed_svd_status = FedSVDStatus.Evaluate
         elif self._fed_svd_status is FedSVDStatus.Evaluate:
             # FedSVD Finished
@@ -296,7 +300,7 @@ class FedSVD(FedStrategy):
             self.logger.info(f'Client {self.client_id} has received random mask Q')
         elif self._current_status is FedSVDStatus.ApplyMask:
             self._received_apply_mask_params = host_params
-        elif self._current_status is FedSVDStatus.RemoveMask:
+        elif self._current_status is FedSVDStatus.RemoveMask:           
             self._masked_u = host_params['masked_u']
             self._sigma = host_params['sigma']
             self._masked_vt = host_params['masked_vt']
@@ -380,6 +384,7 @@ class FedSVD(FedStrategy):
             self.logger.info(f'Client {self.client_id} is removing masks')
             # Release memory
             del self._p_times_x
+            del self.train_data
             # Remove the mask of U
             u = []
             p_size_counter = 0
