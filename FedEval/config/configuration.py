@@ -374,7 +374,8 @@ class _DataConfig(_Configuraiton):
 
     @property
     def synthetic_features(self):
-        if self.dataset_name != 'synthetic_matrix':
+        if self.dataset_name != 'synthetic_matrix_horizontal' and \
+           self.dataset_name != 'synthetic_matrix_vertical':
             raise AttributeError
         return self._inner[_D_SYNTHETIC_FEATURE]
 
