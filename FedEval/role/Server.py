@@ -50,6 +50,7 @@ class Server(Node):
     def _init_logger(self):
         self._hyper_logger = HyperLogger('Server', 'Server')
         self.logger = self._hyper_logger.get()
+        self._strategy.set_logger(self.logger)
 
         cfg_mgr = ConfigurationManager()
         _run_config = {

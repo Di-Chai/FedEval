@@ -168,6 +168,10 @@ class ClientContextManager:
         _cid_list: List[ClientId] = list(range(cid_start, cid_start + num_clients_in_this_container))
         return _cid_list
 
+    def set_logger(self, logger):
+        for cid in self._clients:
+            self._clients[cid]._strategy.set_logger(logger)
+    
     @property
     def container_id(self) -> ContainerId:
         return self._id
