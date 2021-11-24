@@ -34,7 +34,10 @@ def get_data_shape(dataset_name: str):
     elif dataset_name == 'mnist_matrix':
         x_size = (60000, 784)
         y_size = (60000, 10)
-    elif dataset_name == 'synthetic_matrix':
+    elif dataset_name == 'synthetic_matrix_horizontal':
+        x_size = (None, None)
+        y_size = (None, 1)
+    elif dataset_name == 'synthetic_matrix_vertical':
         x_size = (None, None)
         y_size = (None, 1)
     else:

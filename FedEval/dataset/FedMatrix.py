@@ -45,14 +45,28 @@ def load_synthetic(m, n, alpha):
     return Y, None
 
 
-class synthetic_matrix(FedData):
+class synthetic_matrix_horizontal(FedData):
     def load_data(self):
         m = ConfigurationManager().data_config.synthetic_features
         n = int(ConfigurationManager().data_config.sample_size) * \
             int(ConfigurationManager().runtime_config.client_num)
         alpha = 1.0
         x, y = load_synthetic(m, n, alpha)
+        # feature * sample
         x = x.T
+        y = np.zeros([len(x), 1])
+        self.num_class = 1
+        return x, y
+
+
+class synthetic_matrix_vertical(FedData):
+    def load_data(self):
+        m = ConfigurationManager().data_config.synthetic_features
+        n = int(ConfigurationManager().data_config.sample_size) * \
+            int(ConfigurationManager().runtime_config.client_num)
+        alpha = 1.0
+        # sample * feature
+        x, y = load_synthetic(m, n, alpha)
         y = np.zeros([len(x), 1])
         self.num_class = 1
         return x, y
