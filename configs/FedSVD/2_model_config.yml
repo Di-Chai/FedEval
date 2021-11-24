@@ -4,7 +4,7 @@ FedModel:
   B: 32
   C: 1.0
   E: 1
-  max_rounds: 1000
+  max_rounds: 10000
   num_tolerance: 300
   rounds_between_val: 1
   # FedSTC
