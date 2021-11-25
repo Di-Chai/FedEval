@@ -27,7 +27,7 @@ class Client(Node):
         # self._communicator = ClientFlaskCommunicator()
         self._communicator = get_client_communicator()
 
-        central_server_service_addr = cfg_mgr.runtime_config.central_server_listen_at
+        central_server_service_addr = cfg_mgr.runtime_config.central_server_addr
         listen_port = cfg_mgr.runtime_config.central_server_port
         download_url_pattern = f'{central_server_service_addr}:{listen_port}{ServerFlaskInterface.DownloadPattern.value}'
         self._model_weights_io_handler = ModelWeightsHandler(download_url_pattern)
