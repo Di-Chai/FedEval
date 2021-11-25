@@ -624,6 +624,8 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
         result_file = log_dir + '/results.json'
 
         if mode == 'remote':
+            if log_dir.startswith('/FML/'):
+                log_dir = log_dir[5:]
             os.makedirs(log_dir, exist_ok=True)
             download_from_server(remote_dirs=[log_dir], file_type=[
                                  '.yml', '.json', '.log'])
