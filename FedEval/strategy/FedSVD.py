@@ -277,7 +277,7 @@ class FedSVD(FedStrategy):
             masked_u = truncated_svd.components_.T
             sigma = truncated_svd.singular_values_
             if ConfigurationManager().model_config.svd_mode == 'svd':
-                masked_vt = np.diag(self._sigma ** -1) @ self._masked_u.T @ self._pxq
+                masked_vt = np.diag(self._sigma ** -1) @ self._masked_u.T @ data_matrix
                 return masked_u, sigma, masked_vt
             return masked_u, sigma, None
         else:
