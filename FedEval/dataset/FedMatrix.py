@@ -74,7 +74,7 @@ class synthetic_matrix_vertical(FedData):
 
 class ml25m_matrix(FedData):
     def load_data(self):
-        ranking=np.load('ranking.npy').T
+        ranking=np.load(os.path.join(os.path.dirname(__file__), 'ranking.npy')).T
         x=np.zeros((1001,59047)) #162542 users 59047 movies
         for item in ranking:
             #print(item[0],item[1],item[2])^M
