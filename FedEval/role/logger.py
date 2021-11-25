@@ -28,7 +28,8 @@ class HyperLogger:
             rt_cfg.log_dir_path, log_dir_name,
             ConfigurationManager().job_id + '_' +
             hashlib.md5(';'.join(ConfigurationManager().to_jsons()).encode()).hexdigest()[:6])
-        self._log_dir_path = os.path.abspath(_log_dir_path)
+        # self._log_dir_path = os.path.abspath(_log_dir_path)
+        self._log_dir_path = _log_dir_path
         os.makedirs(self._log_dir_path, exist_ok=True)
         log_file_path = os.path.join(self._log_dir_path, 'train.log')
         fh = logging.FileHandler(log_file_path, encoding='utf8')
