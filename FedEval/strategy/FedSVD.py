@@ -451,7 +451,7 @@ class FedSVD(FedStrategy):
                 res.append(signed_error)
             return np.sqrt(np.sum(res) / x1.shape[0])
 
-        def project_distance(u1, u2, block=1000):
+        def project_distance(u1, u2, block=10000):
             distance_sum = 0
             for i in range(0, len(u1), block):
                 for j in range(0, len(u1), block):
