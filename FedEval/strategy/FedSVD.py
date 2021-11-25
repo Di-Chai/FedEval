@@ -476,6 +476,9 @@ class FedSVD(FedStrategy):
         c_u, c_sigma, c_vt = self._server_svd(x_train.T.astype(np.float64))
         c_svd_end = time.time()
 
+        result_json = host.snapshot_result(None)
+        result_json.update({'local_svd_time': c_svd_end - c_svd_start})
+
         # Filter out the very small singular values before calculating the metrics
         if (c_sigma < 10e-10).any():
             significant_index = np.where(c_sigma < 10e-10)[0][0]
@@ -493,19 +496,17 @@ class FedSVD(FedStrategy):
         if ConfigurationManager().model_config.svd_mode == 'svd':
             singular_vector_rmse += signed_rmse(c_vt, self._evaluation_vt)
             singular_vector_rmse /= 2
+        result_json.update({'singular_value_rmse': singular_value_rmse})
+        result_json.update({'singular_vector_rmse': singular_vector_rmse})
 
-        self.logger.info('FedSVD Server Status: Computing the project_distance.')
-        singular_vector_project_distance = project_distance(c_u, self._evaluation_u)
-        if ConfigurationManager().model_config.svd_mode == 'svd':
-            singular_vector_project_distance += project_distance(c_vt.T, self._evaluation_vt.T)
-
-        result_json = host.snapshot_result(None)
-        result_json.update({
-            'local_svd_time': c_svd_end - c_svd_start,
-            'singular_value_rmse': singular_value_rmse,
-            'singular_vector_rmse': singular_vector_rmse,
-            'singular_vector_project_distance': singular_vector_project_distance,
-        })
+        if (ConfigurationManager().model_config.svd_top_k != -1 and ConfigurationManager().model_config.svd_mode == 'svd') or \
+            ConfigurationManager().model_config.svd_mode == 'pca':
+            self.logger.info('FedSVD Server Status: Computing the project_distance.')
+            singular_vector_project_distance = project_distance(c_u, self._evaluation_u)
+            if ConfigurationManager().model_config.svd_mode == 'svd':
+                singular_vector_project_distance += project_distance(c_vt.T, self._evaluation_vt.T)
+            result_json.update({'singular_vector_project_distance': singular_vector_project_distance})
+        
         with open(os.path.join(host.log_dir, 'results.json'), 'w') as f:
             json.dump(result_json, f)
 
