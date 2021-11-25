@@ -787,7 +787,7 @@ class _RuntimeConfig(_Configuraiton):
         """
         if not self._has_machines():
             return None
-        return deepcopy({name: v for name, v in self._machines if not v.is_server})
+        return deepcopy({name: v for name, v in self._machines.items() if not v.is_server})
 
     @property
     def limit_network_resource(self) -> bool:

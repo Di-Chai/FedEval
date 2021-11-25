@@ -11,14 +11,14 @@ machines:
   server:
     host: 10.173.1.22
     port: 22
-    user_name: ubuntu
+    username: ubuntu
     dir: /ldisk/chaidi/FedEval
     key: id_rsa
   m1:
     host: 10.173.1.22
     port: 22
     capacity: 100
-    user_name: ubuntu
+    username: ubuntu
     dir: /ldisk/chaidi/FedEval
     key: id_rsa
 log:
