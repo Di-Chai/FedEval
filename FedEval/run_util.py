@@ -273,7 +273,7 @@ class LogAnalysis:
 
 def check_status(host):
     try:
-        status = requests.get('http://{}/status'.format(host), timeout=(5, 5))
+        status = requests.get('http://{}/status'.format(host), timeout=(300, 300))
         return {'success': True, 'data': json.loads(status.text)}
     except Exception as e:
         print('Error in checking', e)
