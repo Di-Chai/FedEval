@@ -273,7 +273,7 @@ class FedSVD(FedStrategy):
                 n_components=ConfigurationManager().model_config.svd_top_k, algorithm='arpack',
             )
             # By default, we firstly compute the left truncated singular vectors
-            truncated_svd.fit(self._pxq.T)
+            truncated_svd.fit(data_matrix.T)
             masked_u = truncated_svd.components_.T
             sigma = truncated_svd.singular_values_
             if ConfigurationManager().model_config.svd_mode == 'svd':
