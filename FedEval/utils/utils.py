@@ -11,7 +11,7 @@ def obj_to_pickle_string(x, file_path=None):
             pickle.dump(x, output, protocol=4)
         return file_path
     else:
-        return codecs.encode(pickle.dumps(x), "base64").decode()
+        return codecs.encode(pickle.dumps(x, protocol=4), "base64").decode()
     # return msgpack.packb(x, default=msgpack_numpy.encode)
     # TODO: compare pickle vs msgpack vs json for serialization; tradeoff: computation vs network IO
 
