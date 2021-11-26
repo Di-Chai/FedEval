@@ -194,7 +194,7 @@ class FedSVD(FedStrategy):
                     'random_seed_of_p': self._random_seed_of_p,
                     'sliced_q': results_data[client_id]
                 }
-                for client_id in range(ConfigurationManager().runtime_config.client_num)
+                for client_id in self._client_ids_on_receiving
             }
         elif self._fed_svd_status is FedSVDStatus.ApplyMask:
             self.logger.info(f'FedSVD Server Reporting Status: apply mask progress {self._apply_mask_progress}/{sum(self._ns)}')
@@ -218,7 +218,7 @@ class FedSVD(FedStrategy):
             }
         elif self._fed_svd_status is FedSVDStatus.Evaluate:
             return {client_id: {'fed_svd_status': self._fed_svd_status}
-                    for client_id in self.train_selected_clients}
+                    for client_id in self._client_ids_on_receiving}
     
     def host_get_init_params(self):
         self._fed_svd_status = FedSVDStatus.Init
@@ -259,11 +259,11 @@ class FedSVD(FedStrategy):
             # FedSVD Finished
             self._stop = True
             # Only for evaluation, and the clients should not upload local results in real applications
-            client_params_sorted = sorted(client_params, key=lambda x: x['client_id'])
-            self._evaluation_u = client_params_sorted[0]['u']
-            self._evaluation_sigma = client_params_sorted[0]['sigma']
-            self._evaluation_vt = np.concatenate([e['vt'] for e in client_params_sorted], axis=-1)
-            self._evaluation_data = np.concatenate([e['data'] for e in client_params_sorted], axis=-1)
+            client_params = sorted(client_params, key=lambda x: x['client_id'])
+            self._evaluation_u = client_params[0]['u']
+            self._evaluation_sigma = client_params[0]['sigma']
+            self._evaluation_vt = np.concatenate([e['vt'] for e in client_params], axis=-1)
+            self._evaluation_data = np.concatenate([e['data'] for e in client_params], axis=-1)
             return None
         return self._retrieve_host_download_info()
 
