@@ -490,7 +490,9 @@ class FedSVD(FedStrategy):
         self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {np.mean(np.abs(self._evaluation_data.T - x_train))}')
 
         recc_error = np.mean(np.abs((c_u @ np.diag(c_sigma) @ c_vt - x_train.T)))
-        self.logger.info(f'FedSVD Server Status: recc_error. {recc_error}')
+        self.logger.info(f'FedSVD Server Status: recc_error1. {recc_error}')
+        recc_error = np.mean(np.abs((self._evaluation_u @ np.diag(self._evaluation_sigma) @ self._evaluation_vt - self._evaluation_data)))
+        self.logger.info(f'FedSVD Server Status: recc_error2. {recc_error}')
 
         # Filter out the very small singular values before calculating the metrics
         if (c_sigma < 10e-10).any():
