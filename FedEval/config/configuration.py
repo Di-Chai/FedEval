@@ -30,6 +30,7 @@ _D_NORMALIZE_KEY = 'normalize'
 _D_SAMPLE_SIZE_KEY = 'sample_size'
 _D_PARTITION_KEY = 'train_val_test'
 _D_SYNTHETIC_FEATURE = 'synthetic_features'
+_D_RANDOM_SEED = 'random_seed'
 _DEFAULT_D_CFG: RawConfigurationDict = {
     _D_DIR_KEY: 'data',
     _D_NAME_KEY: 'mnist',
@@ -39,7 +40,8 @@ _DEFAULT_D_CFG: RawConfigurationDict = {
     _D_NORMALIZE_KEY: True,
     _D_SAMPLE_SIZE_KEY: 300,
     _D_PARTITION_KEY: [0.8, 0.1, 0.1],
-    _D_SYNTHETIC_FEATURE: 1000
+    _D_SYNTHETIC_FEATURE: 1000,
+    _D_RANDOM_SEED: 100
 }
 
 # default model configurations
@@ -378,6 +380,10 @@ class _DataConfig(_Configuraiton):
            self.dataset_name != 'synthetic_matrix_vertical':
             raise AttributeError
         return self._inner[_D_SYNTHETIC_FEATURE]
+
+    @property
+    def random_seed(self):
+        return int(self._inner[_D_RANDOM_SEED])
 
 
 class _ModelConfig(_Configuraiton):
