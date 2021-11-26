@@ -267,6 +267,7 @@ class FedSVD(FedStrategy):
 
     def _server_svd(self, data_matrix):
         if ConfigurationManager().model_config.svd_top_k == -1:
+            self.logger.info(f'Server Debug1 {data_matrix.shape}')
             # We do not need to compute the full matrices when the matrix is not full rank
             return np.linalg.svd(data_matrix, full_matrices=False)
         elif ConfigurationManager().model_config.svd_top_k > 0:
@@ -484,7 +485,10 @@ class FedSVD(FedStrategy):
         # Debug
         self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {x_train.shape}')
         self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {self._evaluation_data.shape}')
-        self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {np.mean(np.abs(self._evaluation_data - x_train))}')
+        self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {np.mean(np.abs(self._evaluation_data.T - x_train))}')
+
+        recc_error = np.mean(np.abs((c_u @ np.diag(c_sigma) @ c_vt - x_train.T)))
+        self.logger.info(f'FedSVD Server Status: recc_error. {recc_error}')
 
         # Filter out the very small singular values before calculating the metrics
         if (c_sigma < 10e-10).any():
