@@ -4,6 +4,7 @@ import pickle
 import time
 import json
 import numpy as np
+from paramiko import client
 
 from .FederatedStrategy import FedStrategy, HostParamsType
 from ..config import ClientId, ConfigurationManager, Role
@@ -180,7 +181,8 @@ class FedSVD(FedStrategy):
                     random_seed=0, reuse=False, memory_efficient=False
                 )
             results_data = {}
-            for client_id in range(ConfigurationManager().runtime_config.client_num):
+            for i in range(len(self._client_ids_on_receiving)):
+                client_id = self._client_ids_on_receiving[i]
                 results_data[client_id] = retrieve_array_from_list(
                     self._q, start=sum(self._ns[:i]), end=sum(self._ns[:i + 1])
                 )
@@ -225,6 +227,7 @@ class FedSVD(FedStrategy):
     def update_host_params(self, client_params, *args):
         if self._fed_svd_status is FedSVDStatus.Init:
             # By default, the shape of the matrix is n * m
+            client_params = sorted(client_params, key=lambda x: x['client_id'])
             ms = [e['mn'][0] for e in client_params]
             assert len(set(ms)) == 1, 'm is not the same among the clients'
             self._client_ids_on_receiving = [e['client_id'] for e in client_params]
