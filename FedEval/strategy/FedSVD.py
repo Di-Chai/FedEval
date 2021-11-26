@@ -180,8 +180,7 @@ class FedSVD(FedStrategy):
                     random_seed=0, reuse=False, memory_efficient=False
                 )
             results_data = {}
-            for i in range(len(self._client_ids_on_receiving)):
-                client_id = self._client_ids_on_receiving[i]
+            for client_id in range(ConfigurationManager().runtime_config.client_num):
                 results_data[client_id] = retrieve_array_from_list(
                     self._q, start=sum(self._ns[:i]), end=sum(self._ns[:i + 1])
                 )
@@ -193,7 +192,7 @@ class FedSVD(FedStrategy):
                     'random_seed_of_p': self._random_seed_of_p,
                     'sliced_q': results_data[client_id]
                 }
-                for client_id in self._client_ids_on_receiving
+                for client_id in range(ConfigurationManager().runtime_config.client_num)
             }
         elif self._fed_svd_status is FedSVDStatus.ApplyMask:
             self.logger.info(f'FedSVD Server Reporting Status: apply mask progress {self._apply_mask_progress}/{sum(self._ns)}')
