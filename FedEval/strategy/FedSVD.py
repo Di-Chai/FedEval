@@ -135,6 +135,7 @@ class FedSVD(FedStrategy):
             self._evaluation_u = None
             self._evaluation_sigma = None
             self._evaluation_vt = None
+            self._evaluation_data = None
 
         if ConfigurationManager().role is Role.Client:
             # Client
@@ -260,6 +261,7 @@ class FedSVD(FedStrategy):
             self._evaluation_u = client_params_sorted[0]['u']
             self._evaluation_sigma = client_params_sorted[0]['sigma']
             self._evaluation_vt = np.concatenate([e['vt'] for e in client_params_sorted], axis=-1)
+            self._evaluation_data = np.concatenate([e['data'] for e in client_params_sorted], axis=-1)
             return None
         return self._retrieve_host_download_info()
 
@@ -433,9 +435,9 @@ class FedSVD(FedStrategy):
         elif self._current_status is FedSVDStatus.Evaluate:
             # Only for evaluation, and the clients should not upload local results in real applications
             if self.client_id == 0:
-                return {'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt}
+                return {'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt, 'data': self.train_data['x']}
             else:
-                return {'client_id': self._client_id, 'vt': self._local_vt}
+                return {'client_id': self._client_id, 'vt': self._local_vt, 'data': self.train_data['x']}
 
     def host_exit_job(self, host):
 
@@ -478,6 +480,11 @@ class FedSVD(FedStrategy):
 
         result_json = host.snapshot_result(None)
         result_json.update({'local_svd_time': c_svd_end - c_svd_start})
+
+        # Debug
+        self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {x_train.shape}')
+        self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {self._evaluation_data.shape}')
+        self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {np.mean(np.abs(self._evaluation_data - x_train))}')
 
         # Filter out the very small singular values before calculating the metrics
         if (c_sigma < 10e-10).any():
