@@ -386,7 +386,7 @@ class FedSVD(FedStrategy):
             self.logger.info(f'Client {self.client_id} is removing masks')
             # Release memory
             del self._p_times_x
-            del self.train_data
+            # del self.train_data
             # Remove the mask of U
             u = []
             p_size_counter = 0
@@ -409,19 +409,19 @@ class FedSVD(FedStrategy):
             self.logger.info(f'Client {self.client_id} has finished removing masks')
 
     def local_evaluate(self):
-        # if self._current_status is FedSVDStatus.Evaluate:
-        #     if ConfigurationManager().model_config.svd_mode == 'svd' and \
-        #             ConfigurationManager().model_config.svd_top_k == -1:
-        #         recovered_data = self._u @ np.diag(self._sigma) @ self._local_vt
-        #         reconstruct_mae_error = np.mean(np.abs(recovered_data - self.train_data['x']))
-        #         reconstruct_rmse_error = np.sqrt(np.mean(np.square(recovered_data - self.train_data['x'])))
-        #         return {
-        #             'test_mae': reconstruct_mae_error,
-        #             'test_rmse': reconstruct_rmse_error,
-        #             'test_size': self._local_n,
-        #             'val_loss': reconstruct_rmse_error,
-        #             'val_size': self._local_n,
-        #         }
+        if self._current_status is FedSVDStatus.Evaluate:
+            if ConfigurationManager().model_config.svd_mode == 'svd' and \
+                    ConfigurationManager().model_config.svd_top_k == -1:
+                recovered_data = self._u @ np.diag(self._sigma) @ self._local_vt
+                reconstruct_mae_error = np.mean(np.abs(recovered_data - self.train_data['x']))
+                reconstruct_rmse_error = np.sqrt(np.mean(np.square(recovered_data - self.train_data['x'])))
+                return {
+                    'test_mae': reconstruct_mae_error,
+                    'test_rmse': reconstruct_rmse_error,
+                    'test_size': self._local_n,
+                    'val_loss': reconstruct_rmse_error,
+                    'val_size': self._local_n,
+                }
         return None
 
     def retrieve_local_upload_info(self):
