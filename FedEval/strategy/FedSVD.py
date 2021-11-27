@@ -3,6 +3,7 @@ import enum
 import pickle
 import time
 import json
+from matplotlib.pyplot import axis
 import numpy as np
 from paramiko import client
 
@@ -262,8 +263,8 @@ class FedSVD(FedStrategy):
             client_params = sorted(client_params, key=lambda x: x['client_id'])
             self._evaluation_u = client_params[0]['u']
             self._evaluation_sigma = client_params[0]['sigma']
-            self._evaluation_vt = np.concatenate([e['vt'] for e in client_params], axis=-1)
-            self._evaluation_data = np.concatenate([e['data'] for e in client_params], axis=-1)
+            self._evaluation_vt = [e['vt'] for e in client_params]
+            self._evaluation_data = [e['data'] for e in client_params]
             return None
         return self._retrieve_host_download_info()
 
@@ -484,16 +485,23 @@ class FedSVD(FedStrategy):
         result_json = host.snapshot_result(None)
         result_json.update({'local_svd_time': c_svd_end - c_svd_start})
 
+        evaluation_data = np.concatenate(self._evaluation_data, axis=-1)
+        evaluation_vt = np.concatenate(self._evaluation_vt, axis=-1)
+
         # Debug
         self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {x_train.shape}')
-        self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {self._evaluation_data.shape}')
-        self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {np.mean(np.abs(self._evaluation_data.T - x_train))}')
+        self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {evaluation_data.shape}')
+        self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {np.mean(np.abs(evaluation_data.T - x_train))}')
 
         recc_error = np.mean(np.abs((c_u @ np.diag(c_sigma) @ c_vt - x_train.T)))
         self.logger.info(f'FedSVD Server Status: recc_error1. {recc_error}')
-        recc_error = np.mean(np.abs((self._evaluation_u @ np.diag(self._evaluation_sigma) @ self._evaluation_vt - self._evaluation_data)))
+        recc_error = np.mean(np.abs((self._evaluation_u @ np.diag(self._evaluation_sigma) @ evaluation_vt - evaluation_data)))
         self.logger.info(f'FedSVD Server Status: recc_error2. {recc_error}')
 
+        for i in range(len(self._evaluation_data)):
+            for j in range(len(self._evaluation_data)):
+                self.logger.info(f'FedSVD Server Status PerError {i}-{j} {np.mean(np.abs((self._evaluation_u @ np.diag(self._evaluation_sigma) @ self._evaluation_vt[i] - self._evaluation_data[j])))}')
+        
         # Filter out the very small singular values before calculating the metrics
         if (c_sigma < 10e-10).any():
             significant_index = np.where(c_sigma < 10e-10)[0][0]
@@ -502,14 +510,14 @@ class FedSVD(FedStrategy):
             c_vt = c_vt[:significant_index, :]
             self._evaluation_sigma = self._evaluation_sigma[:significant_index]
             self._evaluation_u = self._evaluation_u[:, :significant_index]
-            self._evaluation_vt = self._evaluation_vt[:significant_index, :]
+            evaluation_vt = evaluation_vt[:significant_index, :]
 
         # RMSE metric
         self.logger.info('FedSVD Server Status: Computing the RMSE.')
         singular_value_rmse = signed_rmse(c_sigma, self._evaluation_sigma)
         singular_vector_rmse = signed_rmse(c_u.T, self._evaluation_u.T)
         if ConfigurationManager().model_config.svd_mode == 'svd':
-            singular_vector_rmse += signed_rmse(c_vt, self._evaluation_vt)
+            singular_vector_rmse += signed_rmse(c_vt, evaluation_vt)
             singular_vector_rmse /= 2
         result_json.update({'singular_value_rmse': singular_value_rmse})
         result_json.update({'singular_vector_rmse': singular_vector_rmse})
@@ -519,7 +527,7 @@ class FedSVD(FedStrategy):
             self.logger.info('FedSVD Server Status: Computing the project_distance.')
             singular_vector_project_distance = project_distance(c_u, self._evaluation_u)
             if ConfigurationManager().model_config.svd_mode == 'svd':
-                singular_vector_project_distance += project_distance(c_vt.T, self._evaluation_vt.T)
+                singular_vector_project_distance += project_distance(c_vt.T, evaluation_vt.T)
             result_json.update({'singular_vector_project_distance': singular_vector_project_distance})
         
         with open(os.path.join(host.log_dir, 'results.json'), 'w') as f:
