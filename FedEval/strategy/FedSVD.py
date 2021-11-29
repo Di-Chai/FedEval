@@ -3,6 +3,7 @@ import enum
 import pickle
 import time
 import json
+import shutil
 from matplotlib.pyplot import axis
 import numpy as np
 from paramiko import client
@@ -16,10 +17,16 @@ from ..utils import ParamParser, ParamParserInterface
 
 
 def generate_orthogonal_matrix(
-        n, reuse=False, block_reduce=None, random_seed=None, 
-        only_inverse=False, file_name=None, memory_efficient=False
+        n=1000, reuse=False, block_reduce=None, random_seed=None, 
+        only_inverse=False, file_name=None, memory_efficient=False, clear_cache=False
     ):
 
+    orthogonal_matrix_cache_dir = 'tmp/orthogonal_matrices'
+
+    if clear_cache:
+        shutil.rmtree(orthogonal_matrix_cache_dir, ignore_errors=True)
+        return True
+    
     if random_seed:
         np.random.seed(random_seed)
 
@@ -27,8 +34,7 @@ def generate_orthogonal_matrix(
 
     if memory_efficient:
         assert reuse
-
-    orthogonal_matrix_cache_dir = 'tmp/orthogonal_matrices'
+    
     if os.path.isdir(orthogonal_matrix_cache_dir) is False:
         os.makedirs(orthogonal_matrix_cache_dir, exist_ok=True)
     file_list = os.listdir(orthogonal_matrix_cache_dir)
@@ -137,7 +143,6 @@ class FedSVD(FedStrategy):
             self._evaluation_u = None
             self._evaluation_sigma = None
             self._evaluation_vt = None
-            self._evaluation_data = None
 
         if ConfigurationManager().role is Role.Client:
             # Client
@@ -263,8 +268,10 @@ class FedSVD(FedStrategy):
             client_params = sorted(client_params, key=lambda x: x['client_id'])
             self._evaluation_u = client_params[0]['u']
             self._evaluation_sigma = client_params[0]['sigma']
-            self._evaluation_vt = [e['vt'] for e in client_params]
-            self._evaluation_data = [e['data'] for e in client_params]
+            self._evaluation_vt = np.concatenate([e['vt'] for e in client_params], axis=-1)
+            # Release memory
+            del client_params
+            # Nothing to download for clients, since the server is stoping
             return None
         return self._retrieve_host_download_info()
 
@@ -350,6 +357,7 @@ class FedSVD(FedStrategy):
                     p_size_counter += len(tmp_block_mask)
                     del tmp_block_mask
                 self._p_times_x = np.concatenate(p_times_x, axis=0)
+                del self.train_data
 
             min_index = self._received_q_masks[0][1]
             max_index = self._received_q_masks[-1][1] + self._received_q_masks[-1][-1].shape[-1]
@@ -390,7 +398,6 @@ class FedSVD(FedStrategy):
             self.logger.info(f'Client {self.client_id} is removing masks')
             # Release memory
             del self._p_times_x
-            # del self.train_data
             # Remove the mask of U
             u = []
             p_size_counter = 0
@@ -413,20 +420,27 @@ class FedSVD(FedStrategy):
             self.logger.info(f'Client {self.client_id} has finished removing masks')
 
     def local_evaluate(self):
-        if self._current_status is FedSVDStatus.Evaluate:
-            if ConfigurationManager().model_config.svd_mode == 'svd' and \
-                    ConfigurationManager().model_config.svd_top_k == -1:
-                recovered_data = self._u @ np.diag(self._sigma) @ self._local_vt
-                reconstruct_mae_error = np.mean(np.abs(recovered_data - self.train_data['x']))
-                reconstruct_rmse_error = np.sqrt(np.mean(np.square(recovered_data - self.train_data['x'])))
-                return {
-                    'test_mae': reconstruct_mae_error,
-                    'test_rmse': reconstruct_rmse_error,
-                    'test_size': self._local_n,
-                    'val_loss': reconstruct_rmse_error,
-                    'val_size': self._local_n,
-                }
+        # if self._current_status is FedSVDStatus.Evaluate:
+        #     if ConfigurationManager().model_config.svd_mode == 'svd' and \
+        #             ConfigurationManager().model_config.svd_top_k == -1:
+        #         recovered_data = self._u @ np.diag(self._sigma) @ self._local_vt
+        #         reconstruct_mae_error = np.mean(np.abs(recovered_data - self.train_data['x']))
+        #         reconstruct_rmse_error = np.sqrt(np.mean(np.square(recovered_data - self.train_data['x'])))
+        #         self.logger.info(f'Client {self.client_id} Test RMSE {reconstruct_rmse_error}')
+        #         self.logger.info(f'Local Singular Values {self._sigma[:10]}')
+        #         self.logger.info(f'Local Singular Vectors {self._local_vt}')
+        #         return {
+        #             'test_mae': reconstruct_mae_error,
+        #             'test_rmse': reconstruct_rmse_error,
+        #             'test_size': self._local_n,
+        #             'val_loss': reconstruct_rmse_error,
+        #             'val_size': self._local_n,
+        #         }
         return None
+
+    def client_exit_job(self, client):
+        # Clear the cached orthogonal matrices
+        generate_orthogonal_matrix(clear_cache=True)
 
     def retrieve_local_upload_info(self):
         if self._current_status is FedSVDStatus.Init:
@@ -439,9 +453,9 @@ class FedSVD(FedStrategy):
         elif self._current_status is FedSVDStatus.Evaluate:
             # Only for evaluation, and the clients should not upload local results in real applications
             if self.client_id == 0:
-                return {'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt, 'data': self.train_data['x']}
+                return {'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt}
             else:
-                return {'client_id': self._client_id, 'vt': self._local_vt, 'data': self.train_data['x']}
+                return {'client_id': self._client_id, 'vt': self._local_vt}
 
     def host_exit_job(self, host):
 
@@ -485,23 +499,6 @@ class FedSVD(FedStrategy):
         result_json = host.snapshot_result(None)
         result_json.update({'local_svd_time': c_svd_end - c_svd_start})
 
-        evaluation_data = np.concatenate(self._evaluation_data, axis=-1)
-        evaluation_vt = np.concatenate(self._evaluation_vt, axis=-1)
-
-        # Debug
-        self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {x_train.shape}')
-        self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {evaluation_data.shape}')
-        self.logger.info(f'FedSVD Server Status: Centralized SVD Debug. {np.mean(np.abs(evaluation_data.T - x_train))}')
-
-        recc_error = np.mean(np.abs((c_u @ np.diag(c_sigma) @ c_vt - x_train.T)))
-        self.logger.info(f'FedSVD Server Status: recc_error1. {recc_error}')
-        recc_error = np.mean(np.abs((self._evaluation_u @ np.diag(self._evaluation_sigma) @ evaluation_vt - evaluation_data)))
-        self.logger.info(f'FedSVD Server Status: recc_error2. {recc_error}')
-
-        for i in range(len(self._evaluation_data)):
-            for j in range(len(self._evaluation_data)):
-                self.logger.info(f'FedSVD Server Status PerError {i}-{j} {np.mean(np.abs((self._evaluation_u @ np.diag(self._evaluation_sigma) @ self._evaluation_vt[i] - self._evaluation_data[j])))}')
-        
         # Filter out the very small singular values before calculating the metrics
         if (c_sigma < 10e-10).any():
             significant_index = np.where(c_sigma < 10e-10)[0][0]
@@ -510,14 +507,14 @@ class FedSVD(FedStrategy):
             c_vt = c_vt[:significant_index, :]
             self._evaluation_sigma = self._evaluation_sigma[:significant_index]
             self._evaluation_u = self._evaluation_u[:, :significant_index]
-            evaluation_vt = evaluation_vt[:significant_index, :]
+            self._evaluation_vt = self._evaluation_vt[:significant_index, :]
 
         # RMSE metric
         self.logger.info('FedSVD Server Status: Computing the RMSE.')
         singular_value_rmse = signed_rmse(c_sigma, self._evaluation_sigma)
         singular_vector_rmse = signed_rmse(c_u.T, self._evaluation_u.T)
         if ConfigurationManager().model_config.svd_mode == 'svd':
-            singular_vector_rmse += signed_rmse(c_vt, evaluation_vt)
+            singular_vector_rmse += signed_rmse(c_vt, self._evaluation_vt)
             singular_vector_rmse /= 2
         result_json.update({'singular_value_rmse': singular_value_rmse})
         result_json.update({'singular_vector_rmse': singular_vector_rmse})
@@ -527,7 +524,7 @@ class FedSVD(FedStrategy):
             self.logger.info('FedSVD Server Status: Computing the project_distance.')
             singular_vector_project_distance = project_distance(c_u, self._evaluation_u)
             if ConfigurationManager().model_config.svd_mode == 'svd':
-                singular_vector_project_distance += project_distance(c_vt.T, evaluation_vt.T)
+                singular_vector_project_distance += project_distance(c_vt.T, self._evaluation_vt.T)
             result_json.update({'singular_vector_project_distance': singular_vector_project_distance})
         
         with open(os.path.join(host.log_dir, 'results.json'), 'w') as f:
