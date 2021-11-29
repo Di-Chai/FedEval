@@ -136,7 +136,7 @@ class FedSVD(FedStrategy):
             self._process_of_sending_q: dict = {}
             self._times_of_sending_q: dict = {}
             self._apply_mask_progress: int = 0
-            self._pxq = []
+            self._pxq = None
             self._masked_u = None
             self._mask_step_size: int = 0
             # Only for evaluation
@@ -248,11 +248,14 @@ class FedSVD(FedStrategy):
         elif self._fed_svd_status is FedSVDStatus.SendMask:
             self._fed_svd_status = FedSVDStatus.ApplyMask
         elif self._fed_svd_status is FedSVDStatus.ApplyMask:
-            self._pxq.append(np.sum(client_params, axis=0, dtype=np.float64))
+            if self._pxq is None:
+                self._pxq = np.sum(client_params, axis=0, dtype=np.float64)
+            else:
+                self._pxq = np.hstack([self._pxq, np.sum(client_params, axis=0, dtype=np.float64)])
             del client_params
             if self._apply_mask_progress == sum(self._ns):
                 self._fed_svd_status = FedSVDStatus.Factorization
-                self._masked_u, self._sigma, self._masked_vt = self._server_svd(np.concatenate(self._pxq, axis=-1))
+                self._masked_u, self._sigma, self._masked_vt = self._server_svd(self._pxq)
                 del self._pxq
                 self._fed_svd_status = FedSVDStatus.RemoveMask
         elif self._fed_svd_status is FedSVDStatus.RemoveMask:
