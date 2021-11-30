@@ -139,6 +139,8 @@ class FedSVD(FedStrategy):
             self._pxq = None
             self._masked_u = None
             self._mask_step_size: int = 0
+            self._slice_start = None
+            self._slice_end = None
             # Only for evaluation
             self._evaluation_u = None
             self._evaluation_sigma = None
@@ -203,14 +205,16 @@ class FedSVD(FedStrategy):
                 for client_id in self._client_ids_on_receiving
             }
         elif self._fed_svd_status is FedSVDStatus.ApplyMask:
-            self.logger.info(f'FedSVD Server Reporting Status: apply mask progress {self._apply_mask_progress}/{sum(self._ns)}')
-            slice_start = self._apply_mask_progress
-            slice_end = slice_start + min(self._mask_step_size, sum(self._ns) - slice_start)
-            self._apply_mask_progress += (slice_end - slice_start)
+            self.logger.info(f'FedSVD Server Reporting Status: apply mask progress '
+                             f'{self._apply_mask_progress}/{sum(self._ns)}')
+            self._slice_start = self._apply_mask_progress
+            self._slice_end = self._slice_start + min(self._mask_step_size, sum(self._ns) - self._slice_start)
+            self._apply_mask_progress += (self._slice_end - self._slice_start)
             return {
                 client_id: {
                     'fed_svd_status': self._fed_svd_status,
-                    'slice_start': slice_start, 'slice_end': slice_end
+                    'slice_start': self._slice_start, 'slice_end': self._slice_end,
+                    'apply_mask_finish': self._apply_mask_progress == sum(self._ns)
                 }
                 for client_id in self._client_ids_on_receiving
             }
@@ -239,6 +243,7 @@ class FedSVD(FedStrategy):
             self._client_ids_on_receiving = [e['client_id'] for e in client_params]
             self._ns = [e['mn'][1] for e in client_params]
             self._m = ms[0]
+            self._pxq = np.zeros([int(self._m), int(sum(self._ns))])
             # Determine the step size when applying the masks
             if self._m <= 1e5:
                 self._mask_step_size = ConfigurationManager().model_config.block_size
@@ -248,10 +253,7 @@ class FedSVD(FedStrategy):
         elif self._fed_svd_status is FedSVDStatus.SendMask:
             self._fed_svd_status = FedSVDStatus.ApplyMask
         elif self._fed_svd_status is FedSVDStatus.ApplyMask:
-            if self._pxq is None:
-                self._pxq = np.sum(client_params, axis=0, dtype=np.float64)
-            else:
-                self._pxq = np.hstack([self._pxq, np.sum(client_params, axis=0, dtype=np.float64)])
+            self._pxq[:, self._slice_start:self._slice_end] = np.sum(client_params, axis=0, dtype=np.float64)
             del client_params
             if self._apply_mask_progress == sum(self._ns):
                 self._fed_svd_status = FedSVDStatus.Factorization
@@ -280,7 +282,6 @@ class FedSVD(FedStrategy):
 
     def _server_svd(self, data_matrix):
         if ConfigurationManager().model_config.svd_top_k == -1:
-            self.logger.info(f'Server Debug1 {data_matrix.shape}')
             # We do not need to compute the full matrices when the matrix is not full rank
             return np.linalg.svd(data_matrix, full_matrices=False)
         elif ConfigurationManager().model_config.svd_top_k > 0:
@@ -396,27 +397,31 @@ class FedSVD(FedStrategy):
                 self._sliced_pqx_with_secure_agg = self._generate_masked_data_in_secure_agg(
                     shape=[self._local_m, slice_end - slice_start], base=matrix_base
                 )
+            if self._received_apply_mask_params['apply_mask_finish']:
+                # Release memory
+                del self._p_times_x
 
         elif self._current_status is FedSVDStatus.RemoveMask:
             self.logger.info(f'Client {self.client_id} is removing masks')
-            # Release memory
-            del self._p_times_x
             # Remove the mask of U
-            u = []
+            self._u = np.zeros(self._masked_u.shape)
             p_size_counter = 0
+            u_counter = 0
             for i in range(len(self._received_p_masks)):
                 with open(self._received_p_masks[i], 'rb') as f:
                     tmp_block_mask = pickle.load(f)
-                u.append(
-                    tmp_block_mask.T @ self._masked_u[p_size_counter: p_size_counter+len(tmp_block_mask)])
-                p_size_counter += len(tmp_block_mask)
+                self._u[u_counter: u_counter+tmp_block_mask.shape[0]] =\
+                    tmp_block_mask.T @ self._masked_u[p_size_counter: p_size_counter+len(tmp_block_mask)]
+                p_size_counter += tmp_block_mask.shape[1]
+                u_counter += tmp_block_mask.shape[0]
                 del tmp_block_mask
-            self._u = np.concatenate(u, axis=0)
             # Remove the mask of VT
-            vt = []
+            self._local_vt = np.zeros([self._masked_vt.shape[0], self._local_n])
+            v_counter = 0
             for i, j, data in self._received_q_masks:
-                vt.append(self._masked_vt[:, j:j + data.shape[1]] @ data.T)
-            self._local_vt = np.concatenate(vt, axis=-1)
+                self._local_vt[:, v_counter:v_counter+data.shape[0]] =\
+                    self._masked_vt[:, j:j + data.shape[1]] @ data.T
+                v_counter += data.shape[0]
             # Release the memory
             del self._received_p_masks
             del self._received_q_masks
@@ -535,4 +540,3 @@ class FedSVD(FedStrategy):
 
         result_path = os.path.join(host.log_dir, 'results.json')
         self.logger.info(f'FedSVD Server Status: Results saved to {result_path}.')
-        
