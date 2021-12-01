@@ -30,6 +30,7 @@ psutil
 # Serializer
 PyYAML
 pympler
+hickle
 
 # Plots and CV
 matplotlib

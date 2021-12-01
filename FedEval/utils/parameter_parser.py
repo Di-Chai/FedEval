@@ -1,5 +1,6 @@
 import os
 import pickle
+import hickle
 from abc import ABCMeta, abstractmethod
 from typing import Any, Mapping, Tuple
 
@@ -97,11 +98,11 @@ class ParamParser(ParamParserInterface):
     def parse_data(client_id) -> Tuple[XYData, XYData, XYData]:
         d_cfg = ConfigurationManager().data_config
         data_path = os.path.join(d_cfg.dir_name, f'client_{client_id}.pkl')
-        f = open(data_path, 'rb')
-        data = pickle.load(f)
+        f = open(data_path, 'r')
+        data = hickle.load(f)
         f.close()
 
-        train_data = {'x': data['x_train'], 'y': data['y_train']}
-        val_data = {'x': data['x_val'], 'y': data['y_val']}
-        test_data = {'x': data['x_test'], 'y': data['y_test']}
+        train_data = {'x': data.get('x_train', []), 'y': data.get('y_train', [])}
+        val_data = {'x': data.get('x_val', []), 'y': data.get('y_val', [])}
+        test_data = {'x': data.get('x_test', []), 'y': data.get('y_test', [])}
         return train_data, val_data, test_data

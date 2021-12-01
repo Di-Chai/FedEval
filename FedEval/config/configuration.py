@@ -29,7 +29,7 @@ _D_NI_STRATEGY_KEY = 'non-iid-strategy'
 _D_NORMALIZE_KEY = 'normalize'
 _D_SAMPLE_SIZE_KEY = 'sample_size'
 _D_PARTITION_KEY = 'train_val_test'
-_D_SYNTHETIC_FEATURE = 'synthetic_features'
+_D_FEATURE_SIZE = 'feature_size'
 _D_RANDOM_SEED = 'random_seed'
 _DEFAULT_D_CFG: RawConfigurationDict = {
     _D_DIR_KEY: 'data',
@@ -40,7 +40,7 @@ _DEFAULT_D_CFG: RawConfigurationDict = {
     _D_NORMALIZE_KEY: True,
     _D_SAMPLE_SIZE_KEY: 300,
     _D_PARTITION_KEY: [0.8, 0.1, 0.1],
-    _D_SYNTHETIC_FEATURE: 1000,
+    _D_FEATURE_SIZE: 1000,
     _D_RANDOM_SEED: 100
 }
 
@@ -67,6 +67,7 @@ _STRATEGY_FETCHSGD_TOP_K_KEY = 'top_k'
 _STRATEGY_FEDSVD_BLOCK = 'block_size'
 _STRATEGY_FEDSVD_MODE = 'fedsvd_mode'
 _STRATEGY_FEDSVD_TOPK = 'fedsvd_top_k'
+_STRATEGY_FEDSVD_L2 = 'fedsvd_lr_l2'
 
 _ML_KEY = 'MLModel'
 _ML_NAME_KEY = 'name'
@@ -375,11 +376,12 @@ class _DataConfig(_Configuraiton):
         return self._partition
 
     @property
-    def synthetic_features(self):
-        if self.dataset_name != 'synthetic_matrix_horizontal' and \
-           self.dataset_name != 'synthetic_matrix_vertical':
-            raise AttributeError
-        return self._inner[_D_SYNTHETIC_FEATURE]
+    def feature_size(self):
+        # TODO(Di): Add constraints in the future
+        # if self.dataset_name != 'synthetic_matrix_horizontal' and \
+        #    self.dataset_name != 'synthetic_matrix_vertical':
+        #     raise AttributeError
+        return self._inner[_D_FEATURE_SIZE]
 
     @property
     def random_seed(self):
@@ -657,7 +659,7 @@ class _ModelConfig(_Configuraiton):
         """
         if self.strategy_name != 'FedSVD':
             raise AttributeError
-        assert self._strategy_cfg[_STRATEGY_FEDSVD_MODE] in ['svd', 'pca'],\
+        assert self._strategy_cfg[_STRATEGY_FEDSVD_MODE] in ['svd', 'pca', 'lr'],\
             f'Unknown FedSVD Mode: {self._strategy_cfg[_STRATEGY_FEDSVD_MODE]}, ' \
             f'should be either svd or pca'
         return str(self._strategy_cfg[_STRATEGY_FEDSVD_MODE])
@@ -670,6 +672,15 @@ class _ModelConfig(_Configuraiton):
         if self.strategy_name != 'FedSVD':
             raise AttributeError
         return int(self._strategy_cfg[_STRATEGY_FEDSVD_TOPK])
+
+    @property
+    def svd_lr_l2(self):
+        """
+        L2 penalize of FedSVD
+        """
+        if self.strategy_name != 'FedSVD':
+            raise AttributeError
+        return self._strategy_cfg[_STRATEGY_FEDSVD_L2]
 
 
 class _RT_Machine(_Configuraiton):
