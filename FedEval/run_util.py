@@ -555,14 +555,13 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
             key_file = machine.key_filename
             ssh.connect(hostname=host, port=port, username=user_name, key_filename=key_file)
 
-            if not machine.is_server:
-                _, stdout, stderr = ssh.exec_command(
-                    sudo + 'docker run -i --rm -e UNIFIED_JOB_ID={3} -v {0}:{0} -w {0} '
-                    '{1} python3 -W ignore -m FedEval.run -f data -c {2}'
-                    .format(remote_path, rt_cfg.image_label, new_config_dir_path, UNIFIED_JOB_ID)
-                )
-                print(''.join(stdout.readlines()))
-                print(''.join(stderr.readlines()))
+            _, stdout, stderr = ssh.exec_command(
+                sudo + 'docker run -i --rm -e UNIFIED_JOB_ID={3} -v {0}:{0} -w {0} '
+                '{1} python3 -W ignore -m FedEval.run -f data -c {2}'
+                .format(remote_path, rt_cfg.image_label, new_config_dir_path, UNIFIED_JOB_ID)
+            )
+            print(''.join(stdout.readlines()))
+            print(''.join(stderr.readlines()))
 
             _, stdout, stderr = ssh.exec_command(
                 sudo + 'docker run -i --rm -e UNIFIED_JOB_ID={3} -v {0}:{0} -w {0} '
