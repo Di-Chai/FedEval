@@ -94,7 +94,7 @@ def load_synthetic(m, n, alpha):
 class synthetic_matrix_horizontal(FedData):
     def load_data(self):
         m = ConfigurationManager().data_config.feature_size
-        n = int(ConfigurationManager().data_config.sample_size)
+        n = ConfigurationManager().data_config.sample_size * ConfigurationManager().runtime_config.client_num
         alpha = 1.0
         x, y = load_synthetic(m, n, alpha)
         # feature * sample
@@ -106,7 +106,7 @@ class synthetic_matrix_horizontal(FedData):
 
 class synthetic_matrix_vertical(FedData):
     def load_data(self):
-        m = ConfigurationManager().data_config.feature_size
+        m = ConfigurationManager().data_config.feature_size * ConfigurationManager().runtime_config.client_num
         n = int(ConfigurationManager().data_config.sample_size)
         alpha = 1.0
         # sample * feature
@@ -140,11 +140,53 @@ class ml25m_matrix(FedData):
 
 class vertical_linear_regression(FedVerticalMatrix):
     def load_data(self):
-        n_samples = int(ConfigurationManager().data_config.sample_size)
-        n_features = ConfigurationManager().data_config.feature_size
+        n_samples = ConfigurationManager().data_config.sample_size
+        n_features = ConfigurationManager().data_config.feature_size * ConfigurationManager().runtime_config.client_num
         x, y = make_regression(
             n_samples=n_samples,
             n_features=n_features,
             n_informative=int(n_features*0.9), shuffle=True, n_targets=1
         )
+        return x, y
+
+
+class wine_lr(FedVerticalMatrix):
+    def load_data(self):
+        data_dir = os.path.join(os.path.dirname(self.local_path), 'data', 'wine')
+        with open(os.path.join(data_dir, 'winequality-red.csv')) as f:
+            wine_red = f.readlines()[1:]
+            wine_red = [[float(e1) for e1 in e.strip('\n').split(';')] for e in wine_red]
+        with open(os.path.join(data_dir, 'winequality-white.csv')) as f:
+            wine_white = f.readlines()[1:]
+            wine_white = [[float(e1) for e1 in e.strip('\n').split(';')] for e in wine_white]
+        data = np.array(wine_red + wine_white)
+        x = data[:, :-1]
+        y = data[:, -1]
+        return x, y
+
+
+class ml100k_lr(FedVerticalMatrix):
+    def load_data(self):
+        data_dir = os.path.join(os.path.dirname(self.local_path), 'data', 'ml-100k')
+        item_size = 1682
+        user_size = 943
+        num_item_selected = 500
+        with open(os.path.join(data_dir, 'u.user'), 'r') as f:
+            user_attr = f.readlines()
+            y = np.array([int(e.strip('\n').split('|')[1]) for e in user_attr])
+        with open(os.path.join(data_dir, 'u.data'), 'r') as f:
+            ratings = f.readlines()
+            ratings = [e.strip('\n').split('\t')[:3] for e in ratings]
+        item_acc = np.zeros([item_size])
+        for _, i_id, _ in ratings:
+            item_acc[int(i_id)-1] += 1
+        selected_items = [e[0] for e in sorted(
+                [[i+1, item_acc[i]] for i in range(len(item_acc))], key=lambda x: x[1], reverse=True
+            )[:num_item_selected]]
+        selected_items = sorted(selected_items)
+        item_set = set(selected_items)
+        x = np.zeros([user_size, num_item_selected])
+        for u_id, i_id, rate in ratings:
+            if int(i_id) in item_set:
+                x[int(u_id)-1][selected_items.index(int(i_id))] = float(rate)
         return x, y

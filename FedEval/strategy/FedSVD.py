@@ -290,6 +290,7 @@ class FedSVD(FedStrategy):
                 self._masked_y = client_params[-1].get('masked_y')
             del client_params
             if self._apply_mask_progress == sum(self._ns):
+                self.logger.info('Server received all masked data. Proceed to SVD.')
                 self._fed_svd_status = FedSVDStatus.Factorization
                 self._masked_u, self._sigma, self._masked_vt = self._server_svd(self._pxq)
                 del self._pxq
@@ -610,6 +611,7 @@ class FedSVD(FedStrategy):
                 else:
                     counter += 1
                 if counter >= tolerance:
+                    self.logger.info(f'SGD MSE Converged Round {_}')
                     break
             y_hat_sgd = x_train @ sgd_weights
             sgd_mse = mean_squared_error(y_true=y_train, y_pred=y_hat_sgd)
