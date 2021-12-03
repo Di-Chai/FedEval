@@ -145,7 +145,8 @@ class vertical_linear_regression(FedVerticalMatrix):
         x, y = make_regression(
             n_samples=n_samples,
             n_features=n_features,
-            n_informative=int(n_features*0.9), shuffle=True, n_targets=1
+            n_informative=int(n_features*0.9), shuffle=True, n_targets=1,
+            noise=1.0, bias=1
         )
         return x.astype(np.float64), y
 
