@@ -807,6 +807,14 @@ class _RuntimeConfig(_Configuraiton):
         return deepcopy({name: v for name, v in self._machines.items() if not v.is_server})
 
     @property
+    def server_machine(self):
+        if not self._has_machines():
+            return None
+        server = [v for _, v in self._machines.items() if v.is_server]
+        assert len(server) == 1, 'The system requires one server'
+        return deepcopy(server[0])
+
+    @property
     def limit_network_resource(self) -> bool:
         """whether limit the network resource"""
         return bool(self._inner[_RT_COMMUNICATION_KEY][_RT_COMM_LIMIT_FLAG_KEY])

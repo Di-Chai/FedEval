@@ -525,14 +525,18 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
     if mode == 'local':
         current_path = os.path.abspath('./')
         os.system(
-            sudo + 'docker run -it --rm -e UNIFIED_JOB_ID={3} -v {0}:{0} -w {0} '
-            '{1} python3 -W ignore -m FedEval.run -f data -c {2}'
-            .format(current_path, rt_cfg.image_label, new_config_dir_path, UNIFIED_JOB_ID)
+            sudo + f'docker run -it --rm '
+                   f'-e UNIFIED_JOB_ID={UNIFIED_JOB_ID} '
+                   f'-v {current_path}:{current_path} '
+                   f'-w {current_path} {rt_cfg.image_label} '
+                   f'python3 -W ignore -m FedEval.run -f data -c {new_config_dir_path}'
         )
         os.system(
-            sudo + 'docker run -it --rm -e UNIFIED_JOB_ID={3} -v {0}:{0} -w {0} '
-            '{1} python3 -W ignore -m FedEval.run -f compose-local -c {2}'
-            .format(current_path, rt_cfg.image_label, new_config_dir_path, UNIFIED_JOB_ID)
+            sudo + f'docker run -it --rm '
+                   f'-e UNIFIED_JOB_ID={UNIFIED_JOB_ID} '
+                   f'-v {current_path}:{current_path} '
+                   f'-w {current_path} {rt_cfg.image_label} '
+                   f'python3 -W ignore -m FedEval.run -f compose-local -c {new_config_dir_path}'
         )
         os.system(sudo + 'docker-compose up -d')
 
@@ -556,17 +560,21 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
             ssh.connect(hostname=host, port=port, username=user_name, key_filename=key_file)
 
             _, stdout, stderr = ssh.exec_command(
-                sudo + 'docker run -i --rm -e UNIFIED_JOB_ID={3} -v {0}:{0} -w {0} '
-                '{1} python3 -W ignore -m FedEval.run -f data -c {2}'
-                .format(remote_path, rt_cfg.image_label, new_config_dir_path, UNIFIED_JOB_ID)
+                sudo + f'docker run -it --rm '
+                       f'-e UNIFIED_JOB_ID={UNIFIED_JOB_ID} '
+                       f'-v {remote_path}:{remote_path} '
+                       f'-w {remote_path} {rt_cfg.image_label} '
+                       f'python3 -W ignore -m FedEval.run -f data -c {new_config_dir_path}'
             )
             print(''.join(stdout.readlines()))
             print(''.join(stderr.readlines()))
 
             _, stdout, stderr = ssh.exec_command(
-                sudo + 'docker run -i --rm -e UNIFIED_JOB_ID={3} -v {0}:{0} -w {0} '
-                '{1} python3 -W ignore -m FedEval.run -f compose-server -c {2}'
-                .format(remote_path, rt_cfg.image_label, new_config_dir_path, UNIFIED_JOB_ID)
+                sudo + f'docker run -it --rm '
+                       f'-e UNIFIED_JOB_ID={UNIFIED_JOB_ID} '
+                       f'-v {remote_path}:{remote_path} '
+                       f'-w {remote_path} {rt_cfg.image_label} '
+                       f'python3 -W ignore -m FedEval.run -f compose-server -c {new_config_dir_path}'
             )
             print(''.join(stdout.readlines()))
             print(''.join(stderr.readlines()))

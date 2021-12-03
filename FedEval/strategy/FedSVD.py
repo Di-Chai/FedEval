@@ -8,6 +8,7 @@ import hickle
 from matplotlib.pyplot import axis
 import numpy as np
 from paramiko import client
+import tensorflow as tf
 
 from .FederatedStrategy import FedStrategy, HostParamsType
 from ..config import ClientId, ConfigurationManager, Role
@@ -151,6 +152,8 @@ class FedSVD(FedStrategy):
 
         if ConfigurationManager().role is Role.Client:
             # Client
+            self._server_machine_id = None
+            self._local_machine_id = os.getenv('machine_id', 'local')
             self._received_q_masks: list = None
             self._received_p_masks: list = None
             self._current_status = None
@@ -194,8 +197,9 @@ class FedSVD(FedStrategy):
         # Masking Server
         if self._fed_svd_status is FedSVDStatus.Init:
             # Wait for the clients to send n and m
-            return {client_id: {'fed_svd_status': self._fed_svd_status}
-                    for client_id in self.train_selected_clients}
+            return {client_id: {
+                'fed_svd_status': self._fed_svd_status, 'server_machine_id': os.getenv('machine_id', 'local')}
+            for client_id in self.train_selected_clients}
         elif self._fed_svd_status is FedSVDStatus.SendMask:
             if self._random_seed_of_p is None:
                 self._random_seed_of_p = np.random.randint(0, 10000000)
@@ -341,7 +345,9 @@ class FedSVD(FedStrategy):
     def set_host_params_to_local(self, host_params, **kwargs):
         self._current_status = host_params.get('fed_svd_status')
         self.logger.info(f'Client {self.client_id} received server commend: {self._current_status}')
-        if self._current_status is FedSVDStatus.SendMask:
+        if self._current_status is FedSVDStatus.Init:
+            self._server_machine_id = host_params['server_machine_id']
+        elif self._current_status is FedSVDStatus.SendMask:
             if self._received_p_masks is None:
                 self.logger.info(f'Client {self.client_id} is generating random mask P')
                 self._received_p_masks = host_params['random_seed_of_p']
@@ -505,13 +511,14 @@ class FedSVD(FedStrategy):
         return None
 
     def client_exit_job(self, client):
-        # Clear the cached orthogonal matrices
+        # Clear the cached orthogonal matrices, and clients' data
         generate_orthogonal_matrix(clear_cache=True)
+        if self._local_machine_id != self._server_machine_id:
+            shutil.rmtree(ConfigurationManager().data_config.dir_name)
 
     def retrieve_local_upload_info(self):
         if self._current_status is FedSVDStatus.Init:
             self.train_data['x'] = self.train_data['x'].T
-            self.train_data['x'] = self.train_data['x'].astype(np.float64)
             if self._svd_mode == 'lr':
                 self._is_active = (self.client_id + 1) == ConfigurationManager().runtime_config.client_num
                 if self._is_active:
@@ -583,50 +590,45 @@ class FedSVD(FedStrategy):
             svd_mse = mean_squared_error(y_true=y_train, y_pred=y_hat_svd)
             svd_mape = mean_absolute_percentage_error(y_true=y_train, y_pred=y_hat_svd)
             svd_r2 = r2_score(y_true=y_train, y_pred=y_hat_svd)
-            self.logger.info(f'SVD-LR evaluation done. MSE {svd_mse} R2 {svd_r2}')
+            self.logger.info(f'SVD-LR evaluation done. MSE {svd_mse} MAPE {svd_mape} R2 {svd_r2}')
             # Centralized SGD and errors
-            sgd_weights = np.random.randn(x_train.shape[1])
+            x_train = x_train[:, :-1]
             learning_rate = 0.01
-            batch_size = min(128, x_train.shape[0])
-            max_epoch = int(10000 * x_train.shape[0] / batch_size)
-            l2 = ConfigurationManager().model_config.svd_lr_l2
             tolerance = 10
-            counter = 0
-            best_loss = None
-            for _ in range(max_epoch):
-                batch_data_index = np.random.choice(list(range(len(x_train))), size=batch_size, replace=False)
-                gradients = np.zeros([len(sgd_weights)])
-                for i in batch_data_index:
-                    gradients += ((x_train[i] @ sgd_weights - y_train[i]) * x_train[i] + sgd_weights * l2)
-                sgd_weights -= (learning_rate * gradients / batch_size)
-                y_hat_sgd = x_train @ sgd_weights
-                sgd_mse = mean_squared_error(y_true=y_train, y_pred=y_hat_sgd)
-                sgd_mape = mean_absolute_percentage_error(y_true=y_train, y_pred=y_hat_sgd)
-                sgd_r2 = r2_score(y_true=y_train, y_pred=y_hat_sgd)
-                if _ % 1000 == 0:
-                    self.logger.info(f'SGD MSE Round-{_} {sgd_mse} MAPE {sgd_mape} R^2 {sgd_r2}')
-                if best_loss is None or sgd_mse < best_loss:
-                    best_loss = sgd_mse
-                    counter = 0
-                else:
-                    counter += 1
-                if counter >= tolerance:
-                    self.logger.info(f'SGD MSE Converged Round {_}')
-                    break
-            y_hat_sgd = x_train @ sgd_weights
-            sgd_mse = mean_squared_error(y_true=y_train, y_pred=y_hat_sgd)
-            sgd_mape = mean_absolute_percentage_error(y_true=y_train, y_pred=y_hat_sgd)
-            sgd_r2 = r2_score(y_true=y_train, y_pred=y_hat_sgd)
-            self.logger.info(f'SGD-LR evaluation done. MSE {sgd_mse} R2 {sgd_r2}')
+            batch_size = min(16, x_train.shape[0])
+            max_epoch = 10000
+            l2 = ConfigurationManager().model_config.svd_lr_l2
+            linear_regression_model = tf.keras.Sequential()
+            linear_regression_model.add(tf.keras.layers.Dense(
+                1 if len(y_train.shape) == 1 else y_train.shape[-1],
+                kernel_regularizer=tf.keras.regularizers.l2(l2),
+            ))
+            optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate)
+            linear_regression_model.compile(optimizer=optimizer, loss=tf.keras.losses.mse)
+            es = tf.keras.callbacks.EarlyStopping(
+                monitor='loss', min_delta=0, patience=tolerance, verbose=0,
+                mode='auto', baseline=None, restore_best_weights=True
+            )
+            linear_regression_model.fit(
+                x_train, y_train, batch_size=batch_size, epochs=max_epoch, verbose=1, callbacks=[es]
+            )
+            y_hat_sgd = linear_regression_model.predict(x_train)
+            sgd_mse = float(mean_squared_error(y_true=y_train, y_pred=y_hat_sgd))
+            sgd_mape = float(mean_absolute_percentage_error(y_true=y_train, y_pred=y_hat_sgd))
+            sgd_r2 = float(r2_score(y_true=y_train, y_pred=y_hat_sgd))
+            self.logger.info(
+                f"SGD-LR evaluation done. MSE {sgd_mse} MAPE {sgd_mape} R2 {sgd_r2}"
+            )
             result_json.update({
                 'svd_mse': svd_mse, 'svd_mape': svd_mape, 'svd_r2': svd_r2,
-                'sgd_mse': sgd_mse, 'sgd_mape': sgd_mape, 'sgd_r2': sgd_r2,
+                'sgd_mse': sgd_mse, 'sgd_mape': sgd_mape,
+                'sgd_r2': sgd_r2
             })
         else:
             # Centralized SVD
             self.logger.info('FedSVD Server Status: Centralized SVD.')
             c_svd_start = time.time()
-            c_u, c_sigma, c_vt = self._server_svd(x_train.astype(np.float64))
+            c_u, c_sigma, c_vt = self._server_svd(x_train)
             c_svd_end = time.time()
 
             result_json.update({'local_svd_time': c_svd_end - c_svd_start})
@@ -665,5 +667,5 @@ class FedSVD(FedStrategy):
         result_path = os.path.join(host.log_dir, 'results.json')
         self.logger.info(f'FedSVD Server Status: Results saved to {result_path}.')
 
-        # Clear cache
+        # Clear cached data
         shutil.rmtree(ConfigurationManager().data_config.dir_name, ignore_errors=True)

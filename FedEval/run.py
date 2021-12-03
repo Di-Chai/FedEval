@@ -12,6 +12,9 @@ from .model import *
 from .role import Client, Server
 
 
+UNIFIED_JOB_ID = os.getenv('UNIFIED_JOB_ID')
+
+
 def generate_data(save_file=True):
     # TODO(fgh) move this function into dataset module
     d_cfg = ConfigurationManager().data_config
@@ -75,7 +78,8 @@ def generate_docker_compose_server(path):
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
         'command': None,
-        'container_name': 'server'
+        'container_name': 'server',
+        'environment': [f'machine_id={rt_cfg.server_machine.addr}:{rt_cfg.server_machine.port}']
     }
 
     if rt_cfg.limit_network_resource:
@@ -97,10 +101,14 @@ def generate_docker_compose_server(path):
         'environment': []
     }
 
+    if UNIFIED_JOB_ID is not None:
+        server_template['environment'].append(f"UNIFIED_JOB_ID={UNIFIED_JOB_ID}")
+        client_template['environment'].append(f"UNIFIED_JOB_ID={UNIFIED_JOB_ID}")
+
     if rt_cfg.gpu_enabled:
         client_template['runtime'] = 'nvidia'
         server_template['runtime'] = 'nvidia'
-        server_template['environment'] = ['NVIDIA_VISIBLE_DEVICES=0']
+        server_template['environment'].append('NVIDIA_VISIBLE_DEVICES=0')
 
     with open('docker-compose-server.yml', 'w') as f:
         no_alias_dumper = yaml.dumper.SafeDumper
@@ -142,6 +150,7 @@ def generate_docker_compose_server(path):
                     container_id, path)
             nvidia_device_env = (container_id % rt_cfg.gpu_num) if rt_cfg.gpu_enabled else -1
             tmp['environment'].append(f'NVIDIA_VISIBLE_DEVICES={nvidia_device_env}')
+            tmp['environment'].append(f'machine_id={client_machine.addr}:{client_machine.port}')
             dc['services'][f'container_{container_id}'] = tmp
 
         counter += num_container_cur_machine
@@ -165,7 +174,8 @@ def generate_docker_compose_local(path):
         'cap_add': ['NET_ADMIN'],
         'command': None,
         'container_name': 'server',
-        'networks': ['server-clients']
+        'networks': ['server-clients'],
+        'environment': []
     }
 
     if rt_cfg.limit_network_resource:
@@ -188,10 +198,14 @@ def generate_docker_compose_local(path):
         'environment': []
     }
 
+    if UNIFIED_JOB_ID is not None:
+        server_template['environment'].append(f"UNIFIED_JOB_ID={UNIFIED_JOB_ID}")
+        client_template['environment'].append(f"UNIFIED_JOB_ID={UNIFIED_JOB_ID}")
+
     if rt_cfg.gpu_enabled:
         client_template['runtime'] = 'nvidia'
         server_template['runtime'] = 'nvidia'
-        server_template['environment'] = ['NVIDIA_VISIBLE_DEVICES=0']
+        server_template['environment'].append('NVIDIA_VISIBLE_DEVICES=0')
 
     dc = {
         'version': "2",

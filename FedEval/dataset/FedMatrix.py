@@ -65,7 +65,7 @@ class wine(FedData):
                             np.ones(len(wine_white), dtype=np.int32)])
         y = np.eye(np.max(y)+1)[y]
         self.num_class = 2
-        return x, y
+        return x.astype(np.float64), y
 
 
 class mnist_matrix(FedData):
@@ -76,14 +76,14 @@ class mnist_matrix(FedData):
         x = np.reshape(x, [-1, np.prod(x.shape[1:])])
         self.num_class = np.max(y) + 1
         y = tf.keras.utils.to_categorical(y, self.num_class)
-        return x, y
+        return x.astype(np.float64), y
 
 
 def load_synthetic(m, n, alpha):
     # Reference: https://github.com/andylamp/federated_pca/blob/master/synthetic_data_gen.m
     k = min(m, n)
     U, _ = np.linalg.qr(np.random.randn(m, m))
-    Sigma = np.array(list(range(1, k + 1))).astype(np.float32) ** -alpha
+    Sigma = np.array(list(range(1, k + 1))).astype(np.float64) ** -alpha
     V = np.random.randn(k, n)
     Y = (U @ np.diag(Sigma) @ V) / np.sqrt(n - 1)
     yn = np.max(np.sqrt(np.sum(Y ** 2, axis=1)))
@@ -121,7 +121,7 @@ class ml25m_matrix(FedData):
         data_dir = os.path.join(os.path.dirname(self.local_path), 'data', 'ml-25m')
         num_users = 162541
         num_movies = 62423
-        x = np.zeros([num_users, num_movies])
+        x = np.zeros([num_users, num_movies], dtype=np.float64)
         with open(os.path.join(data_dir, 'movies.csv'), 'r') as f:
             movie_ids = [e.split(',')[0] for e in f.readlines()[1:]]
             movie_ids = {e: movie_ids.index(e) for e in movie_ids}
@@ -147,7 +147,7 @@ class vertical_linear_regression(FedVerticalMatrix):
             n_features=n_features,
             n_informative=int(n_features*0.9), shuffle=True, n_targets=1
         )
-        return x, y
+        return x.astype(np.float64), y
 
 
 class wine_lr(FedVerticalMatrix):
@@ -162,7 +162,7 @@ class wine_lr(FedVerticalMatrix):
         data = np.array(wine_red + wine_white)
         x = data[:, :-1]
         y = data[:, -1]
-        return x, y
+        return x.astype(np.float64), y
 
 
 class ml100k_lr(FedVerticalMatrix):
@@ -189,4 +189,4 @@ class ml100k_lr(FedVerticalMatrix):
         for u_id, i_id, rate in ratings:
             if int(i_id) in item_set:
                 x[int(u_id)-1][selected_items.index(int(i_id))] = float(rate)
-        return x, y
+        return x.astype(np.float64), y
