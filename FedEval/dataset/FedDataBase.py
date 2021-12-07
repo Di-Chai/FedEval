@@ -54,10 +54,10 @@ class FedData(metaclass=ABCMeta):
         self.train_val_test = d_cfg.data_partition
 
         # Clear the data if it exists
-        if os.path.isdir(self.output_dir):
-            import shutil
-            shutil.rmtree(self.output_dir, ignore_errors=True)
-        os.makedirs(self.output_dir)
+        # if os.path.isdir(self.output_dir):
+        #     import shutil
+        #     shutil.rmtree(self.output_dir, ignore_errors=True)
+        os.makedirs(self.output_dir, exist_ok=True)
 
         self.local_path = os.path.dirname(os.path.abspath(__file__))
         self.data_dir = os.path.join(os.path.dirname(self.local_path), 'data')

@@ -91,6 +91,32 @@ def load_synthetic(m, n, alpha):
     return Y, None
 
 
+def load_synthetic_large_scale(m, n, alpha):
+    # num_feature: m
+    # num_sample: n
+    result_memmap = np.memmap(
+        filename=os.path.join(ConfigurationManager().data_config.dir_name, f'synthetic_large_scale_{m}_{n}.npy'),
+        dtype=np.float64, shape=(m, n), mode='write'
+    )
+    k = min(m, n)
+    u, _ = np.linalg.qr(np.random.randn(m, m))
+    sigma = np.array(list(range(1, k + 1))).astype(np.float64) ** -alpha
+    u_sigma = u @ np.diag(sigma)
+    step_size = 100000
+    d = np.zeros(m)
+    for i in range(0, n, step_size):
+        print('Generating large scale data step', i)
+        tmp_n_size = min(step_size, n-i)
+        tmp = u_sigma @ np.random.randn(k, tmp_n_size) / np.sqrt(n - 1)
+        result_memmap[:, i:i+tmp_n_size] = tmp
+        d += np.sum(tmp ** 2, axis=1)
+        result_memmap.flush()
+        del tmp
+    result_memmap /= np.max(np.sqrt(d))
+    result_memmap.flush()
+    return result_memmap, None
+
+
 class synthetic_matrix_horizontal(FedData):
     def load_data(self):
         m = ConfigurationManager().data_config.feature_size
@@ -109,11 +135,41 @@ class synthetic_matrix_vertical(FedData):
         m = ConfigurationManager().data_config.feature_size * ConfigurationManager().runtime_config.client_num
         n = int(ConfigurationManager().data_config.sample_size)
         alpha = 1.0
-        # sample * feature
         x, y = load_synthetic(m, n, alpha)
+        # sample * feature
         y = np.zeros([len(x), 1])
         self.num_class = 1
         return x, y
+
+
+class synthetic_matrix_horizontal_memmap(FedData):
+
+    def load_data(self):
+        m = ConfigurationManager().data_config.feature_size
+        n = ConfigurationManager().data_config.sample_size * ConfigurationManager().runtime_config.client_num
+        alpha = 0.1
+        x, y = load_synthetic_large_scale(m, n, alpha)
+        x = x.T
+        y = np.zeros([len(x), 1])
+        self.num_class = 1
+        return x, y
+
+    def iid_data(self, save_file=True):
+        local_dataset_index = super(synthetic_matrix_horizontal_memmap, self).iid_data(save_file=False)
+        local_dataset = []
+        for i in range(len(local_dataset_index)):
+            np.save(
+                os.path.join(ConfigurationManager().data_config.dir_name, f'client_{i}_train_x.npy'),
+                self.x[local_dataset_index[i][0]]
+            )
+            local_dataset.append(
+                {'x_train': os.path.join(ConfigurationManager().data_config.dir_name, f'client_{i}_train_x.npy')}
+            )
+        if save_file:
+            for i in range(len(local_dataset)):
+                with open(os.path.join(self.output_dir, f'client_{i}.pkl'), 'wb') as f:
+                    hickle.dump(local_dataset[i], f)
+        return local_dataset
 
 
 class ml25m_matrix(FedData):

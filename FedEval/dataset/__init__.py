@@ -43,6 +43,9 @@ def get_data_shape(dataset_name: str):
     elif dataset_name == 'vertical_linear_regression':
         x_size = (None, None)
         y_size = (None, 1)
+    elif dataset_name == 'synthetic_matrix_horizontal_memmap':
+        x_size = (None, None)
+        y_size = (None, 1)
     else:
         raise ValueError('Unknown dataset', dataset_name)
     return x_size, y_size

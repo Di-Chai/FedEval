@@ -5,6 +5,7 @@ import time
 import json
 import shutil
 import hickle
+import psutil
 from matplotlib.pyplot import axis
 import numpy as np
 from paramiko import client
@@ -17,13 +18,14 @@ from typing import List
 from sklearn.decomposition import TruncatedSVD
 from ..utils import ParamParser, ParamParserInterface
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, r2_score
+from numpy.lib.format import open_memmap
 
 
 def generate_orthogonal_matrix(
         n=1000, reuse=False, block_reduce=None, random_seed=None,
         only_inverse=False, file_name=None, memory_efficient=False, clear_cache=False
 ):
-    orthogonal_matrix_cache_dir = 'tmp_orthogonal_matrices'
+    orthogonal_matrix_cache_dir = '.tmp_orthogonal_matrices'
 
     if clear_cache:
         shutil.rmtree(orthogonal_matrix_cache_dir, ignore_errors=True)
@@ -129,6 +131,11 @@ class FedSVD(FedStrategy):
         self._sigma = None
         self._masked_vt = None
 
+        self._memory_map = False
+
+        self._tmp_dir = '.tmp_fedsvd'
+        os.makedirs(self._tmp_dir, exist_ok=True)
+
         if ConfigurationManager().role is Role.Server:
             # Masking server
             self._m = None
@@ -145,6 +152,7 @@ class FedSVD(FedStrategy):
             self._mask_step_size: int = 0
             self._slice_start = None
             self._slice_end = None
+            self._memory_map = False
             # Only for evaluation
             self._evaluation_u = None
             self._evaluation_sigma = None
@@ -199,7 +207,8 @@ class FedSVD(FedStrategy):
             # Wait for the clients to send n and m
             return {client_id: {
                 'fed_svd_status': self._fed_svd_status, 'server_machine_id': os.getenv('machine_id', 'local')}
-            for client_id in self.train_selected_clients}
+                for client_id in self.train_selected_clients
+            }
         elif self._fed_svd_status is FedSVDStatus.SendMask:
             if self._random_seed_of_p is None:
                 self._random_seed_of_p = np.random.randint(0, 10000000)
@@ -277,7 +286,14 @@ class FedSVD(FedStrategy):
             self._client_ids_on_receiving = [e['client_id'] for e in client_params]
             self._ns = [e['mn'][1] for e in client_params]
             self._m = ms[0]
-            self._pxq = np.zeros([int(self._m), int(sum(self._ns))])
+            if client_params[0]['memory_map']:
+                self._memory_map = True
+                self._pxq = np.memmap(
+                    filename=os.path.join(self._tmp_dir, 'server_pxq.npy'),
+                    dtype=np.float64, mode='write', shape=(self._m, sum(self._ns))
+                )
+            else:
+                self._pxq = np.zeros([int(self._m), int(sum(self._ns))])
             # Determine the step size when applying the masks
             if self._m <= 1e5:
                 self._mask_step_size = ConfigurationManager().model_config.block_size
@@ -290,6 +306,8 @@ class FedSVD(FedStrategy):
             client_params = sorted(client_params, key=lambda x: x['client_id'])
             self._pxq[:, self._slice_start:self._slice_end] = \
                 np.sum([e['secure_agg'] for e in client_params], axis=0, dtype=np.float64)
+            if self._memory_map:
+                self._pxq.flush()
             if self._svd_mode == 'lr':
                 self._masked_y = client_params[-1].get('masked_y')
             del client_params
@@ -323,24 +341,73 @@ class FedSVD(FedStrategy):
         return self._retrieve_host_download_info()
 
     def _server_svd(self, data_matrix):
-        if ConfigurationManager().model_config.svd_top_k == -1:
-            # We do not need to compute the full matrices when the matrix is not full rank
-            return np.linalg.svd(data_matrix, full_matrices=False)
-        elif ConfigurationManager().model_config.svd_top_k > 0:
-            assert ConfigurationManager().model_config.svd_top_k <= min(self._m, sum(self._ns))
-            truncated_svd = TruncatedSVD(
-                n_components=ConfigurationManager().model_config.svd_top_k, algorithm='arpack',
-            )
-            # By default, we firstly compute the left truncated singular vectors
-            truncated_svd.fit(data_matrix.T)
-            masked_u = truncated_svd.components_.T
-            sigma = truncated_svd.singular_values_
-            if self._svd_mode == 'svd':
-                masked_vt = np.diag(sigma ** -1) @ masked_u.T @ data_matrix
-                return masked_u, sigma, masked_vt
-            return masked_u, sigma, None
+
+        if not self._memory_map:
+            if ConfigurationManager().model_config.svd_top_k == -1:
+                # We do not need to compute the full matrices when the matrix is not full rank
+                self.logger.info(f'Server running SVD on matrix {data_matrix.shape[0]}x{data_matrix.shape[1]}')
+                return np.linalg.svd(data_matrix, full_matrices=False)
+            elif ConfigurationManager().model_config.svd_top_k > 0:
+                assert ConfigurationManager().model_config.svd_top_k <= min(self._m, sum(self._ns))
+                # log information
+                if self._svd_mode == 'svd':
+                    self.logger.info(f'Server running Truncated SVD '
+                                     f'using k={ConfigurationManager().model_config.svd_top_k} on matrix '
+                                     f'{data_matrix.shape[0]}x{data_matrix.shape[1]}')
+                else:
+                    self.logger.info(f'Server running PCA '
+                                     f'using k={ConfigurationManager().model_config.svd_top_k} on matrix '
+                                     f'{data_matrix.shape[0]}x{data_matrix.shape[1]}')
+                truncated_svd = TruncatedSVD(
+                    n_components=ConfigurationManager().model_config.svd_top_k, algorithm='arpack',
+                )
+                # By default, we firstly compute the left truncated singular vectors
+                truncated_svd.fit(data_matrix.T)
+                masked_u = truncated_svd.components_.T
+                sigma = truncated_svd.singular_values_
+                if self._svd_mode == 'svd':
+                    masked_vt = np.diag(sigma ** -1) @ masked_u.T @ data_matrix
+                    return masked_u, sigma, masked_vt
+                return masked_u, sigma, None
+            else:
+                raise ValueError(f'Unknown svd top k {ConfigurationManager().model_config.svd_top_k}')
         else:
-            raise ValueError(f'Unknown svd top k {ConfigurationManager().model_config.svd_top_k}')
+            m, n = data_matrix.shape
+            if m < n:
+                x2 = data_matrix @ data_matrix.T
+            else:
+                x2 = data_matrix.T @ data_matrix
+            if ConfigurationManager().model_config.svd_top_k == -1:
+                # We do not need to compute the full matrices when the matrix is not full rank
+                self.logger.info(f'Server running SVD on matrix {data_matrix.shape[0]}x{data_matrix.shape[1]}')
+                left, sigma, _ = np.linalg.svd(x2, full_matrices=False)
+                sigma = sigma ** 0.5
+                if m < n:
+                    right = np.diag(sigma ** -1) @ left.T @ data_matrix
+                    return left, sigma, right
+                else:
+                    right = data_matrix @ left.T @ np.diag(sigma ** -1)
+                    return right, sigma, left
+            elif ConfigurationManager().model_config.svd_top_k > 0:
+                truncated_svd = TruncatedSVD(
+                    n_components=ConfigurationManager().model_config.svd_top_k, algorithm='arpack',
+                )
+                # By default, we firstly compute the left truncated singular vectors
+                truncated_svd.fit(x2)
+                left = truncated_svd.components_.T
+                sigma = truncated_svd.singular_values_ ** 0.5
+                if m < n:
+                    if self._svd_mode == 'pca':
+                        return left, sigma, None
+                    else:
+                        right = np.diag(sigma ** -1) @ left.T @ data_matrix
+                        return left, sigma, right
+                else:
+                    right = data_matrix @ left.T @ np.diag(sigma ** -1)
+                    if self._svd_mode == 'pca':
+                        return right, sigma, None
+                    else:
+                        return right, sigma, left
 
     def set_host_params_to_local(self, host_params, **kwargs):
         self._current_status = host_params.get('fed_svd_status')
@@ -399,23 +466,34 @@ class FedSVD(FedStrategy):
             if self._p_times_x is None:
                 self.logger.info(f'Client {self.client_id} computing P@X')
                 # P @ X_i
-                p_times_x = []
+                if not self._memory_map:
+                    self._p_times_x = np.zeros(self.train_data['x'].shape)
+                else:
+                    self._p_times_x = np.memmap(
+                        filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_p_times_x.npy'),
+                        dtype=self.train_data['x'].dtype, mode='write', shape=self.train_data['x'].shape
+                    )
                 p_size_counter = 0
+                self._masked_y = []
                 for i in range(len(self._received_p_masks)):
                     with open(self._received_p_masks[i], 'rb') as f:
                         tmp_block_mask = pickle.load(f)
-                    p_times_x.append(
-                        tmp_block_mask @ self.train_data['x'][p_size_counter: p_size_counter + len(tmp_block_mask)])
+                    self._p_times_x[p_size_counter:p_size_counter+len(tmp_block_mask)] =\
+                        tmp_block_mask @ self.train_data['x'][p_size_counter: p_size_counter + len(tmp_block_mask)]
+                    if self._memory_map:
+                        self._p_times_x.flush()
+                    # p_times_x.append(
+                    #     tmp_block_mask @ self.train_data['x'][p_size_counter: p_size_counter + len(tmp_block_mask)])
                     if self._svd_mode == 'lr' and self._is_active:
                         self._masked_y.append(
                             tmp_block_mask @ self.train_data['y'][p_size_counter: p_size_counter + len(tmp_block_mask)]
                         )
                     p_size_counter += len(tmp_block_mask)
                     del tmp_block_mask
-                self._p_times_x = np.concatenate(p_times_x, axis=0)
                 if self._svd_mode == 'lr' and self._is_active:
                     self._masked_y = np.concatenate(self._masked_y, axis=0)
-                del self.train_data
+                if not self._memory_map:
+                    del self.train_data
 
             min_index = self._received_q_masks[0][1]
             max_index = self._received_q_masks[-1][1] + self._received_q_masks[-1][-1].shape[-1]
@@ -511,13 +589,16 @@ class FedSVD(FedStrategy):
         return None
 
     def client_exit_job(self, client):
-        # Clear the cached orthogonal matrices, and clients' data
+        # Clear the cached orthogonal matrices
         generate_orthogonal_matrix(clear_cache=True)
-        if self._local_machine_id != self._server_machine_id:
-            shutil.rmtree(ConfigurationManager().data_config.dir_name)
 
     def retrieve_local_upload_info(self):
         if self._current_status is FedSVDStatus.Init:
+            if type(self.train_data['x']) is str:
+                self.train_data['x'] = open_memmap(self.train_data['x'])
+                self._memory_map = True
+            else:
+                self._memory_map = False
             self.train_data['x'] = self.train_data['x'].T
             if self._svd_mode == 'lr':
                 self._is_active = (self.client_id + 1) == ConfigurationManager().runtime_config.client_num
@@ -526,7 +607,7 @@ class FedSVD(FedStrategy):
                         [self.train_data['x'], np.ones([self.train_data['x'].shape[0], 1])], axis=-1
                     )
             self._local_m, self._local_n = self.train_data['x'].shape
-            return {'client_id': self.client_id, 'mn': self.train_data['x'].shape}
+            return {'client_id': self.client_id, 'mn': self.train_data['x'].shape, 'memory_map': self._memory_map}
         elif self._current_status is FedSVDStatus.ApplyMask:
             if self._received_apply_mask_params['apply_mask_finish'] and self._svd_mode == 'lr' and self._is_active:
                 return {
@@ -573,18 +654,31 @@ class FedSVD(FedStrategy):
         data_dir = cfg_mgr.data_config.dir_name
         # Get current results
         result_json = host.snapshot_result(None)
+
+        self.logger.info(f'Debug 1 Memory Usage {psutil.virtual_memory().used / 2**30}GB')
         # Load clients' data for evaluation
-        client_data = []
+        if self._memory_map:
+            x_train = np.memmap(
+                filename=os.path.join(self._tmp_dir, 'server_data.npy'),
+                mode='write', dtype=np.float64, shape=(self._m, sum(self._ns))
+            )
+        else:
+            x_train = np.zeros((self._m, sum(self._ns)))
         for client_id in range(client_num):
             with open(os.path.join(data_dir, 'client_%s.pkl' % client_id), 'r') as f:
                 data = hickle.load(f)
-            client_data.append(data)
-
-        x_train = np.concatenate([e['x_train'] for e in client_data], axis=0).T
+            if self._memory_map:
+                x_train[:, sum(self._ns[:client_id]):sum(self._ns[:client_id+1])] = open_memmap(data['x_train']).T
+                x_train.flush()
+            else:
+                x_train[:, sum(self._ns[:client_id]):sum(self._ns[:client_id+1])] = data['x_train'].T
+            self.logger.info(f'Memory Usage after loading Client '
+                             f'{client_id} {psutil.virtual_memory().used / 2 ** 30}GB')
+            if self._svd_mode == 'lr' and client_id == (client_num - 1):
+                y_train = data['y_train']
 
         if self._svd_mode == 'lr':
             x_train = np.hstack([x_train, np.ones([x_train.shape[0], 1])])
-            y_train = client_data[-1]['y_train']
             # SVD prediction and errors
             y_hat_svd = x_train @ self._evaluate_parameters
             svd_mse = mean_squared_error(y_true=y_train, y_pred=y_hat_svd)
@@ -653,6 +747,9 @@ class FedSVD(FedStrategy):
             result_json.update({'singular_value_rmse': singular_value_rmse})
             result_json.update({'singular_vector_rmse': singular_vector_rmse})
 
+            self.logger.info(f'FedSVD Server Status: Singular Value RMSE {singular_value_rmse}.')
+            self.logger.info(f'FedSVD Server Status: Singular Vectors RMSE {singular_vector_rmse}.')
+
             if (ConfigurationManager().model_config.svd_top_k != -1 and self._svd_mode == 'svd') or \
                     self._svd_mode == 'pca':
                 self.logger.info('FedSVD Server Status: Computing the project_distance.')
@@ -669,3 +766,4 @@ class FedSVD(FedStrategy):
 
         # Clear cached data
         shutil.rmtree(ConfigurationManager().data_config.dir_name, ignore_errors=True)
+        shutil.rmtree(self._tmp_dir, ignore_errors=True)
