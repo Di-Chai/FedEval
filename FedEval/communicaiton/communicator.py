@@ -35,7 +35,7 @@ class Communicatior(ABC):
             Tuple[int, int]: (the number of received bytes, the number of sent bytes)
         """
         platform_str = system().lower()
-        if platform_str == 'linux' or platform_str == 'darwin':
+        if platform_str == 'linux' or platform_str == 'darwin' or platform_str == 'windows':
             return _get_comm_in_and_out_linux()
         elif platform_str == 'windows':
             raise NotImplementedError(

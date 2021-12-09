@@ -25,6 +25,10 @@ class FedVerticalMatrix(FedData, ABC):
         if num_features % num_clients != 0:
             local_num_features[:num_features % num_clients] += 1
 
+        # Add bias term
+        self.x = np.concatenate([self.x, np.ones(self.x.shape[0], 1)], axis=-1)
+        local_num_features[-1] += 1
+
         train_size = int(num_samples * self.train_val_test[0])
         val_size = int(num_samples * self.train_val_test[1])
         test_size = int(num_samples * self.train_val_test[2])
@@ -110,10 +114,8 @@ def load_synthetic_large_scale(m, n, alpha):
         tmp = u_sigma @ np.random.randn(k, tmp_n_size) / np.sqrt(n - 1)
         result_memmap[:, i:i+tmp_n_size] = tmp
         d += np.sum(tmp ** 2, axis=1)
-        result_memmap.flush()
         del tmp
     result_memmap /= np.max(np.sqrt(d))
-    result_memmap.flush()
     return result_memmap, None
 
 
@@ -205,6 +207,74 @@ class vertical_linear_regression(FedVerticalMatrix):
             noise=1.0, bias=1
         )
         return x.astype(np.float64), y
+
+
+class vertical_linear_regression_memmap(FedVerticalMatrix):
+    def load_data(self):
+        n_samples = ConfigurationManager().data_config.sample_size
+        n_features = ConfigurationManager().data_config.feature_size * ConfigurationManager().runtime_config.client_num
+        # Create the random X
+        x = np.memmap(
+            filename=os.path.join(ConfigurationManager().data_config.dir_name, 'vlr_x.npy'),
+            mode='write', dtype=np.float64, shape=(n_samples, n_features + 1)
+        )
+        n_informative = int(n_features * 0.9)
+        n_targets = 1
+        for i in range(0, n_samples, 10000):
+            tmp_i_end = min(i+10000, n_samples)
+            tmp = np.random.randn(tmp_i_end-i, n_features)
+            x[i:tmp_i_end, :-1] = tmp
+            del tmp
+            print('Generating large scale data step', i)
+        x[:, -1] = np.ones([n_samples], dtype=np.float64)
+        ground_truth = np.zeros((n_features+1, n_targets))
+        ground_truth[:n_informative, :] = 100 * np.random.rand(n_informative, n_targets)
+        y = x @ ground_truth
+        # Add noise
+        y += np.random.normal(scale=1.0, size=y.shape)
+        y = np.squeeze(y)
+        self.num_class = 1
+        return x, y
+
+    """Generate datasets for vertical federated learning"""
+    def iid_data(self, save_file=True):
+        # Assume the features are uniformly distributed
+        num_samples, num_features = self.x.shape
+        num_clients = ConfigurationManager().runtime_config.client_num
+        # bias term
+        num_features -= 1
+        # Recompute the number of features hold by each client
+        local_num_features = np.array([int(num_features / num_clients)] * num_clients)
+        if num_features % num_clients != 0:
+            local_num_features[:num_features % num_clients] += 1
+
+        # bias term
+        local_num_features[-1] += 1
+
+        train_size = int(num_samples * self.train_val_test[0])
+        # val_size = int(num_samples * self.train_val_test[1])
+        # test_size = int(num_samples * self.train_val_test[2])
+
+        local_dataset = []
+        for i in range(num_clients):
+            np.save(
+                os.path.join(ConfigurationManager().data_config.dir_name, f'client_{i}_train_x.npy'),
+                self.x[:train_size, sum(local_num_features[:i]):sum(local_num_features[:i+1])].T
+            )
+            local_dataset.append(
+                {'x_train': os.path.join(ConfigurationManager().data_config.dir_name, f'client_{i}_train_x.npy')}
+            )
+            if (i+1) == num_clients:
+                local_dataset[-1].update({
+                    'y_train': self.y[:train_size]
+                })
+        if save_file:
+            for i in range(len(local_dataset)):
+                with open(os.path.join(self.output_dir, f'client_{i}.pkl'), 'wb') as f:
+                    hickle.dump(local_dataset[i], f)
+        # Clear cache
+        os.remove(self.x.filename)
+        return local_dataset
 
 
 class wine_lr(FedVerticalMatrix):

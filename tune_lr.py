@@ -63,7 +63,7 @@ Finished Tuning Learning Rates
 
 host_name = socket.gethostname()
 
-if host_name == 'workstation':
+if host_name == 'ministation':
     os.system("python -W ignore trial.py -d mnist -s LocalCentral "
               "-c configs/quickstart -m local -i false -t lr -r 1 -l log/tunelr -e run")
     os.system("python -W ignore trial.py -d femnist -s LocalCentral "
