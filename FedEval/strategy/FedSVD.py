@@ -736,6 +736,11 @@ class FedSVD(FedStrategy):
 
         self.logger.info('FedSVD Server Status: Computing the metrics.')
 
+        # Clear disk files
+        local_disk_files = [e for e in os.listdir(self._tmp_dir) if e.startswith(f'server')]
+        for file in local_disk_files:
+            os.remove(file)
+        
         def mse(x1, x2):
             return np.mean((x1 - x2) ** 2)
 

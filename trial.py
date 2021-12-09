@@ -1,7 +1,7 @@
 import os
 import argparse
 import socket
-
+import numpy as np
 
 from FedEval.run_util import run
 from multiprocessing import Process
@@ -142,7 +142,8 @@ data_config = {
     'non-iid': True if args.non_iid.lower() == 'true' else False,
     'sample_size': 600,
     'non-iid-strategy': 'average' if args.dataset == 'mnist' else 'natural', 
-    'non-iid-class': args.non_iid_class
+    'non-iid-class': args.non_iid_class,
+    'random_seed': None,
 }
 model_config = {
     'MLModel': {
@@ -280,6 +281,7 @@ params = {
 if __name__ == '__main__':
 
     for _ in range(repeat):
+        data_config['random_seed'] = np.random.randint(0, 1000)
         if args.tune is None:
             p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
             p.start()

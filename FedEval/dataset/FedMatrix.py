@@ -114,10 +114,8 @@ def load_synthetic_large_scale(m, n, alpha):
         tmp = u_sigma @ np.random.randn(k, tmp_n_size) / np.sqrt(n - 1)
         result_memmap[:, i:i+tmp_n_size] = tmp
         d += np.sum(tmp ** 2, axis=1)
-        result_memmap.flush()
         del tmp
     result_memmap /= np.max(np.sqrt(d))
-    result_memmap.flush()
     return result_memmap, None
 
 

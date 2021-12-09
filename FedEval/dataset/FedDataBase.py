@@ -149,7 +149,7 @@ class FedData(metaclass=ABCMeta):
             sample_size = d_cfg.sample_size
             sample_size = min(sample_size, int(len(self.x) / self.num_clients))
 
-            total_index = list(range(len(self.x)))
+            total_index = list(range(len(self.x)))[:sample_size*self.num_clients]
 
             train_size = int(sample_size * self.train_val_test[0])
             val_size = int(sample_size * self.train_val_test[1])
