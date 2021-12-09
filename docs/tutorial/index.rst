@@ -2,9 +2,7 @@ Tutorial
 =========
 
 .. toctree::
-   :numbered:
    :maxdepth: 2
-   :caption: Contents:
 
    QuickStart.md
 

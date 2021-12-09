@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to FedEval's documentation!
+FedEval
 ===================================
 
 A Benchmark System with a Comprehensive Evaluation Model for Federated Learning. `[GitHub] <https://github.com/Di-Chai/FedEval>`__
@@ -11,14 +11,8 @@ A Benchmark System with a Comprehensive Evaluation Model for Federated Learning.
 .. toctree::
    :numbered:
    :maxdepth: 2
-   :caption: Contents:
 
-   Introduction.md
-
-   Environment.md
-
-   Tutorial.rst
-
-   BenchmarkResults.md
-
-   Reproduce.md
+   Introduction <Introduction>
+   Benchmark Results <results/index>
+   Installation <Environment>
+   Tutorials <tutorial/index>

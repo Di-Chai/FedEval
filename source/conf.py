@@ -9,18 +9,20 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-
-import os
-import sys
-BASE_PATH = os.path.abspath('..')
-sys.path.insert(0, BASE_PATH)
+#
+# import os
+# import sys
+# sys.path.insert(0, os.path.abspath('.'))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'FedEval'
-copyright = ''
-author = 'Di Chai, Leye Wang, Guanghong Fan, Kai Chen, Qiang Yang'
+project = 'example'
+copyright = '2021, asdada'
+author = 'asdada'
+
+# The full version, including alpha/beta/rc tags
+release = 'adsad'
 
 
 # -- General configuration ---------------------------------------------------
@@ -29,22 +31,7 @@ author = 'Di Chai, Leye Wang, Guanghong Fan, Kai Chen, Qiang Yang'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'autoapi.extension',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode',
-    'sphinx_markdown_tables',
-    # 'recommonmark',
-    'myst_parser',
 ]
-
-# -- Options for napoleon output -------------------------------------------------
-napoleon_google_docstring = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -52,7 +39,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = []
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -66,10 +53,3 @@ html_theme = 'alabaster'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-
-# Theme
-html_theme = 'sphinx_rtd_theme'
-
-# Autoapi settings
-autoapi_dirs = [os.path.join(BASE_PATH, "FedEval")]
-autoapi_ignore = ['*unittest*', 'test_*.py']
