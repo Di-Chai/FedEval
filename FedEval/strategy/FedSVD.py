@@ -344,8 +344,11 @@ class FedSVD(FedStrategy):
             self._fed_svd_status = FedSVDStatus.ApplyMask
         elif self._fed_svd_status is FedSVDStatus.ApplyMask:
             client_params = sorted(client_params, key=lambda x: x['client_id'])
+            self.logger.info('Server Agg Started')
+            start_time = time.time()
             self._pxq[:, self._slice_start:self._slice_end] = \
                 np.sum([e['secure_agg'] for e in client_params], axis=0, dtype=np.float64)
+            self.logger.info(f'Server Agg Finished. Using {time.time() - start_time}')
             # if self._memory_map:
             #     self._pxq.flush()
             if self._apply_mask_progress == sum(self._ns) and self._svd_mode == 'lr':
@@ -541,10 +544,6 @@ class FedSVD(FedStrategy):
                         tmp_block_mask = pickle.load(f)
                     self._p_times_x[p_size_counter:p_size_counter+len(tmp_block_mask)] =\
                         tmp_block_mask @ self.train_data['x'][p_size_counter: p_size_counter + len(tmp_block_mask)]
-                    # if self._memory_map:
-                    #     self._p_times_x.flush()
-                    # p_times_x.append(
-                    #     tmp_block_mask @ self.train_data['x'][p_size_counter: p_size_counter + len(tmp_block_mask)])
                     if self._svd_mode == 'lr' and self._is_active:
                         self._masked_y.append(
                             tmp_block_mask @ self.train_data['y'][p_size_counter: p_size_counter + len(tmp_block_mask)]
@@ -553,8 +552,8 @@ class FedSVD(FedStrategy):
                     del tmp_block_mask
                 if self._svd_mode == 'lr' and self._is_active:
                     self._masked_y = np.concatenate(self._masked_y, axis=0)
-                if not self._memory_map:
-                    del self.train_data
+                # if not self._memory_map:
+                #     del self.train_data
 
             min_index = self._received_q_masks[0][1]
             max_index = self._received_q_masks[-1][1] + self._received_q_masks[-1][-1].shape[-1]
@@ -762,15 +761,14 @@ class FedSVD(FedStrategy):
         # Get current results
         result_json = host.snapshot_result(None)
 
-        self.logger.info(f'Debug 1 Memory Usage {psutil.virtual_memory().used / 2**30}GB')
         # Load clients' data for evaluation
         if self._memory_map:
             x_train = np.memmap(
                 filename=os.path.join(self._tmp_dir, 'server_x_train.npy'),
-                mode='write', dtype=np.float64, shape=(self._m, sum(self._ns) - int(self._svd_mode == 'lr'))
+                mode='write', dtype=np.float64, shape=(self._m, sum(self._ns))
             )
         else:
-            x_train = np.zeros((self._m, sum(self._ns) - int(self._svd_mode == 'lr')))
+            x_train = np.zeros((self._m, sum(self._ns)))
         for client_id in range(client_num):
             with open(os.path.join(data_dir, 'client_%s.pkl' % client_id), 'r') as f:
                 data = hickle.load(f)
