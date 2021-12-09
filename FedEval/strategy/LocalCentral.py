@@ -1,6 +1,6 @@
 import json
 import os
-import pickle
+import hickle
 
 import numpy as np
 import tensorflow as tf
@@ -25,8 +25,8 @@ class LocalCentral(FedStrategy):
             x_test = []
             y_test = []
             for client_id in range(client_num):
-                with open(os.path.join(data_dir, 'client_%s.pkl' % client_id), 'rb') as f:
-                    data = pickle.load(f)
+                with open(os.path.join(data_dir, 'client_%s.pkl' % client_id), 'r') as f:
+                    data = hickle.load(f)
                 x_train.append(data['x_train'])
                 y_train.append(data['y_train'])
                 x_val.append(data['x_val'])
