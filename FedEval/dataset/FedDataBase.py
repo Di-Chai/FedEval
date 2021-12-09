@@ -160,16 +160,10 @@ class FedData(metaclass=ABCMeta):
             test_index = total_index[(train_size+val_size)*self.num_clients:]
 
             if self.num_class > 1:
-                if val_size > 0 or test_size > 0:
-                    xy = list(zip(
-                        self.x[:-(val_size + test_size) * self.num_clients],
-                        self.y[:-(val_size + test_size) * self.num_clients]
-                    ))
-                else:
-                    xy = list(zip(self.x, self.y))
+                xy = list(zip(self.x[:len(train_index)], self.y[:len(train_index)]))
                 xy = sorted(xy, key=lambda x: np.argmax(x[1]), reverse=False)
-                self.x = np.array([e[0] for e in xy], dtype=np.float32)
-                self.y = np.array([e[1] for e in xy], dtype=np.float32)
+                self.x[:len(train_index)] = np.array([e[0] for e in xy], dtype=np.float32)
+                self.y[:len(train_index)] = np.array([e[1] for e in xy], dtype=np.float32)
                 del xy
 
             if self.num_class > 1:

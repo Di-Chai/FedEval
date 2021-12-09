@@ -172,7 +172,7 @@ runtime_config = {
 ##################################################
 # Dataset Config
 if args.dataset == 'mnist':
-    data_config['sample_size'] = 600
+    data_config['sample_size'] = 700
     runtime_config['server']['num_clients'] = 100
 
 if args.dataset == 'femnist':
