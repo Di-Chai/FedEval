@@ -346,9 +346,9 @@ class FedSVD(FedStrategy):
             client_params = sorted(client_params, key=lambda x: x['client_id'])
             self._pxq[:, self._slice_start:self._slice_end] = \
                 np.sum([e['secure_agg'] for e in client_params], axis=0, dtype=np.float64)
-            if self._memory_map:
-                self._pxq.flush()
-            if self._svd_mode == 'lr':
+            # if self._memory_map:
+            #     self._pxq.flush()
+            if self._apply_mask_progress == sum(self._ns) and self._svd_mode == 'lr':
                 self._masked_y = client_params[-1].get('masked_y')
             del client_params
             if self._apply_mask_progress == sum(self._ns):
@@ -541,8 +541,8 @@ class FedSVD(FedStrategy):
                         tmp_block_mask = pickle.load(f)
                     self._p_times_x[p_size_counter:p_size_counter+len(tmp_block_mask)] =\
                         tmp_block_mask @ self.train_data['x'][p_size_counter: p_size_counter + len(tmp_block_mask)]
-                    if self._memory_map:
-                        self._p_times_x.flush()
+                    # if self._memory_map:
+                    #     self._p_times_x.flush()
                     # p_times_x.append(
                     #     tmp_block_mask @ self.train_data['x'][p_size_counter: p_size_counter + len(tmp_block_mask)])
                     if self._svd_mode == 'lr' and self._is_active:
@@ -713,24 +713,6 @@ class FedSVD(FedStrategy):
             self.train_data['x'] = self.train_data['x'].T
             if self._svd_mode == 'lr':
                 self._is_active = (self.client_id + 1) == ConfigurationManager().runtime_config.client_num
-                if self._is_active:
-                    if self._memory_map:
-                        x_with_bias = np.memmap(
-                            filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_x_with_bias.npy'),
-                            dtype=np.float64, mode='write',
-                            shape=(self.train_data['x'].shape[0], self.train_data['x'].shape[1]+1)
-                        )
-                        for i in range(0, self.train_data['x'].shape[0], 10000):
-                            tmp_i_end = min(i+10000, self.train_data['x'].shape[0])
-                            x_with_bias[i:tmp_i_end, :-1] = self.train_data['x'][i:tmp_i_end]
-                            x_with_bias.flush()
-                        x_with_bias[:, -1] = np.ones([self.train_data['x'].shape[0]])
-                        x_with_bias.flush()
-                        self.train_data['x'] = x_with_bias
-                    else:
-                        self.train_data['x'] = np.concatenate(
-                            [self.train_data['x'], np.ones([self.train_data['x'].shape[0], 1])], axis=-1
-                        )
             self._local_m, self._local_n = self.train_data['x'].shape
             return {'client_id': self.client_id, 'mn': self.train_data['x'].shape, 'memory_map': self._memory_map}
         elif self._current_status is FedSVDStatus.ApplyMask:
@@ -794,7 +776,7 @@ class FedSVD(FedStrategy):
                 data = hickle.load(f)
             if self._memory_map:
                 x_train[:, sum(self._ns[:client_id]):sum(self._ns[:client_id+1])] = open_memmap(data['x_train']).T
-                x_train.flush()
+                # x_train.flush()
             else:
                 x_train[:, sum(self._ns[:client_id]):sum(self._ns[:client_id+1])] = data['x_train'].T
             self.logger.info(f'Memory Usage after loading Client '
@@ -803,20 +785,6 @@ class FedSVD(FedStrategy):
                 y_train = data['y_train']
 
         if self._svd_mode == 'lr':
-            if self._memory_map:
-                x_with_bias = np.memmap(
-                    filename=os.path.join(self._tmp_dir, f'server_train_x_with_bias.npy'),
-                    dtype=np.float64, mode='write', shape=(x_train.shape[0], x_train.shape[1]+1)
-                )
-                for i in range(0, x_train.shape[0], 10000):
-                    tmp_i_end = min(i + 10000, x_train.shape[0])
-                    x_with_bias[i:tmp_i_end, :-1] = x_train[i:tmp_i_end]
-                    x_with_bias.flush()
-                x_with_bias[:, -1] = np.ones([x_train.shape[0]])
-                x_with_bias.flush()
-                x_train = x_with_bias
-            else:
-                x_train = np.hstack([x_train, np.ones([x_train.shape[0], 1])])
             # SVD prediction and errors
             y_hat_svd = x_train @ self._evaluate_parameters
             svd_mse = mean_squared_error(y_true=y_train, y_pred=y_hat_svd)

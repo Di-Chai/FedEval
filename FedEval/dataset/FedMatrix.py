@@ -25,6 +25,10 @@ class FedVerticalMatrix(FedData, ABC):
         if num_features % num_clients != 0:
             local_num_features[:num_features % num_clients] += 1
 
+        # Add bias term
+        self.x = np.concatenate([self.x, np.ones(self.x.shape[0], 1)], axis=-1)
+        local_num_features[-1] += 1
+
         train_size = int(num_samples * self.train_val_test[0])
         val_size = int(num_samples * self.train_val_test[1])
         test_size = int(num_samples * self.train_val_test[2])
@@ -214,18 +218,18 @@ class vertical_linear_regression_memmap(FedVerticalMatrix):
         # Create the random X
         x = np.memmap(
             filename=os.path.join(ConfigurationManager().data_config.dir_name, 'vlr_x.npy'),
-            mode='write', dtype=np.float64, shape=(n_samples, n_features)
+            mode='write', dtype=np.float64, shape=(n_samples, n_features + 1)
         )
         n_informative = int(n_features * 0.9)
         n_targets = 1
         for i in range(0, n_samples, 10000):
             tmp_i_end = min(i+10000, n_samples)
             tmp = np.random.randn(tmp_i_end-i, n_features)
-            x[i:tmp_i_end] = tmp
-            x.flush()
+            x[i:tmp_i_end, :-1] = tmp
             del tmp
             print('Generating large scale data step', i)
-        ground_truth = np.zeros((n_features, n_targets))
+        x[:, -1] = np.ones([n_samples], dtype=np.float64)
+        ground_truth = np.zeros((n_features+1, n_targets))
         ground_truth[:n_informative, :] = 100 * np.random.rand(n_informative, n_targets)
         y = x @ ground_truth
         # Add noise
@@ -239,10 +243,15 @@ class vertical_linear_regression_memmap(FedVerticalMatrix):
         # Assume the features are uniformly distributed
         num_samples, num_features = self.x.shape
         num_clients = ConfigurationManager().runtime_config.client_num
+        # bias term
+        num_features -= 1
         # Recompute the number of features hold by each client
         local_num_features = np.array([int(num_features / num_clients)] * num_clients)
         if num_features % num_clients != 0:
             local_num_features[:num_features % num_clients] += 1
+
+        # bias term
+        local_num_features[-1] += 1
 
         train_size = int(num_samples * self.train_val_test[0])
         # val_size = int(num_samples * self.train_val_test[1])
