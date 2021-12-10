@@ -1,0 +1,45 @@
+# Communications
+# -- Web Service --
+Flask==1.1.2
+# -- SocketIO --
+Flask-SocketIO==4.3.1
+socketIO-client==0.7.2
+python-engineio==3.13.1
+python-socketio==4.6.0
+# -- gRPC --
+grpcio
+grpcio-tools
+
+# Computation
+numpy
+scipy
+sklearn
+pandas
+torch==1.8.0
+
+# NLP datasets
+nltk
+pillow
+
+# SSH
+paramiko
+
+# Monitor
+psutil
+
+# Serializer
+PyYAML
+pympler
+hickle
+
+# Plots and CV
+matplotlib
+opencv-python-headless
+
+# Documentation
+sphinx-markdown-tables
+sphinx
+sphinx-autobuild
+sphinx_rtd_theme
+myst-parser # markdown
+sphinx-autoapi
