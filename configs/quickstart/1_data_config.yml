@@ -4,7 +4,8 @@ non-iid: False
 non-iid-class: 1 # Only work when non-iid = True
 non-iid-strategy: average # Only work when non-iid = True
 normalize: true
-sample_size: 300
+sample_size: 600
+random_seed: 100
 train_val_test:
   - 0.8
   - 0.1
