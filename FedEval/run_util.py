@@ -39,7 +39,8 @@ class LogAnalysis:
         
         self.omit_keys = [
             'runtime_config$$machines',
-            'runtime_config$$server'
+            'runtime_config$$server',
+            'data_config$$random_seed'
         ]
 
         def check_omit(key):

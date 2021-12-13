@@ -171,6 +171,10 @@ class synthetic_matrix_horizontal_memmap(FedData):
             for i in range(len(local_dataset)):
                 with open(os.path.join(self.output_dir, f'client_{i}.pkl'), 'wb') as f:
                     hickle.dump(local_dataset[i], f)
+        # Clear cache
+        x_filename = self.x.filename
+        del self.x
+        os.remove(x_filename)
         return local_dataset
 
 
@@ -223,10 +227,9 @@ class vertical_linear_regression_memmap(FedVerticalMatrix):
         for i in range(0, n_samples, 10000):
             tmp_i_end = min(i+10000, n_samples)
             tmp = np.random.randn(tmp_i_end-i, n_features)
-            x[i:tmp_i_end, :-1] = tmp
+            x[i:tmp_i_end] = np.concatenate([tmp, np.ones([tmp_i_end-i, 1])], axis=-1)
             del tmp
             print('Generating large scale data step', i)
-        x[:, -1] = np.ones([n_samples], dtype=np.float64)
         ground_truth = np.zeros((n_features+1, n_targets))
         ground_truth[:n_informative, :] = 100 * np.random.rand(n_informative, n_targets)
         y = x @ ground_truth
@@ -273,7 +276,9 @@ class vertical_linear_regression_memmap(FedVerticalMatrix):
                 with open(os.path.join(self.output_dir, f'client_{i}.pkl'), 'wb') as f:
                     hickle.dump(local_dataset[i], f)
         # Clear cache
-        os.remove(self.x.filename)
+        x_filename = self.x.filename
+        del self.x
+        os.remove(x_filename)
         return local_dataset
 
 

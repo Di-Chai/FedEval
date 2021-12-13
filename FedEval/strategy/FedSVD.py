@@ -19,6 +19,7 @@ from sklearn.decomposition import TruncatedSVD
 from ..utils import ParamParser, ParamParserInterface
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, r2_score
 from numpy.lib.format import open_memmap
+from functools import reduce
 
 
 def generate_orthogonal_matrix(
@@ -267,15 +268,14 @@ class FedSVD(FedStrategy):
                     for client_id in self._client_ids_on_receiving
                 }
             else:
-                if self._memory_map and ConfigurationManager().model_config.svd_top_k != -1:
+                if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1:
                     self._vector_transfer_start = self._vector_transfer_progress
                     download_info = {
                         'fed_svd_status': self._fed_svd_status,
                         'vector_transfer_start': self._vector_transfer_start,
-                        'finish': self._vector_transfer_progress == max(self._m, sum(self._ns)),
-                        'm<n': self._m < self._ns
+                        'm<n': self._m < sum(self._ns)
                     }
-                    if self._m < self._ns:
+                    if self._m < sum(self._ns):
                         self._vector_transfer_end = self._vector_transfer_progress + \
                                                     min(self._mask_step_size, sum(self._ns))
                         download_info.update({
@@ -285,7 +285,7 @@ class FedSVD(FedStrategy):
                         if self._vector_transfer_progress == 0:
                             download_info.update({
                                 'masked_u': self._masked_u, 'sigma': self._sigma,
-                                'm': self._m, 'n': self._ns
+                                'm': self._m, 'n': sum(self._ns)
                             })
                     else:
                         self._vector_transfer_end = self._vector_transfer_progress + \
@@ -297,9 +297,10 @@ class FedSVD(FedStrategy):
                         if self._vector_transfer_progress == 0:
                             download_info.update({
                                 'masked_vt': self._masked_vt, 'sigma': self._sigma,
-                                'm': self._m, 'n': self._ns
+                                'm': self._m, 'n': sum(self._ns)
                             })
                     self._vector_transfer_progress += (self._vector_transfer_end - self._vector_transfer_start)
+                    download_info['finish'] = self._vector_transfer_progress == max(self._m, sum(self._ns))
                     return {client_id: download_info for client_id in self._client_ids_on_receiving}
                 else:
                     return {
@@ -330,7 +331,7 @@ class FedSVD(FedStrategy):
                 self._memory_map = True
                 self._pxq = np.memmap(
                     filename=os.path.join(self._tmp_dir, 'server_pxq.npy'),
-                    dtype=np.float64, mode='write', shape=(self._m, sum(self._ns))
+                    dtype=np.float64, mode='write', shape=(sum(self._ns), self._m)
                 )
             else:
                 self._pxq = np.zeros([int(self._m), int(sum(self._ns))])
@@ -346,8 +347,12 @@ class FedSVD(FedStrategy):
             client_params = sorted(client_params, key=lambda x: x['client_id'])
             self.logger.info('Server Agg Started')
             start_time = time.time()
-            self._pxq[:, self._slice_start:self._slice_end] = \
-                np.sum([e['secure_agg'] for e in client_params], axis=0, dtype=np.float64)
+            if self._memory_map:
+                self._pxq[self._slice_start:self._slice_end] = \
+                    np.sum([e['secure_agg'] for e in client_params], axis=0, dtype=np.float64).T
+            else:
+                self._pxq[:, self._slice_start:self._slice_end] = \
+                    np.sum([e['secure_agg'] for e in client_params], axis=0, dtype=np.float64)
             self.logger.info(f'Server Agg Finished. Using {time.time() - start_time}')
             # if self._memory_map:
             #     self._pxq.flush()
@@ -357,12 +362,19 @@ class FedSVD(FedStrategy):
             if self._apply_mask_progress == sum(self._ns):
                 self.logger.info('Server received all masked data. Proceed to SVD.')
                 self._fed_svd_status = FedSVDStatus.Factorization
-                self._masked_u, self._sigma, self._masked_vt = self._server_svd(self._pxq)
-                del self._pxq
+                if self._memory_map:
+                    self._masked_u, self._sigma, self._masked_vt = self._server_svd(self._pxq.T)
+                    pxq_filename = self._pxq.filename
+                    del self._pxq
+                    os.remove(pxq_filename)
+                else:
+                    self._masked_u, self._sigma, self._masked_vt = self._server_svd(self._pxq)
+                    del self._pxq
                 self._fed_svd_status = FedSVDStatus.RemoveMask
         elif self._fed_svd_status is FedSVDStatus.RemoveMask:
             if (self._memory_map and self._vector_transfer_progress == max(self._m, sum(self._ns))) or\
-                    (not self._memory_map) or (ConfigurationManager().model_config.svd_top_k == -1):
+                    (not self._memory_map) or (ConfigurationManager().model_config.svd_top_k != -1) or\
+                    self._svd_mode == 'lr':
                 del self._masked_u
                 del self._masked_vt
                 del self._sigma
@@ -420,35 +432,28 @@ class FedSVD(FedStrategy):
             if m < n:
                 x2 = data_matrix @ data_matrix.T
             else:
-                x2 = data_matrix.T @ data_matrix
+                left, sigma, right = self._server_svd(data_matrix.T)
+                if right is not None:
+                    return right.T, sigma, left.T
+                else:
+                    return None, sigma, left.T
+
             if ConfigurationManager().model_config.svd_top_k == -1:
                 # We do not need to compute the full matrices when the matrix is not full rank
-                self.logger.info(f'Server running SVD on matrix {data_matrix.shape[0]}x{data_matrix.shape[1]}')
+                self.logger.info(f'Server running SVD on matrix {m}x{n}')
                 left, sigma, _ = np.linalg.svd(x2, full_matrices=False)
                 sigma = sigma ** 0.5
                 step_size = 10000
-                if m < n:
-                    right = np.memmap(
-                        filename=os.path.join(self._tmp_dir, 'server_large_vector.npy'), mode='write',
-                        dtype=np.float64, shape=(len(sigma), data_matrix.shape[1])
-                    )
-                    left_mul = np.diag(sigma ** -1) @ left.T
-                    for i in range(0, data_matrix.shape[1], step_size):
-                        index_end = min(i+step_size, data_matrix.shape[1])
-                        right[:, i:index_end] = left_mul @ data_matrix[:, i:index_end]
-                    # right = np.diag(sigma ** -1) @ left.T @ data_matrix
-                    return left, sigma, right
-                else:
-                    right = np.memmap(
-                        filename=os.path.join(self._tmp_dir, 'server_large_vector.npy'), mode='write',
-                        dtype=np.float64, shape=(data_matrix.shape[0], len(sigma))
-                    )
-                    left_mul = left @ np.diag(sigma ** -1)
-                    for i in range(0, data_matrix.shape[0], step_size):
-                        index_end = min(i+step_size, data_matrix.shape[0])
-                        right[i:i+index_end] = data_matrix[i:i+index_end] @ left_mul
-                    # right = data_matrix @ left.T @ np.diag(sigma ** -1)
-                    return right, sigma, left.T
+                right = np.memmap(
+                    filename=os.path.join(self._tmp_dir, 'server_large_vector.npy'), mode='write',
+                    dtype=np.float64, shape=(n, len(sigma))
+                )
+                left_mul = np.diag(sigma ** -1) @ left.T
+                for i in range(0, data_matrix.shape[1], step_size):
+                    index_end = min(i+step_size, data_matrix.shape[1])
+                    right[i:index_end] = (left_mul @ data_matrix[:, i:index_end]).T
+                # right = np.diag(sigma ** -1) @ left.T @ data_matrix
+                return left, sigma, right.T
             elif ConfigurationManager().model_config.svd_top_k > 0:
                 truncated_svd = TruncatedSVD(
                     n_components=ConfigurationManager().model_config.svd_top_k, algorithm='arpack',
@@ -457,18 +462,11 @@ class FedSVD(FedStrategy):
                 truncated_svd.fit(x2)
                 left = truncated_svd.components_.T
                 sigma = truncated_svd.singular_values_ ** 0.5
-                if m < n:
-                    if self._svd_mode == 'pca':
-                        return left, sigma, None
-                    else:
-                        right = np.diag(sigma ** -1) @ left.T @ data_matrix
-                        return left, sigma, right
+                if self._svd_mode == 'pca':
+                    return left, sigma, None
                 else:
-                    right = data_matrix @ left.T @ np.diag(sigma ** -1)
-                    if self._svd_mode == 'pca':
-                        return right, sigma, None
-                    else:
-                        return right, sigma, left
+                    right = np.diag(sigma ** -1) @ left.T @ data_matrix
+                    return left, sigma, right
 
     def set_host_params_to_local(self, host_params, **kwargs):
         self._current_status = host_params.get('fed_svd_status')
@@ -494,7 +492,7 @@ class FedSVD(FedStrategy):
             if self._svd_mode == 'lr':
                 self._masked_parameters = host_params['masked_parameters']
             else:
-                if self._memory_map:
+                if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1:
                     self._received_server_params = host_params
                 else:
                     self._masked_u = host_params['masked_u']
@@ -602,7 +600,7 @@ class FedSVD(FedStrategy):
                 del self._masked_parameters
                 self._local_parameters = np.concatenate(self._local_parameters, axis=0)
             else:
-                if self._memory_map and ConfigurationManager().model_config.svd_top_k != -1:
+                if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1:
                     vector_transfer_start = self._received_server_params['vector_transfer_start']
                     vector_transfer_end = self._received_server_params['vector_transfer_end']
                     transfer_finish = self._received_server_params['finish']
@@ -634,7 +632,7 @@ class FedSVD(FedStrategy):
                 self.logger.info(f'Client {self.client_id} is removing masks')
                 # Remove the mask of U and
                 if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1 \
-                        and self.host_params.get('m<n'):
+                        and self._received_server_params.get('m<n'):
                     self._u = np.memmap(
                         filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_u.npy'),
                         mode='write', dtype=np.float64,
@@ -654,7 +652,7 @@ class FedSVD(FedStrategy):
                     del tmp_block_mask
                 # Remove the mask of VT
                 if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1 \
-                        and not self.host_params.get('m<n'):
+                        and not self._received_server_params.get('m<n'):
                     self._local_vt = np.memmap(
                         filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_vt.npy'),
                         mode='write', dtype=np.float64,
@@ -700,7 +698,10 @@ class FedSVD(FedStrategy):
         # Clear disk files
         local_disk_files = [e for e in os.listdir(self._tmp_dir) if e.startswith(f'client_{self.client_id}')]
         for file in local_disk_files:
-            os.remove(file)
+            try:
+                os.remove(os.path.join(self._tmp_dir, file))
+            except FileNotFoundError:
+                self.logger.info(f'{file} not found, cache clean failed')
 
     def retrieve_local_upload_info(self):
         if self._current_status is FedSVDStatus.Init:
@@ -739,8 +740,11 @@ class FedSVD(FedStrategy):
         # Clear disk files
         local_disk_files = [e for e in os.listdir(self._tmp_dir) if e.startswith(f'server')]
         for file in local_disk_files:
-            os.remove(file)
-        
+            try:
+                os.remove(os.path.join(self._tmp_dir, file))
+            except FileNotFoundError:
+                self.logger.info(f'{file} not found, cache clean failed')
+
         def mse(x1, x2):
             return np.mean((x1 - x2) ** 2)
 
@@ -798,13 +802,13 @@ class FedSVD(FedStrategy):
             x_train = x_train[:, :-1]
             learning_rate = 0.01
             tolerance = 10
-            batch_size = min(16, x_train.shape[0])
+            batch_size = 1000000
             max_epoch = 10000
             l2 = ConfigurationManager().model_config.svd_lr_l2
             linear_regression_model = tf.keras.Sequential()
             linear_regression_model.add(tf.keras.layers.Dense(
                 1 if len(y_train.shape) == 1 else y_train.shape[-1],
-                kernel_regularizer=tf.keras.regularizers.l2(l2),
+                kernel_regularizer=tf.keras.regularizers.l2(l2), use_bias=True
             ))
             optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate)
             linear_regression_model.compile(optimizer=optimizer, loss=tf.keras.losses.mse)
