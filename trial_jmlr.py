@@ -97,3 +97,8 @@ if host_name == 'gpu02':
               "-c configs/quickstart -m local -i true -r 10 -l log/jmlr -e run")
     os.system("python -W ignore trial.py -d semantic140 -s FedOpt "
               "-c configs/quickstart -m local -i true -r 10 -l log/jmlr -e run")
+
+if host_name == 'mac':
+
+    os.system("python -W ignore trial.py -d femnist -s LocalCentral "
+              "-c configs/quickstart -m local -i false -r 1 -l log/jmlr -e run")

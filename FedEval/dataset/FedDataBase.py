@@ -38,7 +38,7 @@ def shuffle(X, Y):
     '''
     xy = list(zip(X, Y))
     np.random.shuffle(xy)
-    return np.array([e[0] for e in xy], dtype=np.float32), np.array([e[1] for e in xy], dtype=np.float32)
+    return np.array([e[0] for e in xy], dtype=np.float64), np.array([e[1] for e in xy], dtype=np.float64)
 
 
 class FedData(metaclass=ABCMeta):

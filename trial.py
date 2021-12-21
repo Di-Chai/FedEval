@@ -28,35 +28,35 @@ CelebA:
     FedProx: 0.1
     FedSTC: 
     FedOpt: 0.5
-    LocalCentral: 0.001
+    LocalCentral: 0.01
 FEMNIST:
     FedSGD: 0.009
     FedAvg: 0.3
     FedSTC: 0.005
     FedProx: 0.3
     FedOpt: 0.3
-    LocalCentral:
+    LocalCentral: 0.1
 MNIST:
     FedAvg: 0.7
     FedOpt: 0.5
     FedSGD: 0.07
     FedSTC: 0.3
     FedProx: 0.5
-    LocalCentral: 0.5
+    LocalCentral: 0.01
 Sent140:
     FedSGD: 0.009
     FedAvg: 0.05
     FedSTC: 0.007
     FedProx: 0.03
     FedOpt: 0.1
-    LocalCentral: 
+    LocalCentral: 0.01
 Shake:
     FedSGD: 0.1
     FedAvg:
     FedSTC:
     FedProx:
     FedOpt:
-    LocalCentral:
+    LocalCentral: 0.01
 """
 
 fine_tuned_params = {
@@ -66,7 +66,7 @@ fine_tuned_params = {
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.3},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.07},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': None},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'MLP'
     },
     'femnist': {
@@ -75,7 +75,7 @@ fine_tuned_params = {
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.009},
         'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.005},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': None},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.1},
         'model': 'LeNet'
     },
     'celeba': {
@@ -83,7 +83,7 @@ fine_tuned_params = {
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.03},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': None},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'LeNet'
     },
     "semantic140": {
@@ -92,7 +92,7 @@ fine_tuned_params = {
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.009},
         'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.007},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': None},
+        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'StackedLSTM'
     },
     "shakespeare": {
@@ -158,11 +158,11 @@ model_config = {
     }
 }
 runtime_config = {
-    'server': {'num_clients': None}, 
+    'server': {'num_clients': 100},
     'log': {'log_dir': args.log_dir}, 
     'docker': {'num_containers': 100, 'enable_gpu': False, 'num_gpu': 0},
     'communication': {
-        'limit_network_resource': False,
+        'limit_network_resource': True,
         'bandwidth_upload': '10Mbit', 
         'bandwidth_download': '30Mbit',
         'latency': '50ms'
@@ -264,10 +264,10 @@ if host_name == "gpu05":
 
 if host_name == "ministation":
     runtime_config['docker']['enable_gpu'] = True
-    runtime_config['docker']['num_containers'] = 10
+    runtime_config['docker']['num_containers'] = 5
     runtime_config['docker']['num_gpu'] = 1
 
-if host_name == "mac.local":
+if host_name == "mac":
     runtime_config['docker']['enable_gpu'] = False
     runtime_config['docker']['num_containers'] = 10
     runtime_config['docker']['num_gpu'] = 0

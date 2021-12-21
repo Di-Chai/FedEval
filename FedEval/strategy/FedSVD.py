@@ -42,8 +42,7 @@ def generate_orthogonal_matrix(
 
     if os.path.isdir(orthogonal_matrix_cache_dir) is False:
         os.makedirs(orthogonal_matrix_cache_dir, exist_ok=True)
-    file_list = os.listdir(orthogonal_matrix_cache_dir)
-    existing = [e.split('.')[0] for e in file_list]
+    existing = set([e.split('.')[0] for e in os.listdir(orthogonal_matrix_cache_dir)])
 
     if block_reduce is not None:
         block_reduce = min(block_reduce, n)
@@ -99,7 +98,7 @@ def retrieve_array_from_list(q, start, end):
     size_of_q = [len(e) for e in q]
     size_of_q = [sum(size_of_q[:e]) for e in range(len(size_of_q) + 1)]
     for i in range(1, len(size_of_q)):
-        if start > size_of_q[i]:
+        if start >= size_of_q[i]:
             continue
         # [x, y, array]
         results.append(
@@ -137,6 +136,8 @@ class FedSVD(FedStrategy):
         self._tmp_dir = 'tmp_fedsvd'
         os.makedirs(self._tmp_dir, exist_ok=True)
 
+        self._server_evaluate = False
+
         if ConfigurationManager().role is Role.Server:
             # Masking server
             self._m = None
@@ -154,6 +155,7 @@ class FedSVD(FedStrategy):
             self._mask_step_size: int = 0
             self._slice_start = None
             self._slice_end = None
+            self._vertical_slice = None
             self._vector_transfer_start: int = 0
             self._vt_transfer_emd: int = 0
             self._memory_map = False
@@ -182,6 +184,7 @@ class FedSVD(FedStrategy):
             self._local_m = None
             self._local_n = None
             self._q_random_mask = None
+            self._global_ns = None
             # used in memory map mode
             self._received_server_params = None
 
@@ -236,30 +239,44 @@ class FedSVD(FedStrategy):
                 client_id: {
                     'fed_svd_status': self._fed_svd_status,
                     'random_seed_of_p': self._random_seed_of_p,
-                    'sliced_q': results_data[client_id]
+                    'sliced_q': results_data[client_id],
+                    'ns': sum(self._ns)
                 }
                 for client_id in self._client_ids_on_receiving
             }
         elif self._fed_svd_status is FedSVDStatus.ApplyMask:
-            self.logger.info(f'FedSVD Server Reporting Status: apply mask progress '
-                             f'{self._apply_mask_progress}/{sum(self._ns)}')
             self._slice_start = self._apply_mask_progress
-            self._slice_end = self._slice_start + min(self._mask_step_size, sum(self._ns) - self._slice_start)
+            if self._vertical_slice:
+                self.logger.info(f'FedSVD Server Reporting Status: apply mask progress '
+                                f'{self._apply_mask_progress}/{sum(self._ns)}')
+                self._slice_end = self._slice_start + min(self._mask_step_size, sum(self._ns) - self._slice_start)
+            else:
+                self.logger.info(f'FedSVD Server Reporting Status: apply mask progress '
+                                f'{self._apply_mask_progress}/{self._m}')
+                self._slice_end = self._slice_start + min(self._mask_step_size, self._m - self._slice_start)
+
             self._apply_mask_progress += (self._slice_end - self._slice_start)
             return {
                 client_id: {
+                    'vertical_slice': self._vertical_slice,
                     'fed_svd_status': self._fed_svd_status,
                     'slice_start': self._slice_start, 'slice_end': self._slice_end,
-                    'apply_mask_finish': self._apply_mask_progress == sum(self._ns)
+                    'apply_mask_finish': (self._vertical_slice and self._apply_mask_progress == sum(self._ns)) or \
+                                         (not self._vertical_slice and self._apply_mask_progress == self._m),
+                    'ns': sum(self._ns)
                 }
                 for client_id in self._client_ids_on_receiving
             }
         elif self._fed_svd_status is FedSVDStatus.RemoveMask:
             if self._svd_mode == 'lr':
                 # Vt.T @ np.diag(S / (S ** 2 + l2_regularization)) @ U.T @ y_train
+                masked_parameters = self._masked_u.T @ self._masked_y
                 masked_parameters = self._masked_vt.T @ np.diag(
                     self._sigma / (self._sigma ** 2 + ConfigurationManager().model_config.svd_lr_l2)
-                ) @ self._masked_u.T @ self._masked_y
+                ) @ masked_parameters
+                # masked_parameters = self._masked_vt.T @ np.diag(
+                #     self._sigma / (self._sigma ** 2 + ConfigurationManager().model_config.svd_lr_l2)
+                # ) @ self._masked_u.T @ self._masked_y
                 return {
                     client_id: {
                         'fed_svd_status': self._fed_svd_status,
@@ -327,19 +344,34 @@ class FedSVD(FedStrategy):
             self._client_ids_on_receiving = [e['client_id'] for e in client_params]
             self._ns = [e['mn'][1] for e in client_params]
             self._m = ms[0]
+            self._vertical_slice = sum(self._ns) > self._m
             if client_params[0]['memory_map']:
                 self._memory_map = True
-                self._pxq = np.memmap(
-                    filename=os.path.join(self._tmp_dir, 'server_pxq.npy'),
-                    dtype=np.float64, mode='write', shape=(sum(self._ns), self._m)
-                )
+                if self._vertical_slice:
+                    self._pxq = np.memmap(
+                        filename=os.path.join(self._tmp_dir, 'server_pxq.npy'),
+                        dtype=np.float64, mode='write', shape=(sum(self._ns), self._m)
+                    )
+                else:
+                    self._pxq = np.memmap(
+                        filename=os.path.join(self._tmp_dir, 'server_pxq.npy'),
+                        dtype=np.float64, mode='write', shape=(self._m, sum(self._ns))
+                    )
             else:
                 self._pxq = np.zeros([int(self._m), int(sum(self._ns))])
             # Determine the step size when applying the masks
-            if self._m <= 1e5:
-                self._mask_step_size = ConfigurationManager().model_config.block_size
+            if self._vertical_slice:
+                if self._m <= 1e5:
+                    self._mask_step_size = ConfigurationManager().model_config.block_size
+                else:
+                    self._mask_step_size = max(int(ConfigurationManager().model_config.block_size / (self._m / 1e5)), 1)
             else:
-                self._mask_step_size = max(int(ConfigurationManager().model_config.block_size / (self._m / 1e5)), 1)
+                base = 100000
+                step_size = 2000
+                if sum(self._ns) <= step_size:
+                    self._mask_step_size = base
+                else:
+                    self._mask_step_size = int(max(base / (sum(self._ns) / step_size), 1))
             self._fed_svd_status = FedSVDStatus.SendMask
         elif self._fed_svd_status is FedSVDStatus.SendMask:
             self._fed_svd_status = FedSVDStatus.ApplyMask
@@ -348,22 +380,33 @@ class FedSVD(FedStrategy):
             self.logger.info('Server Agg Started')
             start_time = time.time()
             if self._memory_map:
-                self._pxq[self._slice_start:self._slice_end] = \
-                    np.sum([e['secure_agg'] for e in client_params], axis=0, dtype=np.float64).T
+                if self._vertical_slice:
+                    self._pxq[self._slice_start:self._slice_end] = \
+                        np.sum([e['secure_agg'] for e in client_params], axis=0, dtype=np.float64).T
+                else:
+                    self._pxq[self._slice_start:self._slice_end] = \
+                        np.sum([e['secure_agg'] for e in client_params], axis=0, dtype=np.float64)
             else:
-                self._pxq[:, self._slice_start:self._slice_end] = \
-                    np.sum([e['secure_agg'] for e in client_params], axis=0, dtype=np.float64)
+                if self._vertical_slice:
+                    self._pxq[:, self._slice_start:self._slice_end] = \
+                        np.sum([e['secure_agg'] for e in client_params], axis=0, dtype=np.float64)
+                else:
+                    self._pxq[self._slice_start:self._slice_end] = \
+                        np.sum([e['secure_agg'] for e in client_params], axis=0, dtype=np.float64)
             self.logger.info(f'Server Agg Finished. Using {time.time() - start_time}')
-            # if self._memory_map:
-            #     self._pxq.flush()
-            if self._apply_mask_progress == sum(self._ns) and self._svd_mode == 'lr':
+            apply_mask_finish = (self._vertical_slice and self._apply_mask_progress == sum(self._ns)) or \
+                                (not self._vertical_slice and self._apply_mask_progress == self._m)
+            if apply_mask_finish and self._svd_mode == 'lr':
                 self._masked_y = client_params[-1].get('masked_y')
             del client_params
-            if self._apply_mask_progress == sum(self._ns):
+            if apply_mask_finish:
                 self.logger.info('Server received all masked data. Proceed to SVD.')
                 self._fed_svd_status = FedSVDStatus.Factorization
                 if self._memory_map:
-                    self._masked_u, self._sigma, self._masked_vt = self._server_svd(self._pxq.T)
+                    if self._vertical_slice:
+                        self._masked_u, self._sigma, self._masked_vt = self._server_svd(self._pxq.T)
+                    else:
+                        self._masked_u, self._sigma, self._masked_vt = self._server_svd(self._pxq)
                     pxq_filename = self._pxq.filename
                     del self._pxq
                     os.remove(pxq_filename)
@@ -382,16 +425,17 @@ class FedSVD(FedStrategy):
         elif self._fed_svd_status is FedSVDStatus.Evaluate:
             # FedSVD Finished
             self._stop = True
-            # Only for evaluation, and the clients should not upload local results in real applications
-            client_params = sorted(client_params, key=lambda x: x['client_id'])
-            if self._svd_mode == 'lr':
-                self._evaluate_parameters = np.concatenate([e['parameters'] for e in client_params], axis=0)
-            else:
-                self._evaluation_u = client_params[0]['u']
-                self._evaluation_sigma = client_params[0]['sigma']
-                self._evaluation_vt = np.concatenate([e['vt'] for e in client_params], axis=-1)
-            # Release memory
-            del client_params
+            if self._server_evaluate:
+                # Only for evaluation, and the clients should not upload local results in real applications
+                client_params = sorted(client_params, key=lambda x: x['client_id'])
+                if self._svd_mode == 'lr':
+                    self._evaluate_parameters = np.concatenate([e['parameters'] for e in client_params], axis=0)
+                else:
+                    self._evaluation_u = client_params[0]['u']
+                    self._evaluation_sigma = client_params[0]['sigma']
+                    self._evaluation_vt = np.concatenate([e['vt'] for e in client_params], axis=-1)
+                # Release memory
+                del client_params
             # Nothing to download for clients, since the server is stoping
             return None
         return self._retrieve_host_download_info()
@@ -402,7 +446,16 @@ class FedSVD(FedStrategy):
             if ConfigurationManager().model_config.svd_top_k == -1:
                 # We do not need to compute the full matrices when the matrix is not full rank
                 self.logger.info(f'Server running SVD on matrix {data_matrix.shape[0]}x{data_matrix.shape[1]}')
-                return np.linalg.svd(data_matrix, full_matrices=False)
+                m, n = data_matrix.shape
+                if m <= n:
+                    x2 = data_matrix @ data_matrix.T
+                    left, sigma_square, _ = np.linalg.svd(x2, full_matrices=False)
+                    return left, sigma_square**0.5, np.diag(sigma_square ** -0.5) @ left.T @ data_matrix
+                else:
+                    x2 = data_matrix.T @ data_matrix
+                    right_t, sigma_square, _ = np.linalg.svd(x2, full_matrices=False)
+                    return data_matrix @ right_t @ np.diag(sigma_square ** -0.5), sigma_square**0.5, right_t.T
+                # return np.linalg.svd(data_matrix, full_matrices=False)
             elif ConfigurationManager().model_config.svd_top_k > 0:
                 assert ConfigurationManager().model_config.svd_top_k <= min(self._m, sum(self._ns))
                 # log information
@@ -485,6 +538,7 @@ class FedSVD(FedStrategy):
                 )
             self._received_q_masks = host_params['sliced_q']
             self._received_q_masks = sorted(self._received_q_masks, key=lambda x: x[0])
+            self._global_ns = host_params['ns']
             self.logger.info(f'Client {self.client_id} has received random mask Q')
         elif self._current_status is FedSVDStatus.ApplyMask:
             self._received_apply_mask_params = host_params
@@ -504,7 +558,7 @@ class FedSVD(FedStrategy):
             assert shape[0] == base.shape[0] and shape[1] == base.shape[1]
             result = base
         else:
-            result = None
+            result = np.zeros(shape)
         # Apply the secure aggregation
         for j in range(self._secure_agg_random_seed.shape[1]):
             if self._client_id == j:
@@ -513,11 +567,11 @@ class FedSVD(FedStrategy):
                 np.random.seed(self._secure_agg_random_seed[self._client_id, j])
                 r1 = np.random.random(shape) * 2 - 1
                 r2 = np.random.random(shape) * 2 - 1
-                p = (r1 - r2) if self._client_id < j else (r2 - r1)
-                if result is None:
-                    result = p.copy()
+                if self._client_id < j:
+                    p = r1 - r2
                 else:
-                    result += p.copy()
+                    p = r2 - r1
+                result += p
                 del r1, r2, p
         return result
 
@@ -525,6 +579,7 @@ class FedSVD(FedStrategy):
         if self._current_status is FedSVDStatus.ApplyMask:
             slice_start = self._received_apply_mask_params.get('slice_start')
             slice_end = self._received_apply_mask_params.get('slice_end')
+            vertical_slice = self._received_apply_mask_params.get('vertical_slice')
             if self._p_times_x is None:
                 self.logger.info(f'Client {self.client_id} computing P@X')
                 # P @ X_i
@@ -550,46 +605,89 @@ class FedSVD(FedStrategy):
                     del tmp_block_mask
                 if self._svd_mode == 'lr' and self._is_active:
                     self._masked_y = np.concatenate(self._masked_y, axis=0)
-                # if not self._memory_map:
-                #     del self.train_data
+                    self.logger.info(f'masked y shape {self._masked_y.shape}')
+                if not self._memory_map:
+                    del self.train_data
+                if self._memory_map:
+                    if not self._server_evaluate:
+                        tmp_file_name = self.train_data['x'].filename
+                        del self.train_data
+                        os.remove(tmp_file_name)
+            
+            if vertical_slice:
 
-            min_index = self._received_q_masks[0][1]
-            max_index = self._received_q_masks[-1][1] + self._received_q_masks[-1][-1].shape[-1]
+                min_index = self._received_q_masks[0][1]
+                max_index = self._received_q_masks[-1][1] + self._received_q_masks[-1][-1].shape[-1]
 
-            self.logger.info(f'Client {self.client_id} SecureAgg from {slice_start} to {slice_end}')
+                self.logger.info(f'Client {self.client_id} SecureAgg from {slice_start} to {slice_end}')
 
-            if slice_start >= max_index or slice_end <= min_index:
-                self._sliced_pqx_with_secure_agg = self._generate_masked_data_in_secure_agg(
-                    shape=(self._local_m, slice_end - slice_start))
+                if slice_start >= max_index or slice_end <= min_index:
+                    self.logger.info(f'Client {self.client_id} SecAgg using zero arrays')
+                    start_time = time.time()
+                    self._sliced_pqx_with_secure_agg = self._generate_masked_data_in_secure_agg(
+                        shape=(self._local_m, slice_end - slice_start))
+                    self.logger.info(f'Client {self.client_id} SecAgg using {time.time() - start_time}')
+                else:
+                    self.logger.info(f'Client {self.client_id} SecAgg using real data')
+                    start_time = time.time()
+                    matrix_base = []
+                    counter = slice_start
+                    while counter < slice_end:
+                        if counter < min_index:
+                            matrix_base.append(np.zeros([self._local_m, min_index - counter]))
+                        elif counter < max_index:
+                            x_slice_index = 0
+                            j = 0
+                            while counter >= (self._received_q_masks[j][1] + self._received_q_masks[j][-1].shape[-1]):
+                                x_slice_index += self._received_q_masks[j][-1].shape[0]
+                                j += 1
+                            matrix_base.append(
+                                self._p_times_x[:, x_slice_index:x_slice_index+self._received_q_masks[j][-1].shape[0]]@
+                                self._received_q_masks[j][-1]
+                                    [:, counter - self._received_q_masks[j][1]:
+                                                min(slice_end - self._received_q_masks[j][1],
+                                                    self._received_q_masks[j][-1].shape[-1])]
+                            )
+                        else:
+                            matrix_base.append(np.zeros([self._local_m, slice_end - max_index]))
+                        counter += matrix_base[-1].shape[-1]
+                    matrix_base = np.concatenate(matrix_base, axis=-1)
+                    self._sliced_pqx_with_secure_agg = self._generate_masked_data_in_secure_agg(
+                        shape=[self._local_m, slice_end - slice_start], base=matrix_base
+                    )
+                    self.logger.info(f'Client {self.client_id} SecAgg using {time.time() - start_time}')
+            
             else:
+                start_time = time.time()
                 matrix_base = []
-                counter = slice_start
-                while counter < slice_end:
-                    if counter < min_index:
-                        matrix_base.append(np.zeros([self._local_m, min_index - counter]))
-                    elif counter < max_index:
-                        x_slice_index = 0
-                        j = 0
-                        while counter >= (self._received_q_masks[j][1] + self._received_q_masks[j][-1].shape[-1]):
-                            x_slice_index += self._received_q_masks[j][-1].shape[0]
-                            j += 1
-                        matrix_base.append(self._p_times_x
-                                           [:, x_slice_index:x_slice_index + self._received_q_masks[j][-1].shape[0]] @
-                                           self._received_q_masks[j][-1]
-                                           [:, counter - self._received_q_masks[j][1]:
-                                               min(slice_end - self._received_q_masks[j][1],
-                                                   self._received_q_masks[j][-1].shape[-1])]
-                                           )
-                    else:
-                        matrix_base.append(np.zeros([self._local_m, slice_end - max_index]))
-                    counter += matrix_base[-1].shape[-1]
+                if self._received_q_masks[0][1] > 0:
+                    matrix_base.append(np.zeros([slice_end-slice_start, self._received_q_masks[0][1]]))
+                init_n_slice = self._received_q_masks[0][0]
+                for i in range(len(self._received_q_masks)):
+                    xi, yi, qi = self._received_q_masks[i]
+                    self.logger.info(f"Debug!, {xi}, {yi}, {qi.shape}")
+                    matrix_base.append(
+                        self._p_times_x[slice_start:slice_end, xi-init_n_slice:xi-init_n_slice+qi.shape[0]] @ qi
+                    )
+                if self._received_q_masks[-1][1] < self._global_ns:
+                    matrix_base.append(np.zeros([
+                        slice_end-slice_start,
+                        self._global_ns - self._received_q_masks[-1][1] - self._received_q_masks[-1][-1].shape[-1]
+                    ]))
                 matrix_base = np.concatenate(matrix_base, axis=-1)
                 self._sliced_pqx_with_secure_agg = self._generate_masked_data_in_secure_agg(
-                    shape=[self._local_m, slice_end - slice_start], base=matrix_base
+                    shape=matrix_base.shape, base=matrix_base
                 )
+                self.logger.info(f'Client {self.client_id} SecAgg using {time.time() - start_time}')
+                
             if self._received_apply_mask_params['apply_mask_finish']:
-                # Release memory
-                del self._p_times_x
+                # Release memory and disk
+                if self._memory_map:
+                    tmp_file = self._p_times_x.filename
+                    del self._p_times_x
+                    os.remove(tmp_file)
+                else:
+                    del self._p_times_x
 
         elif self._current_status is FedSVDStatus.RemoveMask:
 
@@ -725,157 +823,162 @@ class FedSVD(FedStrategy):
                 return {'client_id': self._client_id, 'secure_agg': self._sliced_pqx_with_secure_agg}
         elif self._current_status is FedSVDStatus.Evaluate:
             # Only for evaluation, and the clients should not upload local results in real applications
-            if self._svd_mode == 'lr':
-                return {'client_id': self._client_id, 'parameters': self._local_parameters}
-            else:
-                if self.client_id == 0:
-                    return {'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt}
+            if self._server_evaluate:
+                if self._svd_mode == 'lr':
+                    return {'client_id': self._client_id, 'parameters': self._local_parameters}
                 else:
-                    return {'client_id': self._client_id, 'vt': self._local_vt}
+                    if self.client_id == 0:
+                        return {'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt}
+                    else:
+                        return {'client_id': self._client_id, 'vt': self._local_vt}
+            else:
+                return None
 
     def host_exit_job(self, host):
 
-        self.logger.info('FedSVD Server Status: Computing the metrics.')
+        if self._server_evaluate:
+            
+            self.logger.info('FedSVD Server Status: Computing the metrics.')
 
-        # Clear disk files
-        local_disk_files = [e for e in os.listdir(self._tmp_dir) if e.startswith(f'server')]
-        for file in local_disk_files:
-            try:
-                os.remove(os.path.join(self._tmp_dir, file))
-            except FileNotFoundError:
-                self.logger.info(f'{file} not found, cache clean failed')
+            # Clear disk files
+            local_disk_files = [e for e in os.listdir(self._tmp_dir) if e.startswith(f'server')]
+            for file in local_disk_files:
+                try:
+                    os.remove(os.path.join(self._tmp_dir, file))
+                except FileNotFoundError:
+                    self.logger.info(f'{file} not found, cache clean failed')
 
-        def mse(x1, x2):
-            return np.mean((x1 - x2) ** 2)
+            def mse(x1, x2):
+                return np.mean((x1 - x2) ** 2)
 
-        def signed_rmse(x1, x2):
-            res = []
-            for i in range(x1.shape[0]):
-                signed_error = min(mse(x1[i], x2[i]), mse(x1[i], -x2[i]))
-                res.append(signed_error)
-            return np.sqrt(np.sum(res) / x1.shape[0])
+            def signed_rmse(x1, x2):
+                res = []
+                for i in range(x1.shape[0]):
+                    signed_error = min(mse(x1[i], x2[i]), mse(x1[i], -x2[i]))
+                    res.append(signed_error)
+                return np.sqrt(np.sum(res) / x1.shape[0])
 
-        def project_distance(u1, u2, block=10000):
-            distance_sum = 0
-            for i in range(0, len(u1), block):
-                for j in range(0, len(u1), block):
-                    distance_sum += np.sum(
-                        (u1[i:i + block] @ u1[j:j + block].T - u2[i:i + block] @ u2[j:j + block].T) ** 2
-                    )
-            return np.sqrt(distance_sum)
+            def project_distance(u1, u2, block=10000):
+                distance_sum = 0
+                for i in range(0, len(u1), block):
+                    for j in range(0, len(u1), block):
+                        distance_sum += np.sum(
+                            (u1[i:i + block] @ u1[j:j + block].T - u2[i:i + block] @ u2[j:j + block].T) ** 2
+                        )
+                return np.sqrt(distance_sum)
 
-        cfg_mgr = ConfigurationManager()
-        client_num = cfg_mgr.runtime_config.client_num
-        data_dir = cfg_mgr.data_config.dir_name
-        # Get current results
-        result_json = host.snapshot_result(None)
+            cfg_mgr = ConfigurationManager()
+            client_num = cfg_mgr.runtime_config.client_num
+            data_dir = cfg_mgr.data_config.dir_name
+            # Get current results
+            result_json = host.snapshot_result(None)
 
-        # Load clients' data for evaluation
-        if self._memory_map:
-            x_train = np.memmap(
-                filename=os.path.join(self._tmp_dir, 'server_x_train.npy'),
-                mode='write', dtype=np.float64, shape=(self._m, sum(self._ns))
-            )
-        else:
-            x_train = np.zeros((self._m, sum(self._ns)))
-        for client_id in range(client_num):
-            with open(os.path.join(data_dir, 'client_%s.pkl' % client_id), 'r') as f:
-                data = hickle.load(f)
+            # Load clients' data for evaluation
             if self._memory_map:
-                x_train[:, sum(self._ns[:client_id]):sum(self._ns[:client_id+1])] = open_memmap(data['x_train']).T
-                # x_train.flush()
+                x_train = np.memmap(
+                    filename=os.path.join(self._tmp_dir, 'server_x_train.npy'),
+                    mode='write', dtype=np.float64, shape=(self._m, sum(self._ns))
+                )
             else:
-                x_train[:, sum(self._ns[:client_id]):sum(self._ns[:client_id+1])] = data['x_train'].T
-            self.logger.info(f'Memory Usage after loading Client '
-                             f'{client_id} {psutil.virtual_memory().used / 2 ** 30}GB')
-            if self._svd_mode == 'lr' and client_id == (client_num - 1):
-                y_train = data['y_train']
+                x_train = np.zeros((self._m, sum(self._ns)))
+            for client_id in range(client_num):
+                with open(os.path.join(data_dir, 'client_%s.pkl' % client_id), 'r') as f:
+                    data = hickle.load(f)
+                if self._memory_map:
+                    x_train[:, sum(self._ns[:client_id]):sum(self._ns[:client_id+1])] = open_memmap(data['x_train']).T
+                    # x_train.flush()
+                else:
+                    x_train[:, sum(self._ns[:client_id]):sum(self._ns[:client_id+1])] = data['x_train'].T
+                self.logger.info(f'Memory Usage after loading Client '
+                                f'{client_id} {psutil.virtual_memory().used / 2 ** 30}GB')
+                if self._svd_mode == 'lr' and client_id == (client_num - 1):
+                    y_train = data['y_train']
 
-        if self._svd_mode == 'lr':
-            # SVD prediction and errors
-            y_hat_svd = x_train @ self._evaluate_parameters
-            svd_mse = mean_squared_error(y_true=y_train, y_pred=y_hat_svd)
-            svd_mape = mean_absolute_percentage_error(y_true=y_train, y_pred=y_hat_svd)
-            svd_r2 = r2_score(y_true=y_train, y_pred=y_hat_svd)
-            self.logger.info(f'SVD-LR evaluation done. MSE {svd_mse} MAPE {svd_mape} R2 {svd_r2}')
-            # Centralized SGD and errors
-            x_train = x_train[:, :-1]
-            learning_rate = 0.01
-            tolerance = 10
-            batch_size = 1000000
-            max_epoch = 10000
-            l2 = ConfigurationManager().model_config.svd_lr_l2
-            linear_regression_model = tf.keras.Sequential()
-            linear_regression_model.add(tf.keras.layers.Dense(
-                1 if len(y_train.shape) == 1 else y_train.shape[-1],
-                kernel_regularizer=tf.keras.regularizers.l2(l2), use_bias=True
-            ))
-            optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate)
-            linear_regression_model.compile(optimizer=optimizer, loss=tf.keras.losses.mse)
-            es = tf.keras.callbacks.EarlyStopping(
-                monitor='loss', min_delta=0, patience=tolerance, verbose=0,
-                mode='auto', baseline=None, restore_best_weights=True
-            )
-            linear_regression_model.fit(
-                x_train, y_train, batch_size=batch_size, epochs=max_epoch, verbose=1, callbacks=[es]
-            )
-            y_hat_sgd = linear_regression_model.predict(x_train)
-            sgd_mse = float(mean_squared_error(y_true=y_train, y_pred=y_hat_sgd))
-            sgd_mape = float(mean_absolute_percentage_error(y_true=y_train, y_pred=y_hat_sgd))
-            sgd_r2 = float(r2_score(y_true=y_train, y_pred=y_hat_sgd))
-            self.logger.info(
-                f"SGD-LR evaluation done. MSE {sgd_mse} MAPE {sgd_mape} R2 {sgd_r2}"
-            )
-            result_json.update({
-                'svd_mse': svd_mse, 'svd_mape': svd_mape, 'svd_r2': svd_r2,
-                'sgd_mse': sgd_mse, 'sgd_mape': sgd_mape,
-                'sgd_r2': sgd_r2
-            })
-        else:
-            # Centralized SVD
-            self.logger.info('FedSVD Server Status: Centralized SVD.')
-            c_svd_start = time.time()
-            c_u, c_sigma, c_vt = self._server_svd(x_train)
-            c_svd_end = time.time()
+            if self._svd_mode == 'lr':
+                # SVD prediction and errors
+                y_hat_svd = x_train @ self._evaluate_parameters
+                svd_mse = mean_squared_error(y_true=y_train, y_pred=y_hat_svd)
+                svd_mape = mean_absolute_percentage_error(y_true=y_train, y_pred=y_hat_svd)
+                svd_r2 = r2_score(y_true=y_train, y_pred=y_hat_svd)
+                self.logger.info(f'SVD-LR evaluation done. MSE {svd_mse} MAPE {svd_mape} R2 {svd_r2}')
+                # Centralized SGD and errors
+                x_train = x_train[:, :-1]
+                learning_rate = 0.01
+                tolerance = 10
+                batch_size = 1000000
+                max_epoch = 10000
+                l2 = ConfigurationManager().model_config.svd_lr_l2
+                linear_regression_model = tf.keras.Sequential()
+                linear_regression_model.add(tf.keras.layers.Dense(
+                    1 if len(y_train.shape) == 1 else y_train.shape[-1],
+                    kernel_regularizer=tf.keras.regularizers.l2(l2), use_bias=True
+                ))
+                optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate)
+                linear_regression_model.compile(optimizer=optimizer, loss=tf.keras.losses.mse)
+                es = tf.keras.callbacks.EarlyStopping(
+                    monitor='loss', min_delta=0, patience=tolerance, verbose=0,
+                    mode='auto', baseline=None, restore_best_weights=True
+                )
+                linear_regression_model.fit(
+                    x_train, y_train, batch_size=batch_size, epochs=max_epoch, verbose=1, callbacks=[es]
+                )
+                y_hat_sgd = linear_regression_model.predict(x_train)
+                sgd_mse = float(mean_squared_error(y_true=y_train, y_pred=y_hat_sgd))
+                sgd_mape = float(mean_absolute_percentage_error(y_true=y_train, y_pred=y_hat_sgd))
+                sgd_r2 = float(r2_score(y_true=y_train, y_pred=y_hat_sgd))
+                self.logger.info(
+                    f"SGD-LR evaluation done. MSE {sgd_mse} MAPE {sgd_mape} R2 {sgd_r2}"
+                )
+                result_json.update({
+                    'svd_mse': svd_mse, 'svd_mape': svd_mape, 'svd_r2': svd_r2,
+                    'sgd_mse': sgd_mse, 'sgd_mape': sgd_mape,
+                    'sgd_r2': sgd_r2
+                })
+            else:
+                # Centralized SVD
+                self.logger.info('FedSVD Server Status: Centralized SVD.')
+                c_svd_start = time.time()
+                c_u, c_sigma, c_vt = self._server_svd(x_train)
+                c_svd_end = time.time()
 
-            result_json.update({'local_svd_time': c_svd_end - c_svd_start})
+                result_json.update({'local_svd_time': c_svd_end - c_svd_start})
 
-            # Filter out the very small singular values before calculating the metrics
-            if (c_sigma < 10e-10).any():
-                significant_index = np.where(c_sigma < 10e-10)[0][0]
-                c_sigma = c_sigma[:significant_index]
-                c_u = c_u[:, :significant_index]
-                c_vt = c_vt[:significant_index, :]
-                self._evaluation_sigma = self._evaluation_sigma[:significant_index]
-                self._evaluation_u = self._evaluation_u[:, :significant_index]
-                self._evaluation_vt = self._evaluation_vt[:significant_index, :]
+                # Filter out the very small singular values before calculating the metrics
+                if (c_sigma < 10e-10).any():
+                    significant_index = np.where(c_sigma < 10e-10)[0][0]
+                    c_sigma = c_sigma[:significant_index]
+                    c_u = c_u[:, :significant_index]
+                    c_vt = c_vt[:significant_index, :]
+                    self._evaluation_sigma = self._evaluation_sigma[:significant_index]
+                    self._evaluation_u = self._evaluation_u[:, :significant_index]
+                    self._evaluation_vt = self._evaluation_vt[:significant_index, :]
 
-            # RMSE metric
-            self.logger.info('FedSVD Server Status: Computing the RMSE.')
-            singular_value_rmse = signed_rmse(c_sigma, self._evaluation_sigma)
-            singular_vector_rmse = signed_rmse(c_u.T, self._evaluation_u.T)
-            if self._svd_mode == 'svd':
-                singular_vector_rmse += signed_rmse(c_vt, self._evaluation_vt)
-                singular_vector_rmse /= 2
-            result_json.update({'singular_value_rmse': singular_value_rmse})
-            result_json.update({'singular_vector_rmse': singular_vector_rmse})
-
-            self.logger.info(f'FedSVD Server Status: Singular Value RMSE {singular_value_rmse}.')
-            self.logger.info(f'FedSVD Server Status: Singular Vectors RMSE {singular_vector_rmse}.')
-
-            if (ConfigurationManager().model_config.svd_top_k != -1 and self._svd_mode == 'svd') or \
-                    self._svd_mode == 'pca':
-                self.logger.info('FedSVD Server Status: Computing the project_distance.')
-                singular_vector_project_distance = project_distance(c_u, self._evaluation_u)
+                # RMSE metric
+                self.logger.info('FedSVD Server Status: Computing the RMSE.')
+                singular_value_rmse = signed_rmse(c_sigma, self._evaluation_sigma)
+                singular_vector_rmse = signed_rmse(c_u.T, self._evaluation_u.T)
                 if self._svd_mode == 'svd':
-                    singular_vector_project_distance += project_distance(c_vt.T, self._evaluation_vt.T)
-                result_json.update({'singular_vector_project_distance': singular_vector_project_distance})
+                    singular_vector_rmse += signed_rmse(c_vt, self._evaluation_vt)
+                    singular_vector_rmse /= 2
+                result_json.update({'singular_value_rmse': singular_value_rmse})
+                result_json.update({'singular_vector_rmse': singular_vector_rmse})
 
-        with open(os.path.join(host.log_dir, 'results.json'), 'w') as f:
-            json.dump(result_json, f)
+                self.logger.info(f'FedSVD Server Status: Singular Value RMSE {singular_value_rmse}.')
+                self.logger.info(f'FedSVD Server Status: Singular Vectors RMSE {singular_vector_rmse}.')
 
-        result_path = os.path.join(host.log_dir, 'results.json')
-        self.logger.info(f'FedSVD Server Status: Results saved to {result_path}.')
+                if (ConfigurationManager().model_config.svd_top_k != -1 and self._svd_mode == 'svd') or \
+                        self._svd_mode == 'pca':
+                    self.logger.info('FedSVD Server Status: Computing the project_distance.')
+                    singular_vector_project_distance = project_distance(c_u, self._evaluation_u)
+                    if self._svd_mode == 'svd':
+                        singular_vector_project_distance += project_distance(c_vt.T, self._evaluation_vt.T)
+                    result_json.update({'singular_vector_project_distance': singular_vector_project_distance})
+
+            with open(os.path.join(host.log_dir, 'results.json'), 'w') as f:
+                json.dump(result_json, f)
+
+            result_path = os.path.join(host.log_dir, 'results.json')
+            self.logger.info(f'FedSVD Server Status: Results saved to {result_path}.')
 
         # Clear cached data
         shutil.rmtree(ConfigurationManager().data_config.dir_name, ignore_errors=True)

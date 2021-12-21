@@ -26,7 +26,7 @@ class FedVerticalMatrix(FedData, ABC):
             local_num_features[:num_features % num_clients] += 1
 
         # Add bias term
-        self.x = np.concatenate([self.x, np.ones(self.x.shape[0], 1)], axis=-1)
+        self.x = np.concatenate([self.x, np.ones((self.x.shape[0], 1))], axis=-1)
         local_num_features[-1] += 1
 
         train_size = int(num_samples * self.train_val_test[0])
@@ -165,7 +165,9 @@ class synthetic_matrix_horizontal_memmap(FedData):
                 self.x[local_dataset_index[i][0]]
             )
             local_dataset.append(
-                {'x_train': os.path.join(ConfigurationManager().data_config.dir_name, f'client_{i}_train_x.npy')}
+                {
+                    'x_train': os.path.join(ConfigurationManager().data_config.dir_name, f"client_{i}_train_x.npy")
+                }
             )
         if save_file:
             for i in range(len(local_dataset)):
@@ -220,19 +222,20 @@ class vertical_linear_regression_memmap(FedVerticalMatrix):
         # Create the random X
         x = np.memmap(
             filename=os.path.join(ConfigurationManager().data_config.dir_name, 'vlr_x.npy'),
-            mode='write', dtype=np.float64, shape=(n_samples, n_features + 1)
+            mode='write', dtype=np.float64, shape=(n_features + 1, n_samples)
         )
         n_informative = int(n_features * 0.9)
         n_targets = 1
-        for i in range(0, n_samples, 10000):
-            tmp_i_end = min(i+10000, n_samples)
-            tmp = np.random.randn(tmp_i_end-i, n_features)
-            x[i:tmp_i_end] = np.concatenate([tmp, np.ones([tmp_i_end-i, 1])], axis=-1)
-            del tmp
-            print('Generating large scale data step', i)
+        y = np.zeros((n_samples))
         ground_truth = np.zeros((n_features+1, n_targets))
         ground_truth[:n_informative, :] = 100 * np.random.rand(n_informative, n_targets)
-        y = x @ ground_truth
+        for i in range(0, n_features, 10):
+            tmp_i_end = min(i+10, n_features)
+            tmp = np.random.randn(tmp_i_end-i, n_samples)
+            x[i:tmp_i_end] = tmp
+            y += np.squeeze(tmp.T @ ground_truth[i:tmp_i_end])
+            del tmp
+            print('Generating large scale data step', i)
         # Add noise
         y += np.random.normal(scale=1.0, size=y.shape)
         y = np.squeeze(y)
@@ -242,7 +245,7 @@ class vertical_linear_regression_memmap(FedVerticalMatrix):
     """Generate datasets for vertical federated learning"""
     def iid_data(self, save_file=True):
         # Assume the features are uniformly distributed
-        num_samples, num_features = self.x.shape
+        num_features, num_samples = self.x.shape
         num_clients = ConfigurationManager().runtime_config.client_num
         # bias term
         num_features -= 1
@@ -262,7 +265,7 @@ class vertical_linear_regression_memmap(FedVerticalMatrix):
         for i in range(num_clients):
             np.save(
                 os.path.join(ConfigurationManager().data_config.dir_name, f'client_{i}_train_x.npy'),
-                self.x[:train_size, sum(local_num_features[:i]):sum(local_num_features[:i+1])].T
+                self.x[sum(local_num_features[:i]):sum(local_num_features[:i+1]), :train_size]
             )
             local_dataset.append(
                 {'x_train': os.path.join(ConfigurationManager().data_config.dir_name, f'client_{i}_train_x.npy')}
