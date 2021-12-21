@@ -163,8 +163,8 @@ runtime_config = {
     'docker': {'num_containers': 100, 'enable_gpu': False, 'num_gpu': 0},
     'communication': {
         'limit_network_resource': True,
-        'bandwidth_upload': '10Mbit', 
-        'bandwidth_download': '30Mbit',
+        'bandwidth_upload': '100Mbit',
+        'bandwidth_download': '100Mbit',
         'latency': '50ms'
         }
 }
