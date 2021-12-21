@@ -72,7 +72,7 @@ class ServerFlaskCommunicator(ServerCommunicator):
             if payload is None:
                 return emit(msg, *args, **kwargs, broadcast=True)
             else:
-                return emit(msg, payload, *args, **kwargs, broadcase=True)
+                return emit(msg, payload, *args, **kwargs, broadcast=True)
         else:
             res = list()
             for node_id, client_ids in self._client_node_ctx_mgr.cluster_by_node(callees).items():
