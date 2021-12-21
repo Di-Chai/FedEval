@@ -249,17 +249,17 @@ host_name = socket.gethostname()
 
 if host_name == "workstation":
     runtime_config['docker']['enable_gpu'] = False
-    runtime_config['docker']['num_containers'] = 20
+    # runtime_config['docker']['num_containers'] = 100
     runtime_config['docker']['num_gpu'] = 2
 
 if host_name == "gpu06":
     runtime_config['docker']['enable_gpu'] = False
-    runtime_config['docker']['num_containers'] = 80
+    # runtime_config['docker']['num_containers'] = 80
     runtime_config['docker']['num_gpu'] = 8
 
 if host_name == "gpu05":
     runtime_config['docker']['enable_gpu'] = False
-    runtime_config['docker']['num_containers'] = 40
+    # runtime_config['docker']['num_containers'] = 40
     runtime_config['docker']['num_gpu'] = 2
 
 if host_name == "ministation":
