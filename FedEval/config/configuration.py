@@ -394,9 +394,6 @@ class _ModelConfig(_Configuraiton):
         super().__init__(model_config)
         self._strategy_cfg = model_config[_STRATEGY_KEY]
         self._ml_cfg = model_config[_ML_KEY]
-
-        self._unit_size: List[int] = [
-            int(i) for i in self._ml_cfg[_ML_UNITS_SIZE_KEY]]
     
     @staticmethod
     def _config_filter(config: RawConfigurationDict) -> RawConfigurationDict:
@@ -576,7 +573,8 @@ class _ModelConfig(_Configuraiton):
             Sequence[int]: the size of network components
             (ordered the same with data flow direction)
         """
-        return self._unit_size.copy()
+        return [
+            int(i) for i in self._ml_cfg[_ML_UNITS_SIZE_KEY]].copy()
 
     @property
     def optimizer_name(self) -> str:
@@ -680,7 +678,7 @@ class _ModelConfig(_Configuraiton):
         """
         if self.strategy_name != 'FedSVD':
             raise AttributeError
-        return self._strategy_cfg[_STRATEGY_FEDSVD_L2]
+        return float(self._strategy_cfg[_STRATEGY_FEDSVD_L2])
 
 
 class _RT_Machine(_Configuraiton):
