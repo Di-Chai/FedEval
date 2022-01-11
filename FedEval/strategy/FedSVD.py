@@ -158,7 +158,6 @@ class FedSVD(FedStrategy):
             self._vertical_slice = None
             self._vector_transfer_start: int = 0
             self._vt_transfer_emd: int = 0
-            self._memory_map = False
             # Only for evaluation
             self._evaluation_u = None
             self._evaluation_sigma = None
@@ -170,6 +169,7 @@ class FedSVD(FedStrategy):
             self._local_machine_id = os.getenv('machine_id', 'local')
             self._received_q_masks: list = None
             self._received_p_masks: list = None
+            self._save_p_to_disk = None
             self._current_status = None
             self._p_times_x = None
             self._sliced_pqx_with_secure_agg = None
@@ -211,6 +211,7 @@ class FedSVD(FedStrategy):
 
     def _retrieve_host_download_info(self):
         self.logger.info(f'FedSVD Server Reporting Status: {self._fed_svd_status}')
+        self.logger.info(f'FedSVD Server Reporting Memory Usage: {psutil.virtual_memory().used / 2**30} GB')
         # Masking Server
         if self._fed_svd_status is FedSVDStatus.Init:
             # Wait for the clients to send n and m
@@ -376,6 +377,7 @@ class FedSVD(FedStrategy):
         elif self._fed_svd_status is FedSVDStatus.SendMask:
             self._fed_svd_status = FedSVDStatus.ApplyMask
         elif self._fed_svd_status is FedSVDStatus.ApplyMask:
+            self.logger.info(f'FedSVD Server Reporting Memory Usage: {psutil.virtual_memory().used / 2 ** 30} GB')
             client_params = sorted(client_params, key=lambda x: x['client_id'])
             self.logger.info('Server Agg Started')
             start_time = time.time()
@@ -408,10 +410,14 @@ class FedSVD(FedStrategy):
                     else:
                         self._masked_u, self._sigma, self._masked_vt = self._server_svd(self._pxq)
                     pxq_filename = self._pxq.filename
+                    self.logger.info(
+                        f'FedSVD Server Reporting Memory Usage: {psutil.virtual_memory().used / 2 ** 30} GB')
                     del self._pxq
                     os.remove(pxq_filename)
                 else:
                     self._masked_u, self._sigma, self._masked_vt = self._server_svd(self._pxq)
+                    self.logger.info(
+                        f'FedSVD Server Reporting Memory Usage: {psutil.virtual_memory().used / 2 ** 30} GB')
                     del self._pxq
                 self._fed_svd_status = FedSVDStatus.RemoveMask
         elif self._fed_svd_status is FedSVDStatus.RemoveMask:
@@ -533,8 +539,9 @@ class FedSVD(FedStrategy):
                 self._received_p_masks = generate_orthogonal_matrix(
                     n=self._local_m,
                     block_reduce=min(ConfigurationManager().model_config.block_size, self._local_m),
-                    random_seed=self._received_p_masks, reuse=True, file_name=f'client_{self.client_id}',
-                    memory_efficient=True
+                    random_seed=self._received_p_masks, file_name=f'client_{self.client_id}',
+                    reuse=self._save_p_to_disk,
+                    memory_efficient=self._save_p_to_disk
                 )
             self._received_q_masks = host_params['sliced_q']
             self._received_q_masks = sorted(self._received_q_masks, key=lambda x: x[0])
@@ -593,8 +600,11 @@ class FedSVD(FedStrategy):
                 p_size_counter = 0
                 self._masked_y = []
                 for i in range(len(self._received_p_masks)):
-                    with open(self._received_p_masks[i], 'rb') as f:
-                        tmp_block_mask = pickle.load(f)
+                    if self._save_p_to_disk:
+                        with open(self._received_p_masks[i], 'rb') as f:
+                            tmp_block_mask = pickle.load(f)
+                    else:
+                        tmp_block_mask = self._received_p_masks[i]
                     self._p_times_x[p_size_counter:p_size_counter+len(tmp_block_mask)] =\
                         tmp_block_mask @ self.train_data['x'][p_size_counter: p_size_counter + len(tmp_block_mask)]
                     if self._svd_mode == 'lr' and self._is_active:
@@ -602,7 +612,8 @@ class FedSVD(FedStrategy):
                             tmp_block_mask @ self.train_data['y'][p_size_counter: p_size_counter + len(tmp_block_mask)]
                         )
                     p_size_counter += len(tmp_block_mask)
-                    del tmp_block_mask
+                    if self._save_p_to_disk:
+                        del tmp_block_mask
                 if self._svd_mode == 'lr' and self._is_active:
                     self._masked_y = np.concatenate(self._masked_y, axis=0)
                     self.logger.info(f'masked y shape {self._masked_y.shape}')
@@ -741,13 +752,17 @@ class FedSVD(FedStrategy):
                 p_size_counter = 0
                 u_counter = 0
                 for i in range(len(self._received_p_masks)):
-                    with open(self._received_p_masks[i], 'rb') as f:
-                        tmp_block_mask = pickle.load(f)
+                    if self._save_p_to_disk:
+                        with open(self._received_p_masks[i], 'rb') as f:
+                            tmp_block_mask = pickle.load(f)
+                    else:
+                        tmp_block_mask = self._received_p_masks[i]
                     self._u[u_counter: u_counter + tmp_block_mask.shape[0]] = \
                         tmp_block_mask.T @ self._masked_u[p_size_counter: p_size_counter + len(tmp_block_mask)]
                     p_size_counter += tmp_block_mask.shape[1]
                     u_counter += tmp_block_mask.shape[0]
-                    del tmp_block_mask
+                    if self._save_p_to_disk:
+                        del tmp_block_mask
                 # Remove the mask of VT
                 if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1 \
                         and not self._received_server_params.get('m<n'):
@@ -806,8 +821,10 @@ class FedSVD(FedStrategy):
             if type(self.train_data['x']) is str:
                 self.train_data['x'] = open_memmap(self.train_data['x'])
                 self._memory_map = True
+                self._save_p_to_disk = True
             else:
                 self._memory_map = False
+                self._save_p_to_disk = False
             self.train_data['x'] = self.train_data['x'].T
             if self._svd_mode == 'lr':
                 self._is_active = (self.client_id + 1) == ConfigurationManager().runtime_config.client_num
