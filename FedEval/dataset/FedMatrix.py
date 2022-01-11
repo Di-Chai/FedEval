@@ -210,7 +210,7 @@ class vertical_linear_regression(FedVerticalMatrix):
             n_samples=n_samples,
             n_features=n_features,
             n_informative=int(n_features*0.9), shuffle=True, n_targets=1,
-            noise=1.0, bias=1
+            noise=1.0
         )
         return x.astype(np.float64), y
 
@@ -236,6 +236,8 @@ class vertical_linear_regression_memmap(FedVerticalMatrix):
             y += np.squeeze(tmp.T @ ground_truth[i:tmp_i_end])
             del tmp
             print('Generating large scale data step', i)
+        # Add bias
+        x[-1] = np.ones([n_samples])
         # Add noise
         y += np.random.normal(scale=1.0, size=y.shape)
         y = np.squeeze(y)
@@ -283,6 +285,29 @@ class vertical_linear_regression_memmap(FedVerticalMatrix):
         del self.x
         os.remove(x_filename)
         return local_dataset
+
+
+class ml25m_matrix_memmap(vertical_linear_regression_memmap):
+    def load_data(self):
+        data_dir = os.path.join(os.path.dirname(self.local_path), 'data', 'ml-25m')
+        num_users = 162541
+        num_movies = 62423
+        x = np.memmap(
+            filename=os.path.join(ConfigurationManager().data_config.dir_name, 'vlr_x.npy'),
+            mode='write', dtype=np.float64, shape=(num_movies, num_users)
+        )
+        with open(os.path.join(data_dir, 'movies.csv'), 'r', encoding='utf-8') as f:
+            movie_ids = [e.split(',')[0] for e in f.readlines()[1:]]
+            movie_ids = {e: movie_ids.index(e) for e in movie_ids}
+        with open(os.path.join(data_dir, 'ratings.csv'), 'r', encoding='utf-8') as f:
+            ratings = f.readlines()[1:]
+            ratings = [e.strip('\n').split(',')[:3] for e in ratings]
+        for record in ratings:
+            x[movie_ids[record[1]]][int(record[0]) - 1] = record[2]
+        # Dummy infos
+        y = np.zeros((x.shape[1]), dtype=int)
+        self.num_class = 1
+        return x, y
 
 
 class wine_lr(FedVerticalMatrix):
