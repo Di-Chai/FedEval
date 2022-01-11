@@ -85,7 +85,7 @@ def generate_docker_compose_server(path):
     if rt_cfg.limit_network_resource:
         server_template['command'] = 'sh -c "' \
                                      'tc qdisc add dev eth0 handle 1: root htb default 11' \
-                                     '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 1000Mbps' \
+                                     '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 100000Mbps' \
                                      '&& tc class add dev eth0 parent 1:1 classid 1:11 htb rate {}' \
                                      '&& tc qdisc add dev eth0 parent 1:11 handle 10: netem delay {}' \
                                      '&& python3 -W ignore -m FedEval.run -f run -r server -c {}' \
@@ -138,7 +138,7 @@ def generate_docker_compose_server(path):
                 tmp['command'] = 'sh -c ' \
                                  '"export CONTAINER_ID={} ' \
                                  '&& tc qdisc add dev eth0 handle 1: root htb default 11 ' \
-                                 '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 1000Mbps ' \
+                                 '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 100000Mbps ' \
                                  '&& tc class add dev eth0 parent 1:1 classid 1:11 htb rate {} ' \
                                  '&& tc qdisc add dev eth0 parent 1:11 handle 10: netem delay {} ' \
                                  '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
@@ -181,7 +181,7 @@ def generate_docker_compose_local(path):
     if rt_cfg.limit_network_resource:
         server_template['command'] = 'sh -c "' \
                                      'tc qdisc add dev eth0 handle 1: root htb default 11' \
-                                     '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 1000Mbps' \
+                                     '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 100000Mbps' \
                                      '&& tc class add dev eth0 parent 1:1 classid 1:11 htb rate {}' \
                                      '&& tc qdisc add dev eth0 parent 1:11 handle 10: netem delay {}' \
                                      '&& python3 -W ignore -m FedEval.run -f run -r server -c {}' \
@@ -220,7 +220,7 @@ def generate_docker_compose_local(path):
             tmp['command'] = 'sh -c ' \
                              '"export CONTAINER_ID={} ' \
                              '&& tc qdisc add dev eth0 handle 1: root htb default 11 ' \
-                             '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 1000Mbps ' \
+                             '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 100000Mbps ' \
                              '&& tc class add dev eth0 parent 1:1 classid 1:11 htb rate {} ' \
                              '&& tc qdisc add dev eth0 parent 1:11 handle 10: netem delay {} ' \
                              '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
