@@ -59,7 +59,8 @@ class LocalCentral(FedStrategy):
         self.local_params_pre = self._retrieve_local_params()
         mdl_cfg = ConfigurationManager().model_config
         train_log = self.ml_model.fit(
-            **self.train_data, batch_size=mdl_cfg.B,
+            **self.train_data,
+            batch_size=mdl_cfg.B if ConfigurationManager().role == Role.Client else max(mdl_cfg.B * 10, 512),
             epochs=mdl_cfg.E,
             validation_data=(self.val_data['x'], self.val_data['y']),
             callbacks=[
