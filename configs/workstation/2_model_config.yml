@@ -1,9 +1,9 @@
 FedModel:
-  name: FedAvg
+  name: FedSVD
   # Shared params
   B: 32
-  C: 0.1
-  E: 10
+  C: 1.0
+  E: 1
   max_rounds: 10000
   num_tolerance: 300
   rounds_between_val: 1
@@ -18,8 +18,12 @@ FedModel:
   opt_name: 'fedyogi'
   # Server LR, used by FedOpt and FedSCA
   eta: 1.0
+  # FedSVD
+  block_size: 1000
+  fedsvd_mode: svd  # or pca
+  fedsvd_top_k: -1  # -1 means computing all the singular vectors
 MLModel:
-  name: MLP
+  name: LeNet
   activation: relu
   dropout: 0.2
   units:
@@ -28,7 +32,7 @@ MLModel:
   optimizer:
     name: sgd
     lr: 0.1
-    momentum: 0
+    momentum: 0.9
   loss: categorical_crossentropy
   metrics:
     - accuracy

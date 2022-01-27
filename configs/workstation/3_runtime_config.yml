@@ -1,10 +1,10 @@
 docker:
   image: fedeval:v1
-  num_containers: 100
+  num_containers: 10
 server:
   host: 10.173.1.22
   listen: 0.0.0.0
-  num_clients: 100
+  num_clients: 10
   port: 8000
   secret_key: secret!
 machines:
@@ -12,14 +12,14 @@ machines:
     host: 10.173.1.22
     port: 22
     username: ubuntu
-    dir: /ldisk/chaidi/FedEval
+    dir: /ldisk/chaidi/FedEval/FedEval-Code-WithData
     key: id_rsa
   m1:
     host: 10.173.1.22
     port: 22
     capacity: 100
     username: ubuntu
-    dir: /ldisk/chaidi/FedEval
+    dir: /ldisk/chaidi/FedEval/FedEval-Code-WithData
     key: id_rsa
 log:
   log_dir: log/workstation

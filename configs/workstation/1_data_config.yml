@@ -1,11 +1,12 @@
 data_dir: data
-dataset: femnist
+dataset: synthetic_matrix_vertical
 non-iid: False
-non-iid-class: 1 # Only work when non-iid = True
-non-iid-strategy: average # Only work when non-iid = True
+non-iid-class: 0 # Only work when non-iid = True
+non-iid-strategy: natural # Only work when non-iid = True
 normalize: true
-sample_size: 300
+sample_size: 1000 # per client
+synthetic_features: 1000
 train_val_test:
-  - 0.8
-  - 0.1
-  - 0.1
+  - 1.0
+  - 0
+  - 0

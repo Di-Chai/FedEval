@@ -330,7 +330,10 @@ class ml100k_lr(FedVerticalMatrix):
         data_dir = os.path.join(os.path.dirname(self.local_path), 'data', 'ml-100k')
         item_size = 1682
         user_size = 943
-        num_item_selected = 500
+        if ConfigurationManager().model_config.svd_mode == 'lr':
+            num_item_selected = 500
+        else:
+            num_item_selected = item_size
         with open(os.path.join(data_dir, 'u.user'), 'r') as f:
             user_attr = f.readlines()
             y = np.array([int(e.strip('\n').split('|')[1]) for e in user_attr])
@@ -350,3 +353,4 @@ class ml100k_lr(FedVerticalMatrix):
             if int(i_id) in item_set:
                 x[int(u_id)-1][selected_items.index(int(i_id))] = float(rate)
         return x.astype(np.float64), y
+

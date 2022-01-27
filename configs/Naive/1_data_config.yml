@@ -1,12 +1,12 @@
 data_dir: data
-dataset: synthetic_matrix_horizontal
-feature_size: 1000
+dataset: synthetic_matrix_horizontal_memmap
+feature_size: 10000
 non-iid: false
 non-iid-class: 0
 non-iid-strategy: natural
 normalize: false
 random_seed: 100
-sample_size: 10000
+sample_size: 25000
 train_val_test:
 - 1.0
 - 0

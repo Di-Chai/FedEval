@@ -74,7 +74,12 @@ c3['server']['num_clients'] = 2
 c3['docker']['num_containers'] = 2
 c3['log']['log_dir'] = 'log/precision'
 
-for dataset in ['wine', 'mnist_matrix']:
+for dataset in ['synthetic_matrix_horizontal']:
+
+    if 'synthetic' in dataset:
+        c1['feature_size'] = 1000
+        c1['sample_size'] = 50000
+
     c1['dataset'] = dataset
     _save_config(c1, c2, c3, config_dir)
     os.system(f'python -m FedEval.run_util -m local -c {config_dir} -e run')

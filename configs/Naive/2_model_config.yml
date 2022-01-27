@@ -4,7 +4,7 @@ FedModel:
   E: 1
   beta1: 0.9
   beta2: 0.99
-  block_size: '1000'
+  block_size: 1000
   eta: 1.0
   fedsvd_lr_l2: '0'
   fedsvd_mode: svd
