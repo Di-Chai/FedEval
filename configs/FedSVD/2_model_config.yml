@@ -1,0 +1,33 @@
+FedModel:
+  B: 8
+  C: 1.0
+  E: 1
+  beta1: 0.9
+  beta2: 0.99
+  block_size: '1000'
+  eta: 1.0
+  fedsvd_lr_l2: '0'
+  fedsvd_mode: lr
+  fedsvd_top_k: '-1'
+  max_rounds: 10000
+  mu: 0.01
+  name: FedSVD
+  num_tolerance: 300
+  opt_name: fedyogi
+  rounds_between_val: 1
+  sparsity: 0.01
+  tau: 0.0001
+MLModel:
+  activation: relu
+  dropout: 0.2
+  loss: categorical_crossentropy
+  metrics:
+  - accuracy
+  name: LeNet
+  optimizer:
+    lr: 0.1
+    momentum: 0.9
+    name: sgd
+  units:
+  - 512
+  - 512
