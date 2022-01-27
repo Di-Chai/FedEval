@@ -142,7 +142,7 @@ class FedSVD(FedStrategy):
         self._memory_map = None
 
         # Set to false when benchmarking
-        self._evaluate_for_debug = False
+        self._evaluate_for_debug = True
 
         self._tmp_dir = 'tmp_fedsvd'
         os.makedirs(self._tmp_dir, exist_ok=True)
@@ -1106,15 +1106,20 @@ class FedSVD(FedStrategy):
 
                 result_json.update({'local_svd_time': c_svd_end - c_svd_start})
 
-                # Filter out the very small singular values before calculating the metrics
-                if (c_sigma < 10e-10).any():
-                    significant_index = np.where(c_sigma < 10e-10)[0][0]
-                    c_sigma = c_sigma[:significant_index]
-                    c_u = c_u[:, :significant_index]
-                    c_vt = c_vt[:significant_index, :]
-                    self._evaluation_sigma = self._evaluation_sigma[:significant_index]
-                    self._evaluation_u = self._evaluation_u[:, :significant_index]
-                    self._evaluation_vt = self._evaluation_vt[:significant_index, :]
+                # Filter out the useless singular values according to the rank of the matrix
+                m, n = x_train.shape
+                if m < n:
+                    xx = x_train @ x_train.T
+                else:
+                    xx = x_train.T @ x_train
+                rank_xx = np.linalg.matrix_rank(xx)
+                if rank_xx < len(c_sigma):
+                    c_sigma = c_sigma[:rank_xx]
+                    c_u = c_u[:, :rank_xx]
+                    c_vt = c_vt[:rank_xx, :]
+                    self._evaluation_sigma = self._evaluation_sigma[:rank_xx]
+                    self._evaluation_u = self._evaluation_u[:, :rank_xx]
+                    self._evaluation_vt = self._evaluation_vt[:rank_xx, :]
 
                 # RMSE metric
                 self.logger.info('FedSVD Server Status: Computing the RMSE.')
