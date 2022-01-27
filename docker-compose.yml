@@ -1,0 +1,35 @@
+networks:
+  server-clients:
+    driver: bridge
+services:
+  container_0:
+    cap_add:
+    - NET_ADMIN
+    command: sh -c "export CONTAINER_ID=0 && python3 -W ignore -m FedEval.run -f run
+      -r client -c configs/debug"
+    container_name: container0
+    depends_on:
+    - server
+    environment:
+    - NVIDIA_VISIBLE_DEVICES=-1
+    image: fedeval:v1
+    networks:
+    - server-clients
+    volumes:
+    - /Users/derek/Documents/Nutstore/FedEval/FedEval-Code-WithData:/FML
+    working_dir: /FML
+  server:
+    cap_add:
+    - NET_ADMIN
+    command: sh -c "python3 -W ignore -m FedEval.run -f run -r server -c configs/debug"
+    container_name: server
+    environment: []
+    image: fedeval:v1
+    networks:
+    - server-clients
+    ports:
+    - 8000:8000
+    volumes:
+    - /Users/derek/Documents/Nutstore/FedEval/FedEval-Code-WithData:/FML
+    working_dir: /FML
+version: '2'

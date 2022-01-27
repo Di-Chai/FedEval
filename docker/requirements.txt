@@ -26,6 +26,8 @@ paramiko
 
 # Monitor
 psutil
+tzlocal<3.0
+apscheduler<4.0
 
 # Serializer
 PyYAML

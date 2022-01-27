@@ -1,3 +1,4 @@
+import datetime
 import os
 import enum
 import pickle
@@ -10,6 +11,7 @@ from matplotlib.pyplot import axis
 import numpy as np
 from paramiko import client
 import tensorflow as tf
+import datetime
 
 from .FederatedStrategy import FedStrategy, HostParamsType
 from ..config import ClientId, ConfigurationManager, Role
@@ -20,11 +22,13 @@ from ..utils import ParamParser, ParamParserInterface
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, r2_score
 from numpy.lib.format import open_memmap
 from functools import reduce
+from dateutil.parser import parse
+from apscheduler.schedulers.background import BackgroundScheduler
 
 
 def generate_orthogonal_matrix(
         n=1000, reuse=False, block_reduce=None, random_seed=None,
-        only_inverse=False, file_name=None, memory_efficient=False, clear_cache=False
+        only_inverse=False, file_name=None, offload_to_disk=False, clear_cache=False
 ):
     orthogonal_matrix_cache_dir = 'tmp_orthogonal_matrices'
 
@@ -37,7 +41,7 @@ def generate_orthogonal_matrix(
 
     file_name = file_name or 'cached_matrix'
 
-    if memory_efficient:
+    if offload_to_disk:
         assert reuse
 
     if os.path.isdir(orthogonal_matrix_cache_dir) is False:
@@ -54,7 +58,7 @@ def generate_orthogonal_matrix(
             sub_n = qs[i]
             piece_file_name = file_name + f'_piece{i}'
             if reuse and piece_file_name in existing:
-                if memory_efficient:
+                if offload_to_disk:
                     tmp = os.path.join(orthogonal_matrix_cache_dir, piece_file_name)
                 else:
                     with open(os.path.join(orthogonal_matrix_cache_dir, piece_file_name), 'rb') as f:
@@ -67,14 +71,14 @@ def generate_orthogonal_matrix(
                 if reuse:
                     with open(os.path.join(orthogonal_matrix_cache_dir, piece_file_name), 'wb') as f:
                         pickle.dump(tmp, f, protocol=4)
-                    if memory_efficient:
+                    if offload_to_disk:
                         del tmp
                         tmp = os.path.join(orthogonal_matrix_cache_dir, piece_file_name)
             q.append(tmp)
     else:
         cache_file_name = os.path.join(orthogonal_matrix_cache_dir, file_name)
         if reuse and file_name in existing:
-            if memory_efficient:
+            if offload_to_disk:
                 q = cache_file_name
             else:
                 with open(cache_file_name, 'rb') as f:
@@ -87,7 +91,7 @@ def generate_orthogonal_matrix(
             if reuse:
                 with open(cache_file_name, 'wb') as f:
                     pickle.dump(q, f, protocol=4)
-                if memory_efficient:
+                if offload_to_disk:
                     del q
                     q = cache_file_name
     return q
@@ -131,12 +135,17 @@ class FedSVD(FedStrategy):
         self._sigma = None
         self._masked_vt = None
 
-        self._memory_map = False
+        # The block-based optimization are decided by the following flag and the block-size
+        self._block_based_optimization = True
+        self._mini_batch_secure_agg = True
+        # memory_map are automatically determined according to the input data
+        self._memory_map = None
+
+        # Set to false when benchmarking
+        self._evaluate_for_debug = False
 
         self._tmp_dir = 'tmp_fedsvd'
         os.makedirs(self._tmp_dir, exist_ok=True)
-
-        self._server_evaluate = False
 
         if ConfigurationManager().role is Role.Server:
             # Masking server
@@ -144,12 +153,13 @@ class FedSVD(FedStrategy):
             self._ns = None
             self._client_ids_on_receiving = None
             self._fed_svd_status = None
-            self._random_seed_of_p: int = None
+            self._msg_of_p: int = None
             self._q: list = None
             self._process_of_sending_q: dict = {}
             self._times_of_sending_q: dict = {}
             self._apply_mask_progress: int = 0
             self._vector_transfer_progress: int = 0
+            self._vector_transfer_finish: bool = False
             self._pxq = None
             self._masked_u = None
             self._mask_step_size: int = 0
@@ -158,6 +168,7 @@ class FedSVD(FedStrategy):
             self._vertical_slice = None
             self._vector_transfer_start: int = 0
             self._vt_transfer_emd: int = 0
+            self._client_masked_q: dict = {}
             # Only for evaluation
             self._evaluation_u = None
             self._evaluation_sigma = None
@@ -184,6 +195,8 @@ class FedSVD(FedStrategy):
             self._local_m = None
             self._local_n = None
             self._q_random_mask = None
+            self._q_random_mask_inverse = None
+            self._masked_q = None
             self._global_ns = None
             # used in memory map mode
             self._received_server_params = None
@@ -201,6 +214,21 @@ class FedSVD(FedStrategy):
         # Clear the cache before starting
         generate_orthogonal_matrix(clear_cache=True)
 
+        self._process_memory_usage = {}
+        self._total_memory_usage = 0
+        self._scheduler = BackgroundScheduler()
+        self._scheduler.start()
+        # Start tracking the memory usage, report memory every 5 seconds
+        self._scheduler.add_job(
+            self._log_hardware_usage, trigger='cron', second=f'*/5',
+            id='log_memory'
+        )
+
+    def _log_hardware_usage(self):
+        process_memory_usage = psutil.Process().memory_full_info().uss + psutil.Process().memory_full_info().swap
+        process_memory_usage /= 2**30  # GB
+        self._process_memory_usage[datetime.datetime.now().strftime('%Y%m%d-%H%M%S')] = process_memory_usage
+
     def _init_model(self):
         # No machine learning model in FedSVD
         pass
@@ -211,7 +239,6 @@ class FedSVD(FedStrategy):
 
     def _retrieve_host_download_info(self):
         self.logger.info(f'FedSVD Server Reporting Status: {self._fed_svd_status}')
-        self.logger.info(f'FedSVD Server Reporting Memory Usage: {psutil.virtual_memory().used / 2**30} GB')
         # Masking Server
         if self._fed_svd_status is FedSVDStatus.Init:
             # Wait for the clients to send n and m
@@ -220,14 +247,40 @@ class FedSVD(FedStrategy):
                 for client_id in self.train_selected_clients
             }
         elif self._fed_svd_status is FedSVDStatus.SendMask:
-            if self._random_seed_of_p is None:
-                self._random_seed_of_p = np.random.randint(0, 10000000)
+            if self._msg_of_p is None:
+                if self._block_based_optimization:
+                    self._msg_of_p = np.random.randint(0, 10000000)
+                else:
+                    self._msg_of_p = [np.zeros([self._m, self._m])]
+                    block_list = generate_orthogonal_matrix(
+                        self._m,
+                        block_reduce=min(ConfigurationManager().model_config.block_size, self._m),
+                        random_seed=0, reuse=False, offload_to_disk=False
+                    )
+                    index_counter = 0
+                    for data in block_list:
+                        self._msg_of_p[0][index_counter:index_counter+data.shape[0],
+                        index_counter:index_counter+data.shape[1]] = data
+                        index_counter += data.shape[0]
             if self._q is None:
-                self._q = generate_orthogonal_matrix(
-                    sum(self._ns),
-                    block_reduce=min(ConfigurationManager().model_config.block_size, sum(self._ns)),
-                    random_seed=0, reuse=False, memory_efficient=False
-                )
+                if self._block_based_optimization:
+                    self._q = generate_orthogonal_matrix(
+                        sum(self._ns),
+                        block_reduce=min(ConfigurationManager().model_config.block_size, sum(self._ns)),
+                        random_seed=0, reuse=False, offload_to_disk=False
+                    )
+                else:
+                    self._q = [np.zeros([sum(self._ns), sum(self._ns)])]
+                    block_list = generate_orthogonal_matrix(
+                        sum(self._ns),
+                        block_reduce=min(ConfigurationManager().model_config.block_size, sum(self._ns)),
+                        random_seed=0, reuse=False, offload_to_disk=False
+                    )
+                    index_counter = 0
+                    for data in block_list:
+                        self._q[0][index_counter:index_counter + data.shape[0],
+                        index_counter:index_counter + data.shape[1]] = data
+                        index_counter += data.shape[0]
             results_data = {}
             for i in range(len(self._client_ids_on_receiving)):
                 client_id = self._client_ids_on_receiving[i]
@@ -239,21 +292,23 @@ class FedSVD(FedStrategy):
             return {
                 client_id: {
                     'fed_svd_status': self._fed_svd_status,
-                    'random_seed_of_p': self._random_seed_of_p,
+                    'msg_of_p': self._msg_of_p,
                     'sliced_q': results_data[client_id],
                     'ns': sum(self._ns)
                 }
                 for client_id in self._client_ids_on_receiving
             }
         elif self._fed_svd_status is FedSVDStatus.ApplyMask:
+            if hasattr(self, '_msg_of_p'):
+                del self._msg_of_p
             self._slice_start = self._apply_mask_progress
             if self._vertical_slice:
                 self.logger.info(f'FedSVD Server Reporting Status: apply mask progress '
-                                f'{self._apply_mask_progress}/{sum(self._ns)}')
+                                 f'{self._apply_mask_progress}/{sum(self._ns)}')
                 self._slice_end = self._slice_start + min(self._mask_step_size, sum(self._ns) - self._slice_start)
             else:
                 self.logger.info(f'FedSVD Server Reporting Status: apply mask progress '
-                                f'{self._apply_mask_progress}/{self._m}')
+                                 f'{self._apply_mask_progress}/{self._m}')
                 self._slice_end = self._slice_start + min(self._mask_step_size, self._m - self._slice_start)
 
             self._apply_mask_progress += (self._slice_end - self._slice_start)
@@ -288,43 +343,64 @@ class FedSVD(FedStrategy):
             else:
                 if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1:
                     self._vector_transfer_start = self._vector_transfer_progress
-                    download_info = {
-                        'fed_svd_status': self._fed_svd_status,
-                        'vector_transfer_start': self._vector_transfer_start,
-                        'm<n': self._m < sum(self._ns)
-                    }
+                    client_wise_download_info = {client_id: {} for client_id in self._client_ids_on_receiving}
+
+                    for client_id in client_wise_download_info:
+                        client_wise_download_info[client_id].update({
+                            'fed_svd_status': self._fed_svd_status,
+                            'm<n': self._m < sum(self._ns),
+                            'vector_transfer_start': self._vector_transfer_start,
+                        })
+
+                        if self._m < sum(self._ns):
+                            if self._vector_transfer_progress >= self._ns[client_id]:
+                                client_wise_download_info[client_id].update({
+                                    'masked_vt': None,
+                                    'vector_transfer_end': None
+                                })
+                            else:
+                                vector_end = min(self._ns[client_id], self._vector_transfer_start+self._mask_step_size)
+                                left_slice = sum(self._ns[:client_id]) + self._vector_transfer_start
+                                right_slice = sum(self._ns[:client_id]) + vector_end
+                                client_wise_download_info[client_id].update({
+                                    'masked_vt': self._masked_vt[:, left_slice:right_slice],
+                                    'vector_transfer_end': vector_end
+                                })
+                            if self._vector_transfer_progress == 0:
+                                client_wise_download_info[client_id].update({
+                                    'masked_u': self._masked_u, 'sigma': self._sigma,
+                                    'm': self._m, 'n': sum(self._ns)
+                                })
+                        else:
+                            vector_end = self._vector_transfer_progress + \
+                                                        min(self._mask_step_size, sum(self._m))
+                            client_wise_download_info[client_id].update({
+                                'masked_u': self._masked_u[self._vector_transfer_start:vector_end],
+                                'vector_transfer_end': vector_end,
+                            })
+                            if self._vector_transfer_progress == 0:
+                                client_wise_download_info[client_id].update({
+                                    'masked_vt': self._masked_vt[:, sum(self._ns[:client_id]):sum(self._ns[:client_id+1])],
+                                    'sigma': self._sigma,
+                                    'm': self._m, 'n': sum(self._ns)
+                                })
                     if self._m < sum(self._ns):
-                        self._vector_transfer_end = self._vector_transfer_progress + \
-                                                    min(self._mask_step_size, sum(self._ns))
-                        download_info.update({
-                            'masked_vt': self._masked_vt[:, self._vector_transfer_start:self._vector_transfer_end],
-                            'vector_transfer_end': self._vector_transfer_end
-                        })
-                        if self._vector_transfer_progress == 0:
-                            download_info.update({
-                                'masked_u': self._masked_u, 'sigma': self._sigma,
-                                'm': self._m, 'n': sum(self._ns)
-                            })
+                        self._vector_transfer_progress += self._mask_step_size
+                        self._vector_transfer_finish = (self._vector_transfer_progress >= np.array(self._ns)).all()
                     else:
-                        self._vector_transfer_end = self._vector_transfer_progress + \
-                                                    min(self._mask_step_size, sum(self._m))
-                        download_info.update({
-                            'masked_u': self._masked_u[self._vector_transfer_start:self._vector_transfer_end],
-                            'vector_transfer_end': self._vector_transfer_end
-                        })
-                        if self._vector_transfer_progress == 0:
-                            download_info.update({
-                                'masked_vt': self._masked_vt, 'sigma': self._sigma,
-                                'm': self._m, 'n': sum(self._ns)
-                            })
-                    self._vector_transfer_progress += (self._vector_transfer_end - self._vector_transfer_start)
-                    download_info['finish'] = self._vector_transfer_progress == max(self._m, sum(self._ns))
-                    return {client_id: download_info for client_id in self._client_ids_on_receiving}
+                        self._vector_transfer_progress += (
+                                client_wise_download_info[0]['vector_transfer_end'] - self._vector_transfer_start
+                        )
+                        self._vector_transfer_finish = self._vector_transfer_progress == self._m
+                    for client_id in client_wise_download_info:
+                        client_wise_download_info[client_id]['finish'] = self._vector_transfer_finish
+                    return client_wise_download_info
                 else:
                     return {
                         client_id: {
                             'fed_svd_status': self._fed_svd_status,
-                            'masked_u': self._masked_u, 'sigma': self._sigma, 'masked_vt': self._masked_vt
+                            'masked_u': self._masked_u, 'sigma': self._sigma,
+                            'masked_vt': self._masked_vt[:, sum(self._ns[:client_id]):sum(self._ns[:client_id+1])]
                         }
                         for client_id in self._client_ids_on_receiving
                     }
@@ -338,6 +414,7 @@ class FedSVD(FedStrategy):
 
     def update_host_params(self, client_params, *args):
         if self._fed_svd_status is FedSVDStatus.Init:
+
             # By default, the shape of the matrix is n * m
             client_params = sorted(client_params, key=lambda x: x['client_id'])
             ms = [e['mn'][0] for e in client_params]
@@ -361,23 +438,25 @@ class FedSVD(FedStrategy):
             else:
                 self._pxq = np.zeros([int(self._m), int(sum(self._ns))])
             # Determine the step size when applying the masks
-            if self._vertical_slice:
-                if self._m <= 1e5:
-                    self._mask_step_size = ConfigurationManager().model_config.block_size
+            if self._mini_batch_secure_agg:
+                if self._vertical_slice:
+                    if self._m <= 1e5:
+                        self._mask_step_size = ConfigurationManager().model_config.block_size
+                    else:
+                        self._mask_step_size = max(int(ConfigurationManager().model_config.block_size / (self._m / 1e5)), 1)
                 else:
-                    self._mask_step_size = max(int(ConfigurationManager().model_config.block_size / (self._m / 1e5)), 1)
+                    base = 100000
+                    step_size = 2000
+                    if sum(self._ns) <= step_size:
+                        self._mask_step_size = base
+                    else:
+                        self._mask_step_size = int(max(base / (sum(self._ns) / step_size), 1))
             else:
-                base = 100000
-                step_size = 2000
-                if sum(self._ns) <= step_size:
-                    self._mask_step_size = base
-                else:
-                    self._mask_step_size = int(max(base / (sum(self._ns) / step_size), 1))
+                self._mask_step_size = max(self._m, sum(self._ns))
             self._fed_svd_status = FedSVDStatus.SendMask
         elif self._fed_svd_status is FedSVDStatus.SendMask:
             self._fed_svd_status = FedSVDStatus.ApplyMask
         elif self._fed_svd_status is FedSVDStatus.ApplyMask:
-            self.logger.info(f'FedSVD Server Reporting Memory Usage: {psutil.virtual_memory().used / 2 ** 30} GB')
             client_params = sorted(client_params, key=lambda x: x['client_id'])
             self.logger.info('Server Agg Started')
             start_time = time.time()
@@ -400,6 +479,8 @@ class FedSVD(FedStrategy):
                                 (not self._vertical_slice and self._apply_mask_progress == self._m)
             if apply_mask_finish and self._svd_mode == 'lr':
                 self._masked_y = client_params[-1].get('masked_y')
+            if apply_mask_finish and self._svd_mode == 'svd':
+                self._client_masked_q = {e['client_id']: e['masked_q'] for e in client_params}
             del client_params
             if apply_mask_finish:
                 self.logger.info('Server received all masked data. Proceed to SVD.')
@@ -410,20 +491,35 @@ class FedSVD(FedStrategy):
                     else:
                         self._masked_u, self._sigma, self._masked_vt = self._server_svd(self._pxq)
                     pxq_filename = self._pxq.filename
-                    self.logger.info(
-                        f'FedSVD Server Reporting Memory Usage: {psutil.virtual_memory().used / 2 ** 30} GB')
                     del self._pxq
                     os.remove(pxq_filename)
                 else:
                     self._masked_u, self._sigma, self._masked_vt = self._server_svd(self._pxq)
-                    self.logger.info(
-                        f'FedSVD Server Reporting Memory Usage: {psutil.virtual_memory().used / 2 ** 30} GB')
                     del self._pxq
+                if self._svd_mode == 'svd':
+                    # Compute V @ [Q*R]
+                    client_masked_q = None
+                    for client_id in self._client_ids_on_receiving:
+                        masked_q = self._client_masked_q[client_id]
+                        if client_masked_q is None:
+                            client_masked_q = [e[-1] for e in masked_q]
+                        else:
+                            if masked_q[0][-1].shape[0] != masked_q[0][-1].shape[1]:
+                                client_masked_q[-1] = np.concatenate([
+                                    client_masked_q[-1], masked_q[0][-1]
+                                ], axis=-1)
+                                client_masked_q += [e[-1] for e in masked_q[1:]]
+                            else:
+                                client_masked_q += [e[-1] for e in masked_q]
+                    v_counter = 0
+                    for data in client_masked_q:
+                        self._masked_vt[:, v_counter:v_counter + data.shape[0]] = \
+                            self._masked_vt[:, v_counter:v_counter + data.shape[0]] @ data
+                        v_counter += data.shape[0]
                 self._fed_svd_status = FedSVDStatus.RemoveMask
         elif self._fed_svd_status is FedSVDStatus.RemoveMask:
-            if (self._memory_map and self._vector_transfer_progress == max(self._m, sum(self._ns))) or\
-                    (not self._memory_map) or (ConfigurationManager().model_config.svd_top_k != -1) or\
-                    self._svd_mode == 'lr':
+            if (self._memory_map and self._vector_transfer_finish) or (not self._memory_map) or\
+                    (ConfigurationManager().model_config.svd_top_k != -1) or self._svd_mode == 'lr':
                 del self._masked_u
                 del self._masked_vt
                 del self._sigma
@@ -431,7 +527,7 @@ class FedSVD(FedStrategy):
         elif self._fed_svd_status is FedSVDStatus.Evaluate:
             # FedSVD Finished
             self._stop = True
-            if self._server_evaluate:
+            if self._evaluate_for_debug:
                 # Only for evaluation, and the clients should not upload local results in real applications
                 client_params = sorted(client_params, key=lambda x: x['client_id'])
                 if self._svd_mode == 'lr':
@@ -440,8 +536,15 @@ class FedSVD(FedStrategy):
                     self._evaluation_u = client_params[0]['u']
                     self._evaluation_sigma = client_params[0]['sigma']
                     self._evaluation_vt = np.concatenate([e['vt'] for e in client_params], axis=-1)
-                # Release memory
-                del client_params
+            client_memory_usage = [e['memory_usage'] for e in client_params]
+            self._total_memory_usage = []
+            for date, usage in sorted(self._process_memory_usage.items(), key=lambda x: parse(x[0])):
+                tmp = usage
+                for cmu in client_memory_usage:
+                    tmp += cmu.get(date, 0)
+                self._total_memory_usage.append(tmp)
+            # Release memory
+            del client_params
             # Nothing to download for clients, since the server is stoping
             return None
         return self._retrieve_host_download_info()
@@ -534,15 +637,18 @@ class FedSVD(FedStrategy):
             self._server_machine_id = host_params['server_machine_id']
         elif self._current_status is FedSVDStatus.SendMask:
             if self._received_p_masks is None:
-                self.logger.info(f'Client {self.client_id} is generating random mask P')
-                self._received_p_masks = host_params['random_seed_of_p']
-                self._received_p_masks = generate_orthogonal_matrix(
-                    n=self._local_m,
-                    block_reduce=min(ConfigurationManager().model_config.block_size, self._local_m),
-                    random_seed=self._received_p_masks, file_name=f'client_{self.client_id}',
-                    reuse=self._save_p_to_disk,
-                    memory_efficient=self._save_p_to_disk
-                )
+                if self._block_based_optimization:
+                    self.logger.info(f'Client {self.client_id} is generating random mask P')
+                    self._received_p_masks = host_params['msg_of_p']
+                    self._received_p_masks = generate_orthogonal_matrix(
+                        n=self._local_m,
+                        block_reduce=min(ConfigurationManager().model_config.block_size, self._local_m),
+                        random_seed=self._received_p_masks, file_name=f'client_{self.client_id}',
+                        reuse=self._save_p_to_disk,
+                        offload_to_disk=self._save_p_to_disk
+                    )
+                else:
+                    self._received_p_masks = host_params['msg_of_p']
             self._received_q_masks = host_params['sliced_q']
             self._received_q_masks = sorted(self._received_q_masks, key=lambda x: x[0])
             self._global_ns = host_params['ns']
@@ -617,10 +723,10 @@ class FedSVD(FedStrategy):
                 if self._svd_mode == 'lr' and self._is_active:
                     self._masked_y = np.concatenate(self._masked_y, axis=0)
                     self.logger.info(f'masked y shape {self._masked_y.shape}')
-                if not self._memory_map:
+                if not self._memory_map and not self._evaluate_for_debug:
                     del self.train_data
                 if self._memory_map:
-                    if not self._server_evaluate:
+                    if not self._evaluate_for_debug:
                         tmp_file_name = self.train_data['x'].filename
                         del self.train_data
                         os.remove(tmp_file_name)
@@ -700,6 +806,17 @@ class FedSVD(FedStrategy):
                 else:
                     del self._p_times_x
 
+                # Apply mask to Q_i (Preparing for removing the mask)
+                self._q_random_mask = []
+                self._q_random_mask_inverse = []
+                self._masked_q = []
+                for x, y, q_slice in self._received_q_masks:
+                    random_mask_size, _ = q_slice.shape
+                    random_mask_block = np.random.random([random_mask_size, random_mask_size])
+                    self._q_random_mask.append(random_mask_block)
+                    self._q_random_mask_inverse.append(np.linalg.inv(random_mask_block))
+                    self._masked_q.append([y, x, q_slice.T @ random_mask_block])
+
         elif self._current_status is FedSVDStatus.RemoveMask:
 
             if self._svd_mode == 'lr':
@@ -720,7 +837,7 @@ class FedSVD(FedStrategy):
                             self._masked_vt = np.memmap(
                                 filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_masked_vt.npy'),
                                 mode='write', dtype=np.float64,
-                                shape=(self._received_server_params['m'], self._received_server_params['n'])
+                                shape=(self._received_server_params['m'], self._local_n)
                             )
                         self._masked_vt[:, vector_transfer_start:vector_transfer_end] =\
                             self._received_server_params['masked_vt']
@@ -739,6 +856,7 @@ class FedSVD(FedStrategy):
                         return None
 
                 self.logger.info(f'Client {self.client_id} is removing masks')
+
                 # Remove the mask of U and
                 if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1 \
                         and self._received_server_params.get('m<n'):
@@ -775,9 +893,9 @@ class FedSVD(FedStrategy):
                     self._local_vt = np.zeros([self._masked_vt.shape[0], self._local_n])
 
                 v_counter = 0
-                for i, j, data in self._received_q_masks:
+                for data in self._q_random_mask_inverse:
                     self._local_vt[:, v_counter:v_counter + data.shape[0]] = \
-                        self._masked_vt[:, j:j + data.shape[1]] @ data.T
+                        self._masked_vt[:, v_counter:v_counter + data.shape[0]] @ data
                     v_counter += data.shape[0]
                 del self._masked_u
                 del self._masked_vt
@@ -787,25 +905,27 @@ class FedSVD(FedStrategy):
             self.logger.info(f'Client {self.client_id} has finished removing masks')
 
     def local_evaluate(self):
-        # if self._current_status is FedSVDStatus.Evaluate:
-        #     if self._svd_mode == 'svd' and \
-        #             ConfigurationManager().model_config.svd_top_k == -1:
-        #         recovered_data = self._u @ np.diag(self._sigma) @ self._local_vt
-        #         reconstruct_mae_error = np.mean(np.abs(recovered_data - self.train_data['x']))
-        #         reconstruct_rmse_error = np.sqrt(np.mean(np.square(recovered_data - self.train_data['x'])))
-        #         self.logger.info(f'Client {self.client_id} Test RMSE {reconstruct_rmse_error}')
-        #         self.logger.info(f'Local Singular Values {self._sigma[:10]}')
-        #         self.logger.info(f'Local Singular Vectors {self._local_vt}')
-        #         return {
-        #             'test_mae': reconstruct_mae_error,
-        #             'test_rmse': reconstruct_rmse_error,
-        #             'test_size': self._local_n,
-        #             'val_loss': reconstruct_rmse_error,
-        #             'val_size': self._local_n,
-        #         }
+        # Warning: The following evaluation need self.train_data, which is deleted when self.evaluate
+        if self._current_status is FedSVDStatus.Evaluate and self._evaluate_for_debug:
+            if self._svd_mode == 'svd' and \
+                    ConfigurationManager().model_config.svd_top_k == -1:
+                recovered_data = self._u @ np.diag(self._sigma) @ self._local_vt
+                reconstruct_mae_error = np.mean(np.abs(recovered_data - self.train_data['x']))
+                reconstruct_rmse_error = np.sqrt(np.mean(np.square(recovered_data - self.train_data['x'])))
+                self.logger.info(f'Client {self.client_id} Test RMSE {reconstruct_rmse_error}')
+                self.logger.info(f'Local Singular Values {self._sigma[:10]}')
+                self.logger.info(f'Local Singular Vectors {self._local_vt}')
+                return {
+                    'test_mae': reconstruct_mae_error,
+                    'test_rmse': reconstruct_rmse_error,
+                    'test_size': self._local_n,
+                    'val_loss': reconstruct_rmse_error,
+                    'val_size': self._local_n,
+                }
         return None
 
     def client_exit_job(self, client):
+        self._scheduler.remove_job('log_memory')
         # Clear the cached orthogonal matrices
         generate_orthogonal_matrix(clear_cache=True)
         # Clear disk files
@@ -831,29 +951,57 @@ class FedSVD(FedStrategy):
             self._local_m, self._local_n = self.train_data['x'].shape
             return {'client_id': self.client_id, 'mn': self.train_data['x'].shape, 'memory_map': self._memory_map}
         elif self._current_status is FedSVDStatus.ApplyMask:
-            if self._received_apply_mask_params['apply_mask_finish'] and self._svd_mode == 'lr' and self._is_active:
-                return {
-                    'client_id': self._client_id,
-                    'secure_agg': self._sliced_pqx_with_secure_agg, 'masked_y': self._masked_y
-                }
-            else:
-                return {'client_id': self._client_id, 'secure_agg': self._sliced_pqx_with_secure_agg}
+            if self._received_apply_mask_params['apply_mask_finish']:
+                if self._svd_mode == 'lr' and self._is_active:
+                    return {
+                        'client_id': self._client_id,
+                        'secure_agg': self._sliced_pqx_with_secure_agg, 'masked_y': self._masked_y
+                    }
+                if self._svd_mode == 'svd':
+                    return {
+                        'client_id': self._client_id,
+                        'secure_agg': self._sliced_pqx_with_secure_agg, 'masked_q': self._masked_q
+                    }
+            return {'client_id': self._client_id, 'secure_agg': self._sliced_pqx_with_secure_agg}
         elif self._current_status is FedSVDStatus.Evaluate:
-            # Only for evaluation, and the clients should not upload local results in real applications
-            if self._server_evaluate:
+            evaluate_results = {}
+            # Only for debugging, and the clients should not upload local results in real applications
+            if self._evaluate_for_debug:
                 if self._svd_mode == 'lr':
-                    return {'client_id': self._client_id, 'parameters': self._local_parameters}
+                    evaluate_results = {'client_id': self._client_id, 'parameters': self._local_parameters}
                 else:
                     if self.client_id == 0:
-                        return {'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt}
+                        evaluate_results = {
+                            'client_id': self._client_id, 'u': self._u, 'sigma': self._sigma, 'vt': self._local_vt
+                        }
                     else:
-                        return {'client_id': self._client_id, 'vt': self._local_vt}
-            else:
-                return None
+                        evaluate_results = {'client_id': self._client_id, 'vt': self._local_vt}
+            evaluate_results['memory_usage'] = self._process_memory_usage
+            return evaluate_results
 
     def host_exit_job(self, host):
 
-        if self._server_evaluate:
+        self._scheduler.remove_job('log_memory')
+
+        self.logger.info(f'Total Memory Usage: {np.max(self._total_memory_usage)} GB ')
+
+        result_json = host.snapshot_result(None)
+        result_json.update({'memory_usage_sequence': self._total_memory_usage})
+
+        result_json.update({
+            'block_based_optimization': self._block_based_optimization,
+            'mini_batch_secure_agg': self._mini_batch_secure_agg,
+            'memory_map': self._memory_map
+        })
+
+        self.logger.info(f'FedSVD Version block_based_optimization: {self._block_based_optimization}')
+        self.logger.info(f'FedSVD Version mini_batch_secure_agg: {self._mini_batch_secure_agg}')
+        self.logger.info(f'FedSVD Version memory_map: {self._memory_map}')
+
+        with open(os.path.join(host.log_dir, 'results.json'), 'w') as f:
+            json.dump(result_json, f)
+
+        if self._evaluate_for_debug:
             
             self.logger.info('FedSVD Server Status: Computing the metrics.')
 
@@ -887,8 +1035,6 @@ class FedSVD(FedStrategy):
             cfg_mgr = ConfigurationManager()
             client_num = cfg_mgr.runtime_config.client_num
             data_dir = cfg_mgr.data_config.dir_name
-            # Get current results
-            result_json = host.snapshot_result(None)
 
             # Load clients' data for evaluation
             if self._memory_map:
@@ -991,6 +1137,7 @@ class FedSVD(FedStrategy):
                         singular_vector_project_distance += project_distance(c_vt.T, self._evaluation_vt.T)
                     result_json.update({'singular_vector_project_distance': singular_vector_project_distance})
 
+            # Save again
             with open(os.path.join(host.log_dir, 'results.json'), 'w') as f:
                 json.dump(result_json, f)
 
