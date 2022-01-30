@@ -15,7 +15,7 @@ numpy
 scipy
 sklearn
 pandas
-torch==1.8.0
+torch
 
 # NLP datasets
 nltk

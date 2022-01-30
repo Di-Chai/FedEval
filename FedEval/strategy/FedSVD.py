@@ -183,7 +183,7 @@ class FedSVD(FedStrategy):
             self._save_p_to_disk = None
             self._current_status = None
             self._p_times_x = None
-            self._sliced_pqx_with_secure_agg = None
+            self._sliced_pxq_with_secure_agg = None
             np.random.seed(0)
             # We assume that the
             self._secure_agg_random_seed = np.random.random_integers(
@@ -225,9 +225,11 @@ class FedSVD(FedStrategy):
         )
 
     def _log_hardware_usage(self):
-        process_memory_usage = psutil.Process().memory_full_info().uss + psutil.Process().memory_full_info().swap
+        process_memory_usage = psutil.Process().memory_full_info().data + psutil.Process().memory_full_info().swap
         process_memory_usage /= 2**30  # GB
-        self._process_memory_usage[datetime.datetime.now().strftime('%Y%m%d-%H%M%S')] = process_memory_usage
+        date_string = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+        self._process_memory_usage[date_string] = process_memory_usage
+        self.logger.info(f'{date_string} Memory Usage {process_memory_usage}')
 
     def _init_model(self):
         # No machine learning model in FedSVD
@@ -372,8 +374,7 @@ class FedSVD(FedStrategy):
                                     'm': self._m, 'n': sum(self._ns)
                                 })
                         else:
-                            vector_end = self._vector_transfer_progress + \
-                                                        min(self._mask_step_size, sum(self._m))
+                            vector_end = self._vector_transfer_progress + min(self._mask_step_size, self._m)
                             client_wise_download_info[client_id].update({
                                 'masked_u': self._masked_u[self._vector_transfer_start:vector_end],
                                 'vector_transfer_end': vector_end,
@@ -423,6 +424,7 @@ class FedSVD(FedStrategy):
             self._ns = [e['mn'][1] for e in client_params]
             self._m = ms[0]
             self._vertical_slice = sum(self._ns) > self._m
+            self.logger.info(f'Vertical Slice {self._vertical_slice}')
             if client_params[0]['memory_map']:
                 self._memory_map = True
                 if self._vertical_slice:
@@ -437,6 +439,7 @@ class FedSVD(FedStrategy):
                     )
             else:
                 self._pxq = np.zeros([int(self._m), int(sum(self._ns))])
+            self.logger.info(f'Debug server pxq shape {self._pxq.shape}')
             # Determine the step size when applying the masks
             if self._mini_batch_secure_agg:
                 if self._vertical_slice:
@@ -549,6 +552,13 @@ class FedSVD(FedStrategy):
             return None
         return self._retrieve_host_download_info()
 
+    @staticmethod
+    def safe_memmap_matmul(a, b, step_size=1000):
+        result = np.zeros([a.shape[0], b.shape[1]])
+        for i in range(0, a.shape[0], step_size):
+            np.matmul(a[i:i+step_size], b, out=result[i:i+step_size])
+        return result
+
     def _server_svd(self, data_matrix):
 
         if not self._memory_map:
@@ -591,8 +601,9 @@ class FedSVD(FedStrategy):
                 raise ValueError(f'Unknown svd top k {ConfigurationManager().model_config.svd_top_k}')
         else:
             m, n = data_matrix.shape
+            self.logger.info(f'Server running SVD Attempt {m}x{n}')
             if m < n:
-                x2 = data_matrix @ data_matrix.T
+                x2 = self.safe_memmap_matmul(data_matrix, data_matrix.T)
             else:
                 left, sigma, right = self._server_svd(data_matrix.T)
                 if right is not None:
@@ -731,17 +742,17 @@ class FedSVD(FedStrategy):
                         del self.train_data
                         os.remove(tmp_file_name)
             
+            self.logger.info(f'Client {self.client_id} SecureAgg from {slice_start} to {slice_end}')
+
             if vertical_slice:
 
                 min_index = self._received_q_masks[0][1]
                 max_index = self._received_q_masks[-1][1] + self._received_q_masks[-1][-1].shape[-1]
 
-                self.logger.info(f'Client {self.client_id} SecureAgg from {slice_start} to {slice_end}')
-
                 if slice_start >= max_index or slice_end <= min_index:
                     self.logger.info(f'Client {self.client_id} SecAgg using zero arrays')
                     start_time = time.time()
-                    self._sliced_pqx_with_secure_agg = self._generate_masked_data_in_secure_agg(
+                    self._sliced_pxq_with_secure_agg = self._generate_masked_data_in_secure_agg(
                         shape=(self._local_m, slice_end - slice_start))
                     self.logger.info(f'Client {self.client_id} SecAgg using {time.time() - start_time}')
                 else:
@@ -769,7 +780,7 @@ class FedSVD(FedStrategy):
                             matrix_base.append(np.zeros([self._local_m, slice_end - max_index]))
                         counter += matrix_base[-1].shape[-1]
                     matrix_base = np.concatenate(matrix_base, axis=-1)
-                    self._sliced_pqx_with_secure_agg = self._generate_masked_data_in_secure_agg(
+                    self._sliced_pxq_with_secure_agg = self._generate_masked_data_in_secure_agg(
                         shape=[self._local_m, slice_end - slice_start], base=matrix_base
                     )
                     self.logger.info(f'Client {self.client_id} SecAgg using {time.time() - start_time}')
@@ -782,7 +793,6 @@ class FedSVD(FedStrategy):
                 init_n_slice = self._received_q_masks[0][0]
                 for i in range(len(self._received_q_masks)):
                     xi, yi, qi = self._received_q_masks[i]
-                    self.logger.info(f"Debug!, {xi}, {yi}, {qi.shape}")
                     matrix_base.append(
                         self._p_times_x[slice_start:slice_end, xi-init_n_slice:xi-init_n_slice+qi.shape[0]] @ qi
                     )
@@ -792,7 +802,7 @@ class FedSVD(FedStrategy):
                         self._global_ns - self._received_q_masks[-1][1] - self._received_q_masks[-1][-1].shape[-1]
                     ]))
                 matrix_base = np.concatenate(matrix_base, axis=-1)
-                self._sliced_pqx_with_secure_agg = self._generate_masked_data_in_secure_agg(
+                self._sliced_pxq_with_secure_agg = self._generate_masked_data_in_secure_agg(
                     shape=matrix_base.shape, base=matrix_base
                 )
                 self.logger.info(f'Client {self.client_id} SecAgg using {time.time() - start_time}')
@@ -913,8 +923,8 @@ class FedSVD(FedStrategy):
                 reconstruct_mae_error = np.mean(np.abs(recovered_data - self.train_data['x']))
                 reconstruct_rmse_error = np.sqrt(np.mean(np.square(recovered_data - self.train_data['x'])))
                 self.logger.info(f'Client {self.client_id} Test RMSE {reconstruct_rmse_error}')
-                self.logger.info(f'Local Singular Values {self._sigma[:10]}')
-                self.logger.info(f'Local Singular Vectors {self._local_vt}')
+                # self.logger.info(f'Local Singular Values {self._sigma[:10]}')
+                # self.logger.info(f'Local Singular Vectors {self._local_vt}')
                 return {
                     'test_mae': reconstruct_mae_error,
                     'test_rmse': reconstruct_rmse_error,
@@ -955,14 +965,14 @@ class FedSVD(FedStrategy):
                 if self._svd_mode == 'lr' and self._is_active:
                     return {
                         'client_id': self._client_id,
-                        'secure_agg': self._sliced_pqx_with_secure_agg, 'masked_y': self._masked_y
+                        'secure_agg': self._sliced_pxq_with_secure_agg, 'masked_y': self._masked_y
                     }
                 if self._svd_mode == 'svd':
                     return {
                         'client_id': self._client_id,
-                        'secure_agg': self._sliced_pqx_with_secure_agg, 'masked_q': self._masked_q
+                        'secure_agg': self._sliced_pxq_with_secure_agg, 'masked_q': self._masked_q
                     }
-            return {'client_id': self._client_id, 'secure_agg': self._sliced_pqx_with_secure_agg}
+            return {'client_id': self._client_id, 'secure_agg': self._sliced_pxq_with_secure_agg}
         elif self._current_status is FedSVDStatus.Evaluate:
             evaluate_results = {}
             # Only for debugging, and the clients should not upload local results in real applications

@@ -103,7 +103,7 @@ def load_synthetic_large_scale(m, n, alpha):
         dtype=np.float64, shape=(m, n), mode='write'
     )
     k = min(m, n)
-    u, _ = np.linalg.qr(np.random.randn(m, m))
+    u, _ = np.linalg.qr(np.random.randn(m, k))
     sigma = np.array(list(range(1, k + 1))).astype(np.float64) ** -alpha
     u_sigma = u @ np.diag(sigma)
     step_size = 100000
@@ -296,6 +296,10 @@ class ml25m_matrix_memmap(vertical_linear_regression_memmap):
             filename=os.path.join(ConfigurationManager().data_config.dir_name, 'vlr_x.npy'),
             mode='write', dtype=np.float64, shape=(num_movies, num_users)
         )
+        for i in range(num_movies):
+            tmp = np.zeros(num_users, dtype=np.float64)
+            x[i] = tmp
+            del tmp
         with open(os.path.join(data_dir, 'movies.csv'), 'r', encoding='utf-8') as f:
             movie_ids = [e.split(',')[0] for e in f.readlines()[1:]]
             movie_ids = {e: movie_ids.index(e) for e in movie_ids}
