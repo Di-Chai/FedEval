@@ -2,21 +2,17 @@ FedModel:
   B: 8
   C: 1.0
   E: 1
-  beta1: 0.9
-  beta2: 0.99
   block_size: 1000
-  eta: 1.0
-  fedsvd_lr_l2: '0'
-  fedsvd_mode: 'svd'
-  fedsvd_top_k: '-1'
+  fedsvd_lr_l2: 0
+  fedsvd_mode: lr
+  fedsvd_top_k: -1
   max_rounds: 10000
-  mu: 0.01
+  rounds_between_val: 1
   name: FedSVD
   num_tolerance: 300
-  opt_name: fedyogi
-  rounds_between_val: 1
-  sparsity: 0.01
-  tau: 0.0001
+  fedsvd_opt_1: True
+  fedsvd_opt_2: True
+  fedsvd_debug_evaluate: True
 MLModel:
   activation: relu
   dropout: 0.2

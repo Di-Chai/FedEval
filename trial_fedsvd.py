@@ -99,10 +99,15 @@ if task == 'precision':
     c2['FedModel']['fedsvd_debug_evaluate'] = True
 
     for dataset in ['wine', 'mnist_matrix', 'ml100k_lr', 'synthetic_matrix_horizontal']:
-        if 'synthetic' in dataset:
-            c1['feature_size'] = 1000
-            c1['sample_size'] = 50000
         c1['dataset'] = dataset
+        if 'synthetic' in dataset:
+            if svd_mode == 'lr':
+                c1['feature_size'] = 500
+                c1['sample_size'] = 10000
+                c1['dataset'] = 'vertical_linear_regression'
+            else:
+                c1['feature_size'] = 1000
+                c1['sample_size'] = 5000
         _save_config(c1, c2, c3, config_dir)
         os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
 
@@ -131,3 +136,4 @@ if task == 'large_scale_recsys':
 
     _save_config(c1, c2, c3, config_dir)
     os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+
