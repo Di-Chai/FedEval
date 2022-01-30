@@ -7,6 +7,7 @@ FedModel:
   fedsvd_mode: lr
   fedsvd_top_k: '-1'
   max_rounds: 10000
+  rounds_between_val: 1
   name: FedSVD
   num_tolerance: 300
   fedsvd_opt_1: True
