@@ -34,9 +34,9 @@ c2['FedModel']['block_size'] = 1000
 c2['FedModel']['fedsvd_mode'] = svd_mode
 c2['FedModel']['fedsvd_top_k'] = 10 if svd_mode == 'pca' else -1  # By default, we compute the top 10 PC for PCA tasks
 c2['FedModel']['fedsvd_lr_l2'] = 0
-c2['FedMode']['fedsvd_opt_1'] = True
-c2['FedMode']['fedsvd_opt_2'] = True
-c2['FedMode']['fedsvd_debug_evaluate'] = False
+c2['FedModel']['fedsvd_opt_1'] = True
+c2['FedModel']['fedsvd_opt_2'] = True
+c2['FedModel']['fedsvd_debug_evaluate'] = False
 
 if task == 'latency':
     c1['dataset'] = 'vertical_linear_regression_memmap'
@@ -96,7 +96,7 @@ if task == 'precision':
     c3['server']['num_clients'] = 2
     c3['docker']['num_containers'] = 2
     # Do Evaluation
-    c2['FedMode']['fedsvd_debug_evaluate'] = True
+    c2['FedModel']['fedsvd_debug_evaluate'] = True
 
     for dataset in ['wine', 'mnist_matrix', 'ml100k_lr', 'synthetic_matrix_horizontal']:
         if 'synthetic' in dataset:
@@ -116,7 +116,8 @@ if task == 'large_scale_recsys':
     c2['FedModel']['name'] = 'FedSVD'
     c2['FedModel']['block_size'] = 1000
     c2['FedModel']['fedsvd_mode'] = 'svd'
-    c2['FedModel']['fedsvd_top_k'] = -1
+    # By default, we run truncated svd on recsys data, and get the top 256 PCs
+    c2['FedModel']['fedsvd_top_k'] = 256
     c2['FedModel']['fedsvd_lr_l2'] = 0
     # same network setting as large_scale
     c3['communication']['limit_network_resource'] = True

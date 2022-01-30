@@ -555,6 +555,7 @@ class FedSVD(FedStrategy):
         return self._retrieve_host_download_info()
 
     def safe_memmap_matmul(self, a, b, step_size=1000):
+        self.logger.info(f'safe_memmap_matmul {a.shape} {b.shape}')
         result = np.zeros([a.shape[0], b.shape[1]])
         for i in range(0, a.shape[0], step_size):
             st = time.time()
