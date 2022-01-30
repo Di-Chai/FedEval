@@ -5,6 +5,7 @@ import pickle
 import time
 import json
 import shutil
+from typing_extensions import Self
 import hickle
 import psutil
 from matplotlib.pyplot import axis
@@ -145,7 +146,7 @@ class FedSVD(FedStrategy):
 
         # Set to false when benchmarking
         self._evaluate_for_debug = cfg.model_config.svd_evaluate
-        
+
         self._tmp_dir = 'tmp_fedsvd'
         os.makedirs(self._tmp_dir, exist_ok=True)
 
@@ -554,13 +555,14 @@ class FedSVD(FedStrategy):
             return None
         return self._retrieve_host_download_info()
 
-    @staticmethod
-    def safe_memmap_matmul(a, b, step_size=1000):
+    def safe_memmap_matmul(self, a, b, step_size=1000):
         result = np.zeros([a.shape[0], b.shape[1]])
         for i in range(0, a.shape[0], step_size):
+            st = time.time()
             np.matmul(a[i:i+step_size], b, out=result[i:i+step_size])
+            self.logger.info(f'Iter {i} Cost {time.time() - st}')
         return result
-
+    
     def _server_svd(self, data_matrix):
 
         if not self._memory_map:

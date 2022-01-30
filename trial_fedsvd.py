@@ -14,8 +14,13 @@ args = args_parser.parse_args()
 svd_mode = args.mode
 task = args.task
 
-# python = "sudo /home/ubuntu/.virtualenvs/chaidi/bin/python"
-python = "python"
+# TMP
+import socket
+hostname = socket.gethostname()
+if hostname == 'workstation':
+    python = "sudo /home/ubuntu/.virtualenvs/chaidi/bin/python"
+else:
+    python = "python"
 
 # Base Config files
 config_dir = os.path.join('configs', 'FedSVD')
