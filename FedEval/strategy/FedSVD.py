@@ -5,7 +5,6 @@ import pickle
 import time
 import json
 import shutil
-from typing_extensions import Self
 import hickle
 import psutil
 from matplotlib.pyplot import axis
@@ -562,7 +561,7 @@ class FedSVD(FedStrategy):
             np.matmul(a[i:i+step_size], b, out=result[i:i+step_size])
             self.logger.info(f'Iter {i} Cost {time.time() - st}')
         return result
-    
+
     def _server_svd(self, data_matrix):
 
         if not self._memory_map:
