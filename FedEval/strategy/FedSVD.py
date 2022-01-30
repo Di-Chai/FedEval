@@ -128,6 +128,8 @@ class FedSVD(FedStrategy):
     def __init__(self, *args, **kwargs):
         super(FedSVD, self).__init__(*args, **kwargs)
 
+        cfg = ConfigurationManager()
+
         self.host_params_type = HostParamsType.Personalized
         self._svd_mode = ConfigurationManager().model_config.svd_mode
 
@@ -136,14 +138,14 @@ class FedSVD(FedStrategy):
         self._masked_vt = None
 
         # The block-based optimization are decided by the following flag and the block-size
-        self._block_based_optimization = True
-        self._mini_batch_secure_agg = True
+        self._block_based_optimization = cfg.model_config.svd_opt_1
+        self._mini_batch_secure_agg = cfg.model_config.svd_opt_2
         # memory_map are automatically determined according to the input data
         self._memory_map = None
 
         # Set to false when benchmarking
-        self._evaluate_for_debug = True
-
+        self._evaluate_for_debug = cfg.model_config.svd_evaluate
+        
         self._tmp_dir = 'tmp_fedsvd'
         os.makedirs(self._tmp_dir, exist_ok=True)
 

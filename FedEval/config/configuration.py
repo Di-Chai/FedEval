@@ -68,6 +68,9 @@ _STRATEGY_FEDSVD_BLOCK = 'block_size'
 _STRATEGY_FEDSVD_MODE = 'fedsvd_mode'
 _STRATEGY_FEDSVD_TOPK = 'fedsvd_top_k'
 _STRATEGY_FEDSVD_L2 = 'fedsvd_lr_l2'
+_STRATEGY_FEDSVD_OPT_1 = 'fedsvd_opt_1'
+_STRATEGY_FEDSVD_OPT_2 = 'fedsvd_opt_2'
+_STRATEGY_FEDSVD_EVALUATE = 'fedsvd_debug_evaluate'
 
 _ML_KEY = 'MLModel'
 _ML_NAME_KEY = 'name'
@@ -679,6 +682,24 @@ class _ModelConfig(_Configuraiton):
         if self.strategy_name != 'FedSVD':
             raise AttributeError
         return float(self._strategy_cfg[_STRATEGY_FEDSVD_L2])
+
+    @property
+    def svd_opt_1(self):
+        if self.strategy_name != 'FedSVD':
+            raise AttributeError
+        return str(self._strategy_cfg[_STRATEGY_FEDSVD_OPT_1]).lower() == 'true'
+
+    @property
+    def svd_opt_2(self):
+        if self.strategy_name != 'FedSVD':
+            raise AttributeError
+        return str(self._strategy_cfg[_STRATEGY_FEDSVD_OPT_2]).lower() == 'true'
+
+    @property
+    def svd_evaluate(self):
+        if self.strategy_name != 'FedSVD':
+            raise AttributeError
+        return str(self._strategy_cfg[_STRATEGY_FEDSVD_EVALUATE]).lower() == 'true'
 
 
 class _RT_Machine(_Configuraiton):
