@@ -7,7 +7,7 @@ from FedEval.run_util import _load_config, _save_config
 
 
 args_parser = argparse.ArgumentParser()
-args_parser.add_argument('--mode', '-m', choice=('svd', 'lr', 'pca'))
+args_parser.add_argument('--mode', '-m', choices=('svd', 'lr', 'pca'))
 args_parser.add_argument('--task', '-t', choices=('latency', 'bandwidth', 'large_scale', 'precision', 'large_scale_recsys'))
 args = args_parser.parse_args()
 
