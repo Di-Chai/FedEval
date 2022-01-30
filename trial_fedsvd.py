@@ -27,7 +27,7 @@ config_dir = os.path.join('configs', 'FedSVD')
 c1, c2, c3 = _load_config(config_dir)
 
 c1['random_seed'] = 100
-c3['log']['log_dir'] = f'log/{task}'
+c3['log']['log_dir'] = f'log/{task}_{svd_mode}'
 
 c2['FedModel']['name'] = 'FedSVD'
 c2['FedModel']['block_size'] = 1000
@@ -68,6 +68,7 @@ if task == 'bandwidth':
         c3['communication']['bandwidth_download'] = bandwidth
         _save_config(c1, c2, c3, config_dir)
         os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+
 
 if task == 'large_scale':
     c1['dataset'] = 'vertical_linear_regression_memmap'

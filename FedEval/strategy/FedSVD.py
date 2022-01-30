@@ -344,6 +344,15 @@ class FedSVD(FedStrategy):
                     }
                     for client_id in self._client_ids_on_receiving
                 }
+            elif self._svd_mode == 'pca':
+                return {
+                    client_id: {
+                        'fed_svd_status': self._fed_svd_status,
+                        'masked_u': self._masked_u, 'sigma': self._sigma,
+                        'masked_vt': self._masked_vt  # self._masked_vt should be None
+                    }
+                    for client_id in self._client_ids_on_receiving
+                }
             else:
                 if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1:
                     self._vector_transfer_start = self._vector_transfer_progress
@@ -423,6 +432,7 @@ class FedSVD(FedStrategy):
             ms = [e['mn'][0] for e in client_params]
             assert len(set(ms)) == 1, 'm is not the same among the clients'
             self._client_ids_on_receiving = [e['client_id'] for e in client_params]
+            self.logger.info(f'Debug Client Ids on Receiving {self._client_ids_on_receiving}')
             self._ns = [e['mn'][1] for e in client_params]
             self._m = ms[0]
             self._vertical_slice = sum(self._ns) > self._m
@@ -540,7 +550,8 @@ class FedSVD(FedStrategy):
                 else:
                     self._evaluation_u = client_params[0]['u']
                     self._evaluation_sigma = client_params[0]['sigma']
-                    self._evaluation_vt = np.concatenate([e['vt'] for e in client_params], axis=-1)
+                    if self._svd_mode == 'svd':
+                        self._evaluation_vt = np.concatenate([e['vt'] for e in client_params], axis=-1)
             client_memory_usage = [e['memory_usage'] for e in client_params]
             self._total_memory_usage = []
             for date, usage in sorted(self._process_memory_usage.items(), key=lambda x: parse(x[0])):
@@ -895,22 +906,24 @@ class FedSVD(FedStrategy):
                     u_counter += tmp_block_mask.shape[0]
                     if self._save_p_to_disk:
                         del tmp_block_mask
-                # Remove the mask of VT
-                if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1 \
-                        and not self._received_server_params.get('m<n'):
-                    self._local_vt = np.memmap(
-                        filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_vt.npy'),
-                        mode='write', dtype=np.float64,
-                        shape=(self._masked_vt.shape[0], self._local_n)
-                    )
-                else:
-                    self._local_vt = np.zeros([self._masked_vt.shape[0], self._local_n])
 
-                v_counter = 0
-                for data in self._q_random_mask_inverse:
-                    self._local_vt[:, v_counter:v_counter + data.shape[0]] = \
-                        self._masked_vt[:, v_counter:v_counter + data.shape[0]] @ data
-                    v_counter += data.shape[0]
+                if self._svd_mode == 'svd':
+                    # Remove the mask of VT
+                    if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1 \
+                            and not self._received_server_params.get('m<n'):
+                        self._local_vt = np.memmap(
+                            filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_vt.npy'),
+                            mode='write', dtype=np.float64,
+                            shape=(self._masked_vt.shape[0], self._local_n)
+                        )
+                    else:
+                        self._local_vt = np.zeros([self._masked_vt.shape[0], self._local_n])
+
+                    v_counter = 0
+                    for data in self._q_random_mask_inverse:
+                        self._local_vt[:, v_counter:v_counter + data.shape[0]] = \
+                            self._masked_vt[:, v_counter:v_counter + data.shape[0]] @ data
+                        v_counter += data.shape[0]
                 del self._masked_u
                 del self._masked_vt
             # Release the memory
@@ -1130,10 +1143,11 @@ class FedSVD(FedStrategy):
                 if rank_xx < len(c_sigma):
                     c_sigma = c_sigma[:rank_xx]
                     c_u = c_u[:, :rank_xx]
-                    c_vt = c_vt[:rank_xx, :]
                     self._evaluation_sigma = self._evaluation_sigma[:rank_xx]
                     self._evaluation_u = self._evaluation_u[:, :rank_xx]
-                    self._evaluation_vt = self._evaluation_vt[:rank_xx, :]
+                    if self._svd_mode == 'svd':
+                        c_vt = c_vt[:rank_xx, :]
+                        self._evaluation_vt = self._evaluation_vt[:rank_xx, :]
 
                 # RMSE metric
                 self.logger.info('FedSVD Server Status: Computing the RMSE.')
