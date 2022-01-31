@@ -832,13 +832,13 @@ class FedSVD(FedStrategy):
                     del self._p_times_x
 
                 # Apply mask to Q_i (Preparing for removing the mask)
-                self._q_random_mask = []
+                # self._q_random_mask = []
                 self._q_random_mask_inverse = []
                 self._masked_q = []
                 for x, y, q_slice in self._received_q_masks:
                     random_mask_size, _ = q_slice.shape
                     random_mask_block = np.random.random([random_mask_size, random_mask_size])
-                    self._q_random_mask.append(random_mask_block)
+                    # self._q_random_mask.append(random_mask_block)
                     self._q_random_mask_inverse.append(np.linalg.inv(random_mask_block))
                     self._masked_q.append([y, x, q_slice.T @ random_mask_block])
 
@@ -877,6 +877,7 @@ class FedSVD(FedStrategy):
                             )
                         self._masked_u[vector_transfer_start:vector_transfer_end] = \
                             self._received_server_params['masked_u']
+                    del self._received_server_params
                     if not transfer_finish:
                         return None
 
@@ -884,7 +885,7 @@ class FedSVD(FedStrategy):
 
                 # Remove the mask of U and
                 if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1 \
-                        and self._received_server_params.get('m<n'):
+                        and not self._received_server_params.get('m<n'):
                     self._u = np.memmap(
                         filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_u.npy'),
                         mode='write', dtype=np.float64,
@@ -910,7 +911,7 @@ class FedSVD(FedStrategy):
                 if self._svd_mode == 'svd':
                     # Remove the mask of VT
                     if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1 \
-                            and not self._received_server_params.get('m<n'):
+                            and self._received_server_params.get('m<n'):
                         self._local_vt = np.memmap(
                             filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_vt.npy'),
                             mode='write', dtype=np.float64,

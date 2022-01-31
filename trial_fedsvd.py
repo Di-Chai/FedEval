@@ -40,11 +40,11 @@ c2['FedModel']['fedsvd_debug_evaluate'] = False
 
 if task == 'latency':
     if svd_mode == 'lr':
-        c1['dataset'] = 'vertical_linear_regression_memmap'
+        c1['dataset'] = 'vertical_linear_regression'
         c1['feature_size'] = 500  # per client
         c1['sample_size'] = 10000
     else:
-        c1['dataset'] = 'synthetic_matrix_horizontal_memmap'
+        c1['dataset'] = 'synthetic_matrix_horizontal'
         c1['feature_size'] = 1000
         c1['sample_size'] = 5000  # per client
     c3['server']['num_clients'] = 2
@@ -60,11 +60,11 @@ if task == 'latency':
 
 if task == 'bandwidth':
     if svd_mode == 'lr':
-        c1['dataset'] = 'vertical_linear_regression_memmap'
+        c1['dataset'] = 'vertical_linear_regression'
         c1['feature_size'] = 500  # per client
         c1['sample_size'] = 10000
     else:
-        c1['dataset'] = 'synthetic_matrix_horizontal_memmap'
+        c1['dataset'] = 'synthetic_matrix_horizontal'
         c1['feature_size'] = 1000
         c1['sample_size'] = 5000  # per client
     c3['server']['num_clients'] = 2
@@ -102,8 +102,8 @@ if task == 'large_scale':
     c3['communication']['bandwidth_upload'] = '1024Mbit'
     c3['communication']['bandwidth_download'] = '1024Mbit'
     for sample_size in [
-        1000000, 2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000,
-        9000000, 10000000, 20000000, 30000000, 40000000, 50000000
+        # 1000000, 2000000, 3000000, 4000000, 5000000, 6000000, 7000000,
+        8000000, 9000000, 10000000, 20000000, 30000000, 40000000, 50000000
     ]:
         c1['sample_size'] = sample_size
         _save_config(c1, c2, c3, config_dir)
