@@ -435,6 +435,7 @@ class FedSVD(FedStrategy):
             self.logger.info(f'Debug Client Ids on Receiving {self._client_ids_on_receiving}')
             self._ns = [e['mn'][1] for e in client_params]
             self._m = ms[0]
+            self.logger.info(f'Data Shape m {self._m}, n {self._ns}')
             self._vertical_slice = sum(self._ns) > self._m
             self.logger.info(f'Vertical Slice {self._vertical_slice}')
             if client_params[0]['memory_map']:
@@ -877,7 +878,6 @@ class FedSVD(FedStrategy):
                             )
                         self._masked_u[vector_transfer_start:vector_transfer_end] = \
                             self._received_server_params['masked_u']
-                    del self._received_server_params
                     if not transfer_finish:
                         return None
 
@@ -886,37 +886,38 @@ class FedSVD(FedStrategy):
                 # Remove the mask of U and
                 if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1 \
                         and not self._received_server_params.get('m<n'):
-                    self._u = np.memmap(
-                        filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_u.npy'),
-                        mode='write', dtype=np.float64,
-                        shape=self._masked_u.shape
-                    )
+                    # Overwrite the disk
+                    self._u = self._masked_u
+                    # np.memmap(
+                    #     filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_u.npy'),
+                    #     mode='write', dtype=np.float64,
+                    #     shape=self._masked_u.shape
+                    # )
                 else:
                     self._u = np.zeros(self._masked_u.shape)
                 p_size_counter = 0
-                u_counter = 0
                 for i in range(len(self._received_p_masks)):
                     if self._save_p_to_disk:
                         with open(self._received_p_masks[i], 'rb') as f:
                             tmp_block_mask = pickle.load(f)
                     else:
                         tmp_block_mask = self._received_p_masks[i]
-                    self._u[u_counter: u_counter + tmp_block_mask.shape[0]] = \
-                        tmp_block_mask.T @ self._masked_u[p_size_counter: p_size_counter + len(tmp_block_mask)]
+                    self._u[p_size_counter: p_size_counter + tmp_block_mask.shape[0]] = \
+                        tmp_block_mask.T @ self._masked_u[p_size_counter: p_size_counter + tmp_block_mask.shape[0]]
                     p_size_counter += tmp_block_mask.shape[1]
-                    u_counter += tmp_block_mask.shape[0]
                     if self._save_p_to_disk:
                         del tmp_block_mask
 
                 if self._svd_mode == 'svd':
-                    # Remove the mask of VT
+                    # Remove the mask of VT, Overwrite the disk
                     if self._memory_map and ConfigurationManager().model_config.svd_top_k == -1 \
                             and self._received_server_params.get('m<n'):
-                        self._local_vt = np.memmap(
-                            filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_vt.npy'),
-                            mode='write', dtype=np.float64,
-                            shape=(self._masked_vt.shape[0], self._local_n)
-                        )
+                        self._local_vt = self._masked_vt
+                        # np.memmap(
+                        #     filename=os.path.join(self._tmp_dir, f'client_{self.client_id}_vt.npy'),
+                        #     mode='write', dtype=np.float64,
+                        #     shape=(self._masked_vt.shape[0], self._local_n)
+                        # )
                     else:
                         self._local_vt = np.zeros([self._masked_vt.shape[0], self._local_n])
 
@@ -931,7 +932,7 @@ class FedSVD(FedStrategy):
             del self._received_p_masks
             del self._received_q_masks
             self.logger.info(f'Client {self.client_id} has finished removing masks')
-
+    
     def local_evaluate(self):
         # Warning: The following evaluation need self.train_data, which is deleted when self.evaluate
         if self._current_status is FedSVDStatus.Evaluate and self._evaluate_for_debug:

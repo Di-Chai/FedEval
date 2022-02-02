@@ -45,8 +45,10 @@ if task == 'latency':
         c1['sample_size'] = 10000
     else:
         c1['dataset'] = 'synthetic_matrix_horizontal'
-        c1['feature_size'] = 1000
-        c1['sample_size'] = 5000  # per client
+        c1['feature_size'] = 100
+        c1['sample_size'] = 1000  # per client
+        # c1['feature_size'] = 1000
+        # c1['sample_size'] = 5000  # per client
     c3['server']['num_clients'] = 2
     c3['docker']['num_containers'] = 2
     c3['communication']['limit_network_resource'] = True
@@ -65,8 +67,10 @@ if task == 'bandwidth':
         c1['sample_size'] = 10000
     else:
         c1['dataset'] = 'synthetic_matrix_horizontal'
-        c1['feature_size'] = 1000
-        c1['sample_size'] = 5000  # per client
+        c1['feature_size'] = 100
+        c1['sample_size'] = 1000  # per client
+        # c1['feature_size'] = 1000
+        # c1['sample_size'] = 5000  # per client
     c3['server']['num_clients'] = 2
     c3['docker']['num_containers'] = 2
     c3['communication']['limit_network_resource'] = True
@@ -102,8 +106,8 @@ if task == 'large_scale':
     c3['communication']['bandwidth_upload'] = '1024Mbit'
     c3['communication']['bandwidth_download'] = '1024Mbit'
     for sample_size in [
-        # 1000000, 2000000, 3000000, 4000000, 5000000, 6000000, 7000000,
-        8000000, 9000000, 10000000, 20000000, 30000000, 40000000, 50000000
+        # 1000000, 2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000, 20000000, 30000000, 
+        40000000, 50000000
     ]:
         c1['sample_size'] = sample_size
         _save_config(c1, c2, c3, config_dir)
@@ -160,3 +164,5 @@ if task == 'large_scale_recsys':
     _save_config(c1, c2, c3, config_dir)
     os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
 
+if task == 'optimiztion':
+    pass
