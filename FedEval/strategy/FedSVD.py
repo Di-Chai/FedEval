@@ -217,7 +217,7 @@ class FedSVD(FedStrategy):
         generate_orthogonal_matrix(clear_cache=True)
 
         self._process_memory_usage = {}
-        self._total_memory_usage = 0
+        self._total_memory_usage = [0]
         self._scheduler = BackgroundScheduler()
         self._scheduler.start()
         # Start tracking the memory usage, report memory every 5 seconds
@@ -225,7 +225,7 @@ class FedSVD(FedStrategy):
             self._log_hardware_usage, trigger='cron', second=f'*/5',
             id='log_memory'
         )
-
+    
     def _log_hardware_usage(self):
         process_memory_usage = psutil.Process().memory_full_info().data + psutil.Process().memory_full_info().swap
         process_memory_usage /= 2**30  # GB
@@ -457,9 +457,9 @@ class FedSVD(FedStrategy):
             if self._mini_batch_secure_agg:
                 if self._vertical_slice:
                     if self._m <= 1e5:
-                        self._mask_step_size = ConfigurationManager().model_config.block_size
+                        self._mask_step_size = 1000
                     else:
-                        self._mask_step_size = max(int(ConfigurationManager().model_config.block_size / (self._m / 1e5)), 1)
+                        self._mask_step_size = max(int(1000 / (self._m / 1e5)), 1)
                 else:
                     base = 100000
                     step_size = 2000
@@ -554,7 +554,6 @@ class FedSVD(FedStrategy):
                     if self._svd_mode == 'svd':
                         self._evaluation_vt = np.concatenate([e['vt'] for e in client_params], axis=-1)
             client_memory_usage = [e['memory_usage'] for e in client_params]
-            self._total_memory_usage = []
             for date, usage in sorted(self._process_memory_usage.items(), key=lambda x: parse(x[0])):
                 tmp = usage
                 for cmu in client_memory_usage:
@@ -932,7 +931,7 @@ class FedSVD(FedStrategy):
             del self._received_p_masks
             del self._received_q_masks
             self.logger.info(f'Client {self.client_id} has finished removing masks')
-    
+
     def local_evaluate(self):
         # Warning: The following evaluation need self.train_data, which is deleted when self.evaluate
         if self._current_status is FedSVDStatus.Evaluate and self._evaluate_for_debug:
