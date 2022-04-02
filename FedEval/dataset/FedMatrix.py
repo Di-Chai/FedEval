@@ -100,7 +100,7 @@ class mnist_matrix(FedVerticalMatrix):
 def load_synthetic(m, n, alpha):
     # Reference: https://github.com/andylamp/federated_pca/blob/master/synthetic_data_gen.m
     k = min(m, n)
-    U, _ = np.linalg.qr(np.random.randn(m, m))
+    U, _ = np.linalg.qr(np.random.randn(m, k))
     Sigma = np.array(list(range(1, k + 1))).astype(np.float64) ** -alpha
     V = np.random.randn(k, n)
     Y = (U @ np.diag(Sigma) @ V) / np.sqrt(n - 1)
