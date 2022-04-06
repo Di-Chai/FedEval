@@ -1,12 +1,12 @@
 data_dir: data
-dataset: mnist_matrix
-feature_size: 100000
+dataset: vertical_linear_regression_memmap
+feature_size: 500
 non-iid: false
 non-iid-class: 0
 non-iid-strategy: natural
 normalize: false
 random_seed: 100
-sample_size: 100000
+sample_size: 5000000
 train_val_test:
 - 1.0
 - 0

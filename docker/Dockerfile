@@ -2,7 +2,8 @@ FROM tensorflow/tensorflow:2.2.3-gpu-py3
 
 # Install python & tools
 RUN apt update && \
-    apt install -y iproute2 net-tools wget nload iftop unzip --fix-missing
+    apt install -y iproute2 net-tools wget nload iftop unzip --fix-missing && \
+    apt clean
 
 # Install python requirements (using douban image)
 COPY requirements.txt /root/requirements.txt

@@ -306,7 +306,9 @@ def server_stop():
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(hostname=host, port=port, username=user_name, key_filename=key_file)
         _, stdout, stderr = ssh.exec_command(
-            f'cd {remote_path};'+ sudo + f'docker-compose -f docker-compose-{name}.yml stop')
+            f'cd {remote_path};' + sudo +
+            f'docker-compose --compatibility -f docker-compose-{name}.yml stop'
+        )
 
         print(''.join(stdout.readlines()))
         print(''.join(stderr.readlines()))
@@ -539,7 +541,7 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
                    f'-w {current_path} {rt_cfg.image_label} '
                    f'python3 -W ignore -m FedEval.run -f compose-local -c {new_config_dir_path}'
         )
-        os.system(sudo + 'docker-compose up -d')
+        os.system(sudo + 'docker-compose --compatibility up -d')
 
     if mode == 'remote':
 
@@ -584,12 +586,12 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
                 print('Start Server')
                 _, stdout, stderr = ssh.exec_command(
                     f'cd {remote_path};' +
-                    sudo + 'docker-compose -f docker-compose-server.yml up -d')
+                    sudo + 'docker-compose --compatibility -f docker-compose-server.yml up -d')
             else:
                 print('Start Clients', m_name)
                 _, stdout, stderr = ssh.exec_command(
                     f'cd {remote_path};' +
-                    sudo + f'docker-compose -f docker-compose-{m_name}.yml up -d')
+                    sudo + f'docker-compose --compatibility -f docker-compose-{m_name}.yml up -d')
 
             print(''.join(stdout.readlines()))
             print(''.join(stderr.readlines()))

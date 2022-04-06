@@ -1,5 +1,5 @@
 data_dir: data
-dataset: mnist_matrix
+dataset: femnist
 feature_size: 100000
 non-iid: false
 non-iid-class: 0
@@ -8,6 +8,6 @@ normalize: false
 random_seed: 100
 sample_size: 100000
 train_val_test:
-- 1.0
-- 0
-- 0
+- 0.8
+- 0.1
+- 0.1

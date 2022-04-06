@@ -98,7 +98,8 @@ def generate_docker_compose_server(path):
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
-        'environment': []
+        'environment': [],
+        'deploy': {'resources': {'limits': {'cpus': 1 / rt_cfg.container_num}}}
     }
 
     if UNIFIED_JOB_ID is not None:
@@ -195,7 +196,8 @@ def generate_docker_compose_local(path):
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
         'networks': ['server-clients'],
-        'environment': []
+        'environment': [],
+        'deploy': {'resources': {'limits': {'cpus': 1 / rt_cfg.container_num}}}
     }
 
     if UNIFIED_JOB_ID is not None:

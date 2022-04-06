@@ -3,16 +3,16 @@ FedModel:
   C: 1.0
   E: 1
   block_size: 1000
+  fedsvd_debug_evaluate: true
   fedsvd_lr_l2: 0
   fedsvd_mode: lr
+  fedsvd_opt_1: true
+  fedsvd_opt_2: true
   fedsvd_top_k: -1
-  max_rounds: 10000
-  rounds_between_val: 1
-  name: FedSVD
+  max_rounds: 12
+  name: FedSGD
   num_tolerance: 300
-  fedsvd_opt_1: True
-  fedsvd_opt_2: True
-  fedsvd_debug_evaluate: True
+  rounds_between_val: 1
 MLModel:
   activation: relu
   dropout: 0.2
@@ -22,7 +22,7 @@ MLModel:
   name: LeNet
   optimizer:
     lr: 0.1
-    momentum: 0.9
+    momentum: 0
     name: sgd
   units:
   - 512
