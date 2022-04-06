@@ -6,10 +6,10 @@ communication:
   method: SocketIO
   port: 8080
 docker:
-  enable_gpu: true
+  enable_gpu: false
   image: fedeval:v1
   num_containers: 8
-  num_gpu: 2
+  num_gpu: 0
 log:
   base_level: INFO
   console_log_level: INFO
@@ -18,6 +18,6 @@ log:
 server:
   host: server
   listen: server
-  num_clients: 5304
+  num_clients: 3500
   port: 8080
   secret_key: secret!

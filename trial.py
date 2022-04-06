@@ -61,28 +61,28 @@ Shake:
 
 fine_tuned_params = {
     'mnist': {
-        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.7},
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.07},
+        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.7}, 
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.3},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.07},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'MLP'
     },
     'femnist': {
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.009},  # re
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.009},
-        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.005},
+        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.005},  # re
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.1},
         'model': 'LeNet'
     },
     'celeba': {
+        'FedSGD': { 'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.03},  # re
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.03},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'LeNet'
     },
@@ -177,7 +177,7 @@ if args.dataset == 'mnist':
 
 if args.dataset == 'femnist':
     data_config['sample_size'] = None
-    runtime_config['server']['num_clients'] = 1989
+    runtime_config['server']['num_clients'] = 3500
 
 if args.dataset == 'celeba':
     data_config['sample_size'] = None
@@ -248,8 +248,8 @@ if args.tune == 'lr':
 host_name = socket.gethostname()
 
 if host_name == "workstation":
-    runtime_config['docker']['enable_gpu'] = False
-    # runtime_config['docker']['num_containers'] = 100
+    runtime_config['docker']['enable_gpu'] = True
+    runtime_config['docker']['num_containers'] = 8
     runtime_config['docker']['num_gpu'] = 2
 
 if host_name == "gpu06":
