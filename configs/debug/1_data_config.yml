@@ -1,5 +1,5 @@
 data_dir: data
-dataset: femnist
+dataset: celeba
 feature_size: 100000
 non-iid: false
 non-iid-class: 0

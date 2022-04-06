@@ -18,6 +18,6 @@ log:
 server:
   host: server
   listen: server
-  num_clients: 1989
+  num_clients: 5304
   port: 8080
   secret_key: secret!

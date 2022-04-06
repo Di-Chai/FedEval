@@ -1,6 +1,7 @@
 import argparse
 import copy
 import os
+import multiprocessing
 from math import ceil
 
 import yaml
@@ -99,7 +100,7 @@ def generate_docker_compose_server(path):
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
         'environment': [],
-        'deploy': {'resources': {'limits': {'cpus': 1}}}
+        'deploy': {'resources': {'limits': {'cpus': max(1, int(multiprocessing.cpu_count() / rt_cfg.container_num))}}}
     }
 
     if UNIFIED_JOB_ID is not None:
@@ -197,7 +198,7 @@ def generate_docker_compose_local(path):
         'cap_add': ['NET_ADMIN'],
         'networks': ['server-clients'],
         'environment': [],
-        'deploy': {'resources': {'limits': {'cpus': 1}}}
+        'deploy': {'resources': {'limits': {'cpus': max(1, int(multiprocessing.cpu_count() / rt_cfg.container_num))}}}
     }
 
     if UNIFIED_JOB_ID is not None:
