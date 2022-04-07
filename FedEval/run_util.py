@@ -671,7 +671,7 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
     model_config = ConfigurationManager().model_config
     runtime_config = ConfigurationManager().runtime_config
     # rm the data
-    shutil.rmtree(data_config.dir_name)
+    shutil.rmtree(data_config.dir_name, ignore_errors=True)
     # and regenerate
     generate_data(True)
     client_data_name = [
