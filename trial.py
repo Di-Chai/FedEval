@@ -228,6 +228,9 @@ if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
 if args.tune == 'lr':
     if args.strategy != 'LocalCentral' and args.strategy != 'FedSGD':
         model_config['FedModel']['max_rounds'] = 100
+    else:
+        runtime_config['docker']['enable_gpu'] = True
+        runtime_config['docker']['num_gpu'] = 1
     runtime_config['communication']['limit_network_resource'] = False
 
 ##################################################
