@@ -16,8 +16,8 @@ log:
   console_log_level: INFO
 communication:
   method: SocketIO
-  port: 8000
-  limit_network_resource: True
+  port: 8001
+  limit_network_resource: false
   bandwidth_upload: 10Mbit
   bandwidth_download: 30Mbit
   latency: 50ms

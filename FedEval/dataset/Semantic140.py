@@ -164,7 +164,7 @@ class semantic140(FedData):
         user_count = {}
         for user in all_users:
             user_count[user] = user_count.get(user, 0) + 1
-        all_data = [e for e in all_data if user_count[e[1]] > 100]
+        all_data = [e for e in all_data if user_count[e[1]] > 5]  # 100
         np.random.shuffle(all_data)
         all_data = sorted(all_data, key=lambda x: x[1])
 

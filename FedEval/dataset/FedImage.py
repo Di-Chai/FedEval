@@ -110,7 +110,7 @@ class celeba(FedData):
         all_identity = sorted(all_identity, key=lambda x: int(x))
         selected_identity = []
         for e in all_identity:
-            if len(all_identity_dict[e]) > 20:
+            if len(all_identity_dict[e]) >= 5:
                 selected_identity.append(e)
 
         x = []

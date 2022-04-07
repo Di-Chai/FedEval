@@ -27,7 +27,7 @@ MLModel:
     - 512
   optimizer:
     name: sgd
-    lr: 0.1
+    lr: 0.001
     momentum: 0
   loss: categorical_crossentropy
   metrics:

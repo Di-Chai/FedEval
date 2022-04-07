@@ -3,10 +3,13 @@ import copy
 import datetime
 import json
 import os
+import pdb
 import platform
+import shutil
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow as tf
 plt.rcParams.update({'font.size': 14})
 
 import requests
@@ -525,6 +528,10 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
 
     UNIFIED_JOB_ID = datetime.datetime.now().strftime('%Y_%m%d_%H%M%S')
 
+    if execution == 'simulate_fedsgd':
+        fed_sgd_simulator(UNIFIED_JOB_ID)
+        exit(0)
+
     if mode == 'local':
         current_path = os.path.abspath('./')
         os.system(
@@ -647,9 +654,99 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
         server_stop()
 
 
+def _compute_gradients(model, x, y):
+    with tf.GradientTape() as tape:
+        y_hat = model(x)
+        loss_op = tf.keras.losses.get(ConfigurationManager().model_config.loss_calc_method)
+        loss = loss_op(y, y_hat)
+        gradients = tape.gradient(loss, model.trainable_variables)
+    return [e.numpy() for e in gradients]
+
+
+def fed_sgd_simulator(UNIFIED_JOB_ID):
+    import hickle
+    from FedEval.utils import ParamParser
+    from FedEval.run import generate_data
+    data_config = ConfigurationManager().data_config
+    model_config = ConfigurationManager().model_config
+    runtime_config = ConfigurationManager().runtime_config
+    # rm the data
+    shutil.rmtree(data_config.dir_name)
+    # and regenerate
+    generate_data(True)
+    client_data_name = [
+        os.path.join(data_config.dir_name, e) for e in os.listdir(data_config.dir_name) if e.startswith('client')
+    ]
+    client_data_name = sorted(client_data_name, key=lambda x: int(x.split('_')[-1].strip('.pkl')))
+    client_data = []
+    for data_name in client_data_name:
+        with open(data_name, 'r') as f:
+            client_data.append(hickle.load(f))
+
+    x_train = np.concatenate([e['x_train'] for e in client_data], axis=0)
+    y_train = np.concatenate([e['y_train'] for e in client_data], axis=0)
+    x_val = np.concatenate([e['x_val'] for e in client_data], axis=0)
+    y_val = np.concatenate([e['y_val'] for e in client_data], axis=0)
+    x_test = np.concatenate([e['x_test'] for e in client_data], axis=0)
+    y_test = np.concatenate([e['y_test'] for e in client_data], axis=0)
+    del client_data
+
+    parameter_parser = ParamParser()
+    ml_model = parameter_parser.parse_model()
+
+    early_stopping_metric = np.inf
+    best_test_metric = None
+    test_metric_each_round = []
+    patience = 0
+    for epoch in range(model_config.max_round_num):
+        batch_size = 8192
+        batched_gradients = []
+        actual_size = []
+        for i in range(0, len(x_train), batch_size):
+            actual_size.append(min(batch_size, len(x_train) - i))
+            batched_gradients.append(
+                [e / float(actual_size[-1]) for e in
+                 _compute_gradients(ml_model, x_train[i:i + batch_size], y_train[i:i + batch_size])]
+            )
+        actual_size = np.array(actual_size) / np.sum(actual_size)
+        aggregated_gradients = []
+        for i in range(len(batched_gradients[0])):
+            aggregated_gradients.append(np.average([e[i] for e in batched_gradients], axis=0, weights=actual_size))
+        ml_model.optimizer.apply_gradients(zip(aggregated_gradients, ml_model.trainable_variables))
+        # Evaluate
+        val_log = ml_model.evaluate(x_val, y_val, verbose=0, batch_size=batch_size)
+        test_log = ml_model.evaluate(x_test, y_test, verbose=0, batch_size=batch_size)
+        print(
+            f'Epoch {epoch} Val Loss {val_log[0]}, Val Acc {val_log[1]}, '
+            f'Test Loss {test_log[0]}, Test Acc {test_log[1]}'
+        )
+        if val_log[0] < early_stopping_metric:
+            early_stopping_metric = val_log[0]
+            best_test_metric = test_log
+            patience = 0
+        else:
+            patience += 1
+        if patience > model_config.tolerance_num:
+            print('Train Finished')
+            print(f'Best Test Metric {test_log}')
+        del batched_gradients
+        del actual_size
+        test_metric_each_round.append([epoch] + test_log)
+    output_dir = os.path.join(runtime_config.log_dir_path, 'fed_sgd_simulator')
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+    with open(os.path.join(output_dir, f'{UNIFIED_JOB_ID}_fed_sgd_simulator.csv'), 'w') as f:
+        f.write(', '.join(
+            [str(e) for e in [data_config.dataset_name, runtime_config.client_num, model_config.learning_rate]]
+        ) + '\n')
+        for e in test_metric_each_round:
+            f.write(', '.join([str(e1) for e1 in e]) + '\n')
+        f.write(f'Best Metric, {best_test_metric[0]}, {best_test_metric[1]}')
+
+
 if __name__ == '__main__':
     args_parser = argparse.ArgumentParser()
-    args_parser.add_argument('--execute', '-e', choices=('run', 'stop', 'upload', 'log'),
+    args_parser.add_argument('--execute', '-e', choices=('run', 'stop', 'upload', 'log', 'simulate_fedsgd'),
                              help='Start or Stop the experiments')
     args_parser.add_argument('--mode', '-m', choices=('remote', 'local'),
                              help='Run the experiments locally or remotely that presented the runtime_config')

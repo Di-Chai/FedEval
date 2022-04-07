@@ -251,10 +251,11 @@ class _DataConfig(_Configuraiton):
         # non-iid
         self._non_iid: bool = self._inner.get(_D_NI_ENABLE_KEY, False)
         if self._non_iid:
-            self._non_iid_class_num: int = int(
-                self._inner.get(_D_NI_CLASS_KEY, 1))
             self._non_iid_strategy_name: str = self._inner.get(
                 _D_NI_STRATEGY_KEY, 'average')
+            if self._non_iid_strategy_name != 'natural':
+                self._non_iid_class_num: int = int(
+                    self._inner.get(_D_NI_CLASS_KEY, 1))
 
         # partition
         partition = self._inner[_D_PARTITION_KEY].copy()

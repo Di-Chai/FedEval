@@ -124,11 +124,11 @@ class FedData(metaclass=ABCMeta):
     def non_iid_data(self, save_file=True, called_in_iid=False) -> List[Mapping[str, List[np.ndarray]]]:
         d_cfg = ConfigurationManager().data_config
         if called_in_iid:
-            non_iid_class_num = self.num_class if self.identity is None else 1
             strategy = 'average' if self.identity is None else 'natural'
+            non_iid_class_num = None if strategy == 'natural' else self.num_class
         else:
-            non_iid_class_num = d_cfg.non_iid_class_num
             strategy = d_cfg.non_iid_strategy_name
+            non_iid_class_num = None if strategy == 'natural' else d_cfg.non_iid_class_num
 
         local_dataset = []
 

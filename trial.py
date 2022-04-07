@@ -62,24 +62,25 @@ Shake:
 fine_tuned_params = {
     'mnist': {
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.07},
+        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.3},
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.7}, 
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
-        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.3},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'MLP'
     },
     'femnist': {
         'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.009},  # re
+        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.005},  # re
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
-        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.005},  # re
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.1},
         'model': 'LeNet'
     },
     'celeba': {
-        'FedSGD': { 'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.03},  # re
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.03},  # re
+        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},  # re
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
@@ -87,20 +88,20 @@ fine_tuned_params = {
         'model': 'LeNet'
     },
     "semantic140": {
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.009},  # re
+        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.007},  # re
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.05},
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.03},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.009},
-        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.007},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'StackedLSTM'
     },
     "shakespeare": {
+        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},  # re
+        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},  # re
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},
-        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},
         'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': None},
         'model': 'StackedLSTM'
     }
@@ -162,7 +163,8 @@ runtime_config = {
     'log': {'log_dir': args.log_dir}, 
     'docker': {'num_containers': 100, 'enable_gpu': False, 'num_gpu': 0},
     'communication': {
-        'limit_network_resource': True,
+        # 'limit_network_resource': True,
+        'limit_network_resource': False,
         'bandwidth_upload': '100Mbit',
         'bandwidth_download': '100Mbit',
         'latency': '50ms'
@@ -181,11 +183,11 @@ if args.dataset == 'femnist':
 
 if args.dataset == 'celeba':
     data_config['sample_size'] = None
-    runtime_config['server']['num_clients'] = 5304
+    runtime_config['server']['num_clients'] = 9343
 
 if args.dataset == 'semantic140':
     data_config['sample_size'] = None
-    runtime_config['server']['num_clients'] = 161
+    runtime_config['server']['num_clients'] = 50579
     model_config['MLModel']['embedding_dim'] = 0
     model_config['MLModel']['loss'] = 'binary_crossentropy'
     model_config['MLModel']['metrics'] = ['binary_accuracy']
@@ -224,7 +226,7 @@ if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
 ##################################################
 # Limit the max_epoch to 100 if doing LR tuning
 if args.tune == 'lr':
-    if args.strategy != 'LocalCentral':
+    if args.strategy != 'LocalCentral' and args.strategy != 'FedSGD':
         model_config['FedModel']['max_rounds'] = 100
     runtime_config['communication']['limit_network_resource'] = False
 
@@ -248,7 +250,7 @@ if args.tune == 'lr':
 host_name = socket.gethostname()
 
 if host_name == "workstation":
-    runtime_config['docker']['enable_gpu'] = True
+    runtime_config['docker']['enable_gpu'] = False
     runtime_config['docker']['num_containers'] = 8
     runtime_config['docker']['num_gpu'] = 2
 
@@ -258,9 +260,9 @@ if host_name == "gpu06":
     runtime_config['docker']['num_gpu'] = 8
 
 if host_name == "gpu05":
-    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['enable_gpu'] = True
     # runtime_config['docker']['num_containers'] = 40
-    runtime_config['docker']['num_gpu'] = 2
+    runtime_config['docker']['num_gpu'] = 1
 
 if host_name == "ministation":
     runtime_config['docker']['enable_gpu'] = False

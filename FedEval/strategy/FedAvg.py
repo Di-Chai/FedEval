@@ -1,3 +1,4 @@
+import random
 import tensorflow as tf
 
 from ..callbacks import *
@@ -20,6 +21,20 @@ class FedAvg(FedStrategy):
             loss = loss_op(y, y_hat)
             gradients = tape.gradient(loss, self.ml_model.trainable_variables)
         return gradients
+
+    def host_select_train_clients(self, ready_clients):
+        self.train_selected_clients = random.sample(
+            list(ready_clients),
+            min(100, ConfigurationManager().num_of_clients_contacted_per_round)
+        )
+        return self.train_selected_clients
+
+    def host_select_evaluate_clients(self, ready_clients):
+        self.eval_selected_clients = random.sample(
+            list(ready_clients),
+            min(100, ConfigurationManager().num_of_clients_contacted_per_round)
+        )
+        return self.eval_selected_clients
 
 
 class FedSGD(FedAvg):
