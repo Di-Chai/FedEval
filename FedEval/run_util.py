@@ -742,6 +742,8 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
         for e in test_metric_each_round:
             f.write(', '.join([str(e1) for e1 in e]) + '\n')
         f.write(f'Best Metric, {best_test_metric[0]}, {best_test_metric[1]}')
+    # rm the data
+    shutil.rmtree(data_config.dir_name)
 
 
 if __name__ == '__main__':

@@ -139,7 +139,7 @@ tune_params = {
 }
 
 data_config = {
-    'dataset': args.dataset, 
+    'dataset': args.dataset, 'data_dir': 'data',
     'non-iid': True if args.non_iid.lower() == 'true' else False,
     'sample_size': 600,
     'non-iid-strategy': 'average' if args.dataset == 'mnist' else 'natural', 
@@ -231,6 +231,7 @@ if args.tune == 'lr':
     else:
         runtime_config['docker']['enable_gpu'] = True
         runtime_config['docker']['num_gpu'] = 1
+        data_config['data_dir'] = 'data_' + data_config['dataset'] + '_' + str(np.random.randint(0, 100000))
     runtime_config['communication']['limit_network_resource'] = False
 
 ##################################################
