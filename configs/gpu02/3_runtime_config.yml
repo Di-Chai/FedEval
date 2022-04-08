@@ -1,0 +1,23 @@
+communication:
+  bandwidth_download: 100Mbit
+  bandwidth_upload: 100Mbit
+  latency: 50ms
+  limit_network_resource: false
+  method: SocketIO
+  port: 8080
+docker:
+  enable_gpu: true
+  image: fedeval:v1
+  num_containers: 8
+  num_gpu: 8
+log:
+  base_level: INFO
+  console_log_level: INFO
+  file_log_level: INFO
+  log_dir: log/gpu06_debug
+server:
+  host: server
+  listen: server
+  num_clients: 5304
+  port: 8080
+  secret_key: secret!

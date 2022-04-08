@@ -660,7 +660,12 @@ def _compute_gradients(model, x, y):
         loss_op = tf.keras.losses.get(ConfigurationManager().model_config.loss_calc_method)
         loss = loss_op(y, y_hat)
         gradients = tape.gradient(loss, model.trainable_variables)
-    return [e.numpy() for e in gradients]
+    for i in range(len(gradients)):
+        try:
+            gradients[i] = gradients[i].numpy()
+        except AttributeError:
+            gradients[i] = tf.convert_to_tensor(gradients[0]).numpy()
+    return gradients
 
 
 def fed_sgd_simulator(UNIFIED_JOB_ID):
@@ -710,6 +715,7 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
             )
         actual_size = np.array(actual_size) / np.sum(actual_size)
         aggregated_gradients = []
+
         for i in range(len(batched_gradients[0])):
             aggregated_gradients.append(np.average([e[i] for e in batched_gradients], axis=0, weights=actual_size))
         ml_model.optimizer.apply_gradients(zip(aggregated_gradients, ml_model.trainable_variables))
