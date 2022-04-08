@@ -1231,9 +1231,21 @@ class ConfigurationManager(Singleton,
             f'n_clients={self._rt_cfg.client_num}',
         ]
         data_unique_configs = sorted(data_unique_configs)
+        return self._get_md5(','.join(data_unique_configs))
+
+    @property
+    def config_unique_id(self):
+        unique_configs = [f'{key}={value}' for key, value in self._d_cfg.inner.items()]
+        unique_configs += [f'{key}={value}' for key, value in self._mdl_cfg.inner.items()]
+        unique_configs += [f'{key}={value}' for key, value in self._rt_cfg.inner.items()]
+        unique_configs = sorted(unique_configs)
+        return self._get_md5(','.join(unique_configs))
+
+    @staticmethod
+    def _get_md5(config_string):
         # Creat the hash code
         hl = hashlib.md5()
-        hl.update(','.join(data_unique_configs).encode(encoding='utf-8'))
+        hl.update(config_string.encode(encoding='utf-8'))
         return hl.hexdigest()
 
     @property

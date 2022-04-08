@@ -236,7 +236,7 @@ if args.tune == 'lr':
         runtime_config['docker']['num_gpu'] = 1
         # Change the batch size
         if args.dataset == 'mnist':
-            model_config['FedModel']['B'] = 8192 * 2
+            model_config['FedModel']['B'] = 8192 * 4
         elif args.dataset == 'femnist':
             model_config['FedModel']['B'] = 8192 * 2
         elif args.dataset == 'celeba':
@@ -301,7 +301,7 @@ if __name__ == '__main__':
     for _ in range(repeat):
         data_config['random_seed'] = _
         if args.tune is None:
-            p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
+            p = Process(target=run, args=(execution, mode, config), kwargs=params)
             p.start()
             p.join()
         else:
@@ -309,7 +309,7 @@ if __name__ == '__main__':
             if args.tune == 'lr':
                 for lr in tune_params['lr']:
                     params['model_config']['MLModel']['optimizer']['lr'] = lr
-                    p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
+                    p = Process(target=run, args=(execution, mode, config), kwargs=params)
                     p.start()
                     p.join()
             else:

@@ -477,7 +477,7 @@ def recursive_update_dict(target: dict, update: dict):
     return target
 
 
-def run(execution, mode, config, new_config_dir_path=None, **kwargs):
+def run(execution, mode, config, overwrite_config=False, **kwargs):
 
     if len(kwargs) > 0:
         print('*' * 40)
@@ -505,8 +505,11 @@ def run(execution, mode, config, new_config_dir_path=None, **kwargs):
         runtime_config['server']['listen'] = '0.0.0.0'
     # --- configurations modification area end ---
 
-    new_config_dir_path = new_config_dir_path or config
     cfg_mgr = ConfigurationManager(data_config, model_config, runtime_config)
+    if overwrite_config:
+        new_config_dir_path = config
+    else:
+        new_config_dir_path = config + '_' + cfg_mgr.config_unique_id[:10]
     cfg_mgr.to_files(new_config_dir_path)
     rt_cfg = cfg_mgr.runtime_config
 
@@ -769,4 +772,4 @@ if __name__ == '__main__':
             raise ValueError('Please provide log_dir')
         LogAnalysis(args.path).to_csv('_'.join(args.path.split('/')) + '.csv')
     else:
-        run(execution=args.execute, mode=args.mode, config=args.config, new_config_dir_path=args.config + '_tmp')
+        run(execution=args.execute, mode=args.mode, config=args.config, overwrite_config=False)

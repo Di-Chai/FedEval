@@ -71,13 +71,16 @@ class FedData(metaclass=ABCMeta):
         self.data_dir = os.path.join(os.path.dirname(self.local_path), 'data')
         self.identity = None
         self.num_class = None
+        self.x, self.y = None, None
 
+        if self._regenerate:
+            self._load_and_process_data()
+
+    def _load_and_process_data(self):
         self.x, self.y = self.load_data()
-
-        if d_cfg.normalized:
+        if ConfigurationManager().data_config.normalized:
             self.x = self.x / np.max(self.x)
-
-        if mdl_cfg.ml_method_name == 'MLP':
+        if ConfigurationManager().model_config.ml_method_name == 'MLP':
             self.x = np.reshape(self.x, [-1, np.prod(self.x.shape[1:])])
 
     @abstractmethod
@@ -85,6 +88,8 @@ class FedData(metaclass=ABCMeta):
         raise NotImplementedError('Please implement the load_data function')
 
     def iid_data(self, save_file=True):
+        if self.x is None or self.y is None:
+            self._load_and_process_data()
         # Temporally use, to guarantee the test set in iid/non-iid setting are the same
         local_dataset = self.non_iid_data(save_file=False, called_in_iid=True)
         # Transfer non-iid to iid
@@ -118,23 +123,23 @@ class FedData(metaclass=ABCMeta):
                 'y_test': self.y[test],
             }
             hickle.dump(target, os.path.join(self.output_dir, f'client_{i}.pkl'))
-            # with open(os.path.join(self.output_dir, f'client_{i}.pkl'), 'wb') as f:
-            #     hickle.dump(target, f)
             del target
 
-    def generate_local_data(self, local) -> Mapping[str, List[np.ndarray]]:
-        train, val, test = split_data(local, self.train_val_test)
-        print(train)
-        return {
-            'x_train': self.x[train],
-            'y_train': self.y[train],
-            'x_val': self.x[val],
-            'y_val': self.y[val],
-            'x_test': self.x[test],
-            'y_test': self.y[test],
-        }
+    # def _generate_local_data(self, local) -> Mapping[str, List[np.ndarray]]:
+    #     train, val, test = split_data(local, self.train_val_test)
+    #     print(train)
+    #     return {
+    #         'x_train': self.x[train],
+    #         'y_train': self.y[train],
+    #         'x_val': self.x[val],
+    #         'y_val': self.y[val],
+    #         'x_test': self.x[test],
+    #         'y_test': self.y[test],
+    #     }
 
     def non_iid_data(self, save_file=True, called_in_iid=False) -> List[Mapping[str, List[np.ndarray]]]:
+        if self.x is None or self.y is None:
+            self._load_and_process_data()
         d_cfg = ConfigurationManager().data_config
         if called_in_iid:
             strategy = 'average' if self.identity is None else 'natural'
