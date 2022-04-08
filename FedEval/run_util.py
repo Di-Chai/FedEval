@@ -679,9 +679,6 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
     print('#' * 80)
     print('->', 'Starting simulation on FedSGD for parameter tuning')
     print('#' * 80)
-    # rm the data
-    shutil.rmtree(config_manager.dir_name, ignore_errors=True)
-    # and regenerate
     generate_data(True)
     print('#' * 80)
     print('->', 'Data Generated')
@@ -694,7 +691,7 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
     for data_name in client_data_name:
         with open(data_name, 'r') as f:
             client_data.append(hickle.load(f))
-    
+
     x_train = np.concatenate([e['x_train'] for e in client_data], axis=0)
     y_train = np.concatenate([e['y_train'] for e in client_data], axis=0)
     x_val = np.concatenate([e['x_val'] for e in client_data], axis=0)
@@ -702,7 +699,7 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
     x_test = np.concatenate([e['x_test'] for e in client_data], axis=0)
     y_test = np.concatenate([e['y_test'] for e in client_data], axis=0)
     del client_data
-
+    
     parameter_parser = ParamParser()
     ml_model = parameter_parser.parse_model()
     early_stopping_metric = np.inf
@@ -754,8 +751,6 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
         for e in test_metric_each_round:
             f.write(', '.join([str(e1) for e1 in e]) + '\n')
         f.write(f'Best Metric, {best_test_metric[0]}, {best_test_metric[1]}')
-    # rm the data
-    shutil.rmtree(config_manager.dir_name)
 
 
 if __name__ == '__main__':
