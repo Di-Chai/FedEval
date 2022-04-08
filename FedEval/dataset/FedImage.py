@@ -90,7 +90,7 @@ class celeba(FedData):
     def load_data(self):
         data_path = os.path.join(os.path.dirname(self.local_path), 'data', 'celeba')
 
-        image_path = os.path.join(data_path, 'images')
+        image_path = os.path.join(data_path, 'images-small')
 
         with open(os.path.join(data_path, 'list_attr_celeba.csv'), 'r') as f:
             y = [e.strip(' \n').split(',') for e in f.readlines()]

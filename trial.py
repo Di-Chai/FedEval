@@ -240,7 +240,7 @@ if args.tune == 'lr':
         elif args.dataset == 'femnist':
             model_config['FedModel']['B'] = 8192 * 2
         elif args.dataset == 'celeba':
-            model_config['FedModel']['B'] = 512
+            model_config['FedModel']['B'] = 8192
         elif args.dataset == 'semantic140':
             model_config['FedModel']['B'] = 8192 * 2
         elif args.dataset == 'shakespeare':
