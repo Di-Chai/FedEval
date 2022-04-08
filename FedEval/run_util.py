@@ -672,22 +672,29 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
     import hickle
     from FedEval.utils import ParamParser
     from FedEval.run import generate_data
-    data_config = ConfigurationManager().data_config
-    model_config = ConfigurationManager().model_config
-    runtime_config = ConfigurationManager().runtime_config
+    config_manager = ConfigurationManager()
+    data_config = config_manager.data_config
+    model_config = config_manager.model_config
+    runtime_config = config_manager.runtime_config
+    print('#' * 80)
+    print('->', 'Starting simulation on FedSGD for parameter tuning')
+    print('#' * 80)
     # rm the data
-    shutil.rmtree(data_config.dir_name, ignore_errors=True)
+    shutil.rmtree(config_manager.dir_name, ignore_errors=True)
     # and regenerate
     generate_data(True)
+    print('#' * 80)
+    print('->', 'Data Generated')
+    print('#' * 80)
     client_data_name = [
-        os.path.join(data_config.dir_name, e) for e in os.listdir(data_config.dir_name) if e.startswith('client')
+        os.path.join(config_manager.dir_name, e) for e in os.listdir(config_manager.dir_name) if e.startswith('client')
     ]
     client_data_name = sorted(client_data_name, key=lambda x: int(x.split('_')[-1].strip('.pkl')))
     client_data = []
     for data_name in client_data_name:
         with open(data_name, 'r') as f:
             client_data.append(hickle.load(f))
-
+    
     x_train = np.concatenate([e['x_train'] for e in client_data], axis=0)
     y_train = np.concatenate([e['y_train'] for e in client_data], axis=0)
     x_val = np.concatenate([e['x_val'] for e in client_data], axis=0)
@@ -698,13 +705,12 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
 
     parameter_parser = ParamParser()
     ml_model = parameter_parser.parse_model()
-
     early_stopping_metric = np.inf
     best_test_metric = None
     test_metric_each_round = []
     patience = 0
+    batch_size = model_config.B
     for epoch in range(model_config.max_round_num):
-        batch_size = 8192
         batched_gradients = []
         actual_size = []
         for i in range(0, len(x_train), batch_size):
@@ -749,7 +755,7 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
             f.write(', '.join([str(e1) for e1 in e]) + '\n')
         f.write(f'Best Metric, {best_test_metric[0]}, {best_test_metric[1]}')
     # rm the data
-    shutil.rmtree(data_config.dir_name)
+    shutil.rmtree(config_manager.dir_name)
 
 
 if __name__ == '__main__':

@@ -226,13 +226,25 @@ if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
 ##################################################
 # Limit the max_epoch to 100 if doing LR tuning
 if args.tune == 'lr':
-    if args.strategy != 'LocalCentral' and args.strategy != 'FedSGD':
+    runtime_config['communication']['limit_network_resource'] = False
+    if args.strategy != 'LocalCentral':
         model_config['FedModel']['max_rounds'] = 100
-    else:
+    if args.strategy == 'FedSGD':
+        # Simulation
+        model_config['FedModel']['max_rounds'] = 3000
         runtime_config['docker']['enable_gpu'] = True
         runtime_config['docker']['num_gpu'] = 1
-        data_config['data_dir'] = 'data_' + data_config['dataset'] + '_' + str(np.random.randint(0, 100000))
-    runtime_config['communication']['limit_network_resource'] = False
+        # Change the batch size
+        if args.dataset == 'mnist':
+            model_config['FedModel']['B'] = 8192 * 2
+        elif args.dataset == 'femnist':
+            model_config['FedModel']['B'] = 8192 * 2
+        elif args.dataset == 'celeba':
+            model_config['FedModel']['B'] = 512
+        elif args.dataset == 'semantic140':
+            model_config['FedModel']['B'] = 8192 * 2
+        elif args.dataset == 'shakespeare':
+            model_config['FedModel']['B'] = 8192 * 2
 
 ##################################################
 # Hardware Config
@@ -287,7 +299,7 @@ params = {
 if __name__ == '__main__':
 
     for _ in range(repeat):
-        data_config['random_seed'] = np.random.randint(0, 1000)
+        data_config['random_seed'] = _
         if args.tune is None:
             p = Process(target=run, args=(execution, mode, config, config + '_tmp'), kwargs=params)
             p.start()

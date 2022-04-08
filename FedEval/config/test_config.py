@@ -100,6 +100,6 @@ class DataConfigTestCase(TestCase):
     def test_path_sep_in_default_dir_name(self):
         possible_seps = ['/', '\\', '.']
         for sep in possible_seps:
-            self.assertFalse(sep in self.cfg.dir_name)
+            self.assertFalse(sep in ConfigurationManager().dir_name)
 
 # TODO(fgh) add tests for config conversions and filters

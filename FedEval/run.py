@@ -25,6 +25,9 @@ def generate_data(save_file=True):
         print('Invalid dataset name', d_cfg.dataset_name)
         return None
 
+    if save_file and not data.need_regenerate:
+        return None
+
     if d_cfg.iid:
         print('Generating IID data')
         clients_data = data.iid_data(save_file=save_file)

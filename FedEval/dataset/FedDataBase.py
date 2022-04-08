@@ -49,15 +49,23 @@ class FedData(metaclass=ABCMeta):
         cfg_mgr = ConfigurationManager()
         np.random.seed(ConfigurationManager().data_config.random_seed)
         d_cfg, mdl_cfg, rt_cfg = cfg_mgr.data_config, cfg_mgr.model_config, cfg_mgr.runtime_config
+        self.output_dir = cfg_mgr.dir_name
         self.num_clients = rt_cfg.client_num
-        self.output_dir = d_cfg.dir_name
         self.train_val_test = d_cfg.data_partition
 
         # Clear the data if it exists
         # if os.path.isdir(self.output_dir):
         #     import shutil
         #     shutil.rmtree(self.output_dir, ignore_errors=True)
-        os.makedirs(self.output_dir, exist_ok=True)
+        self._regenerate = True
+        if os.path.isdir(self.output_dir):
+            client_data_files = [
+                e for e in os.listdir(self.output_dir) if e.startswith('client') and e.endswith('.pkl')
+            ]
+            if len(client_data_files) == rt_cfg.client_num:
+                self._regenerate = False
+        else:
+            os.makedirs(self.output_dir, exist_ok=True)
 
         self.local_path = os.path.dirname(os.path.abspath(__file__))
         self.data_dir = os.path.join(os.path.dirname(self.local_path), 'data')
@@ -94,6 +102,10 @@ class FedData(metaclass=ABCMeta):
 
         return local_dataset
 
+    @property
+    def need_regenerate(self) -> bool:
+        return self._regenerate
+
     def _save_dataset_files(self, dataset: List[Mapping[str, List[np.ndarray]]]) -> None:
         for i in range(len(dataset)):
             train, val, test = dataset[i]
@@ -105,8 +117,9 @@ class FedData(metaclass=ABCMeta):
                 'x_test': self.x[test],
                 'y_test': self.y[test],
             }
-            with open(os.path.join(self.output_dir, f'client_{i}.pkl'), 'wb') as f:
-                hickle.dump(target, f)
+            hickle.dump(target, os.path.join(self.output_dir, f'client_{i}.pkl'))
+            # with open(os.path.join(self.output_dir, f'client_{i}.pkl'), 'wb') as f:
+            #     hickle.dump(target, f)
             del target
 
     def generate_local_data(self, local) -> Mapping[str, List[np.ndarray]]:

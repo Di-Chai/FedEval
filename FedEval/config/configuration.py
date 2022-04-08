@@ -1,6 +1,7 @@
 import json
 import os
 import datetime
+import hashlib
 from abc import ABC, abstractmethod, abstractproperty
 from copy import deepcopy
 from enum import Enum
@@ -278,15 +279,6 @@ class _DataConfig(_Configuraiton):
             config[_D_NI_CLASS_KEY] = None
             config[_D_NI_STRATEGY_KEY] = None
         return config
-
-    @property
-    def dir_name(self) -> str:
-        """The output directory of the clients' data.
-
-        Returns:
-            str: the name of the data directory.
-        """
-        return self._inner[_D_DIR_KEY]
 
     @property
     def dataset_name(self) -> str:
@@ -1228,6 +1220,30 @@ class ConfigurationManager(Singleton,
         self._mdl_cfg_filename = model_config_filename
         self._rt_cfg_filename = runtime_config_filename
         # TODO(fgh) add unit tests for this method in test_config.py
+
+    @property
+    def data_unique_id(self):
+        # Collect the configs that determine the datasets,
+        #   and generate a unique ID
+        data_unique_configs = [f'{key}={value}' for key, value in self._d_cfg.inner.items()]
+        data_unique_configs += [
+            f'ml_model={self._mdl_cfg.ml_method_name}',
+            f'n_clients={self._rt_cfg.client_num}',
+        ]
+        data_unique_configs = sorted(data_unique_configs)
+        # Creat the hash code
+        hl = hashlib.md5()
+        hl.update(','.join(data_unique_configs).encode(encoding='utf-8'))
+        return hl.hexdigest()
+
+    @property
+    def dir_name(self) -> str:
+        """The output directory of the clients' data.
+
+        Returns:
+            str: the name of the data directory.
+        """
+        return os.path.join(self._d_cfg.inner[_D_DIR_KEY], f'{self._d_cfg.dataset_name}_{self.data_unique_id[:10]}')
 
     @property
     @Singleton.thread_safe_ensurance
