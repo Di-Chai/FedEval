@@ -24,7 +24,7 @@ class FedAvg(FedStrategy):
         return gradients
 
     def host_select_train_clients(self, ready_clients):
-        num_selected_clients = min(100, ConfigurationManager().num_of_clients_contacted_per_round)
+        num_selected_clients = min(1000, ConfigurationManager().num_of_clients_contacted_per_round)
         if self.eval_selected_clients is not None and len(self.eval_selected_clients) >= num_selected_clients:
             self.train_selected_clients = np.random.choice(
                 list(self.eval_selected_clients), num_selected_clients, replace=False
@@ -33,14 +33,16 @@ class FedAvg(FedStrategy):
             self.train_selected_clients = np.random.choice(
                 list(ready_clients), num_selected_clients, replace=False
             )
-        return self.train_selected_clients
+        print('self.train_selected_clients', self.train_selected_clients)
+        return self.train_selected_clients.tolist()
 
     def host_select_evaluate_clients(self, ready_clients):
-        self.eval_selected_clients = random.sample(
+        self.eval_selected_clients = np.random.choice(
             list(ready_clients),
-            min(100, ConfigurationManager().num_of_clients_contacted_per_round)
+            min(1000, ConfigurationManager().num_of_clients_contacted_per_round),
+            replace=False
         )
-        return self.eval_selected_clients
+        return self.eval_selected_clients.tolist()
 
 
 class FedSGD(FedAvg):

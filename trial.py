@@ -132,10 +132,11 @@ mode = args.mode
 repeat = args.repeat
 
 tune_params = {
-    'lr': [1e-4, 3e-4, 5e-4, 7e-4, 9e-4,
-           1e-3, 3e-3, 5e-3, 7e-3, 9e-3,
-           1e-2, 3e-2, 5e-2, 7e-2, 9e-2,
-           1e-1, 3e-1, 5e-1, 7e-1, 9e-1, 1.0]
+    # 'lr': [1e-4, 3e-4, 5e-4, 7e-4, 9e-4,
+    #        1e-3, 3e-3, 5e-3, 7e-3, 9e-3,
+    #        1e-2, 3e-2, 5e-2, 7e-2, 9e-2,
+    #        1e-1, 3e-1, 5e-1, 7e-1, 9e-1, 1.0]
+    'lr': [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0]
 }
 
 data_config = {
@@ -228,7 +229,7 @@ if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
 if args.tune == 'lr':
     runtime_config['communication']['limit_network_resource'] = False
     if args.strategy != 'LocalCentral':
-        model_config['FedModel']['max_rounds'] = 100
+        model_config['FedModel']['max_rounds'] = 3000
     if args.strategy == 'FedSGD':
         # Simulation
         model_config['FedModel']['max_rounds'] = 3000
@@ -266,18 +267,18 @@ if args.tune == 'lr':
 host_name = socket.gethostname()
 
 if host_name == "workstation":
-    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['enable_gpu'] = True
     runtime_config['docker']['num_containers'] = 8
     runtime_config['docker']['num_gpu'] = 2
 
 if host_name == "gpu06":
     runtime_config['docker']['enable_gpu'] = False
-    # runtime_config['docker']['num_containers'] = 80
+    runtime_config['docker']['num_containers'] = 64
     runtime_config['docker']['num_gpu'] = 8
 
 if host_name == "gpu05":
-    runtime_config['docker']['enable_gpu'] = True
-    # runtime_config['docker']['num_containers'] = 40
+    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['num_containers'] = 40
     runtime_config['docker']['num_gpu'] = 1
 
 if host_name == "ministation":
@@ -287,7 +288,7 @@ if host_name == "ministation":
 
 if host_name == "mac":
     runtime_config['docker']['enable_gpu'] = False
-    runtime_config['docker']['num_containers'] = 10
+    runtime_config['docker']['num_containers'] = 8
     runtime_config['docker']['num_gpu'] = 0
 
 params = {

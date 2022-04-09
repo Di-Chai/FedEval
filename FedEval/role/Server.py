@@ -68,6 +68,7 @@ class Server(Node):
         # for stats
         self._avg_val_metrics: List = []
         self._avg_test_metrics: List = []
+        self._one_last_evaluation_done = False
 
         # for convergence check
         self._best_val_metric = None
@@ -543,6 +544,7 @@ class Server(Node):
             encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(encoding='utf8')
             data_send = {'round_number': self._current_round,
                          'weights_file_name': encoded_weight_file_path}
+            self.logger.info(f'Sending update requests to {selected_clients}')
             self._communicator.invoke_all(ClientEvent.RequestUpdate,
                                           data_send,
                                           callees=selected_clients)
@@ -553,6 +555,7 @@ class Server(Node):
                     encoding='utf8')
                 data_send = {'round_number': self._current_round,
                              'weights_file_name': encoded_weight_file_path}
+                self.logger.info(f'Sending update requests to {client_id}')
                 self._communicator.invoke_all(
                     ClientEvent.RequestUpdate, data_send, callees=[client_id]
                 )
@@ -584,7 +587,7 @@ class Server(Node):
                 # selected_clients = self.fed_model.host_select_evaluate_clients(self._communicator.ready_client_ids)
                 selected_clients = self._communicator.ready_client_ids
 
-            self.logger.info(f'Sending eval requests to {len(selected_clients)} clients')
+            self.logger.info(f'Sending eval requests to {selected_clients}')
             self._communicator.invoke_all(ClientEvent.RequestEvaluate,
                                           data_send,
                                           callees=selected_clients)

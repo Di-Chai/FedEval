@@ -25,11 +25,13 @@ def split_data(data, ratio_list) -> List[np.ndarray]:
         list: The elements in the returned list are the divided data, and the 
             dimensions of the list are the same as ratio_list.
     '''
+    assert len(data) >= len(ratio_list)
     if np.sum(ratio_list) != 1:
         ratio_list = np.array(ratio_list)
         ratio_list = ratio_list / np.sum(ratio_list)
-    return [data[int(sum(ratio_list[0:e])*len(data)):
-                 int(sum(ratio_list[0:e+1])*len(data))] for e in range(len(ratio_list))]
+    val_len = max(1, int(ratio_list[1] * len(data)))
+    test_len = max(1, int(ratio_list[2] * len(data)))
+    return [data[:-(val_len+test_len)], data[-(val_len+test_len):-test_len], data[-test_len:]]
 
 
 def shuffle(X, Y):
