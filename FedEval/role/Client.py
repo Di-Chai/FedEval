@@ -71,25 +71,30 @@ class Client(Node):
             # Mark the receive time
             time_receive_request = time.time()
 
-            # Get the selected clients
+            # Get the selected clients and weights information
             selected_clients = data_from_server['selected_clients']
-            self.logger.info('Debug: selected clients' + str(selected_clients))
-
             current_round = data_from_server['round_number']
             encoded_weights_file_path: str = data_from_server['weights_file_name']
+
+            rt_cfg = ConfigurationManager().runtime_config
+            if rt_cfg.comm_fast_mode:
+                shared_parameter = None
 
             for cid in selected_clients:
                 time_start_update = time.time()
                 self.logger.info(f"### Round {current_round}, Cid {cid} ###")
                 with self._ctx_mgr.get(cid) as client_ctx:
                     client_ctx.step_forward_local_train_round()
-                    self.logger.debug('Debug: %s' % (current_round - client_ctx.host_params_round))
-
                     # Download the parameter if the local model is not the latest
                     if (current_round - client_ctx.host_params_round) > 1:
                         client_ctx.host_params_round = current_round - 1
-                        weights = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
-                        client_ctx.strategy.set_host_params_to_local(weights, current_round=current_round)
+                        if rt_cfg.comm_fast_mode:
+                            if shared_parameter is None:
+                                shared_parameter = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
+                            client_ctx.strategy.set_host_params_to_local(shared_parameter, current_round=current_round)
+                        else:
+                            weights = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
+                            client_ctx.strategy.set_host_params_to_local(weights, current_round=current_round)
                         self.logger.info(f"train received model: {encoded_weights_file_path}")
 
                     # fit on local and retrieve new uploading params
@@ -116,10 +121,6 @@ class Client(Node):
                         'time_receive_request': time_receive_request,
                     }
 
-                    # TMP
-                    self.logger.info(
-                        f"Local train time: {time_finish_update - time_start_update}")
-
                     self.logger.info("Emit client_update")
                     try:
                         self._communicator.invoke(
@@ -139,14 +140,23 @@ class Client(Node):
 
             current_round = data_from_server['round_number']
 
+            rt_cfg = ConfigurationManager().runtime_config
+            if rt_cfg.comm_fast_mode:
+                shared_parameter = None
+
             # Download the latest weights
             encoded_weights_file_path: str = data_from_server['weights_file_name']
             for cid in selected_clients:
                 time_start_evaluate = time.time()
                 with self._ctx_mgr.get(cid) as client_ctx:
                     client_ctx.host_params_round = current_round
-                    weights = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
-                    client_ctx.strategy.set_host_params_to_local(weights, current_round=current_round)
+                    if rt_cfg.comm_fast_mode:
+                        if shared_parameter is None:
+                            shared_parameter = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
+                        client_ctx.strategy.set_host_params_to_local(shared_parameter, current_round=current_round)
+                    else:
+                        weights = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
+                        client_ctx.strategy.set_host_params_to_local(weights, current_round=current_round)
                     self.logger.info(f"eval received model: {encoded_weights_file_path}")
 
                     evaluate = client_ctx.strategy.local_evaluate()

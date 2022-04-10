@@ -18,7 +18,9 @@ class HyperLogger:
 
     def __init__(self, name: str, log_dir_name: str) -> None:
         self._name = name
-        rt_cfg = ConfigurationManager().runtime_config
+
+        config_manager = ConfigurationManager()
+        rt_cfg = config_manager.runtime_config
 
         logger = logging.getLogger(name)
         lvl = eval(HyperLogger._LOG_LEVEL_EVAL_PATTERN.format(rt_cfg.base_log_level))
@@ -26,8 +28,8 @@ class HyperLogger:
 
         _log_dir_path = os.path.join(
             rt_cfg.log_dir_path, log_dir_name,
-            ConfigurationManager().job_id + '_' +
-            hashlib.md5(';'.join(ConfigurationManager().to_jsons()).encode()).hexdigest()[:6])
+            config_manager.job_id + '_' + config_manager.config_unique_id[:6]
+        )
         self._log_dir_path = os.path.abspath(_log_dir_path)
         os.makedirs(self._log_dir_path, exist_ok=True)
         log_file_path = os.path.join(self._log_dir_path, 'train.log')

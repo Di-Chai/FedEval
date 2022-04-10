@@ -21,3 +21,4 @@ communication:
   bandwidth_upload: 10Mbit
   bandwidth_download: 30Mbit
   latency: 50ms
+  fast_mode: true

@@ -85,7 +85,8 @@ class Server(Node):
         self._time_agg_train_end: Optional[float] = None
         self._time_agg_eval_start: Optional[float] = None
         self._time_agg_eval_end: Optional[float] = None
-        self._time_record: List[Dict[str, Any]] = []
+        self._time_record_real_world: List[Dict[str, Any]] = []
+        self._time_record_federated: List[List[float]] = []
         self._training_start_time: float = time.time()   # seconds
         self._training_stop_time: float = None       # seconds
 
@@ -120,7 +121,7 @@ class Server(Node):
         self._c_eval = list()
 
     def _get_recent_time_records(self, recent_num: int = 0) -> List:
-        time_record = [e for e in self._time_record if len(e.keys()) >= 6]
+        time_record = [e for e in self._time_record_real_world if len(e.keys()) >= 6]
         tmp = {'round', 'eval_receive_time'}
         if len(time_record) > 0:
             time_record.append({'round': 'Average'})
@@ -223,7 +224,7 @@ class Server(Node):
         keys = ['update_send', 'update_run', 'update_receive', 'agg_server',
                 'eval_send', 'eval_run', 'eval_receive', 'server_eval']
         avg_time_records = [np.mean([e.get(key, 0)
-                                    for e in self._time_record]) for key in keys]
+                                     for e in self._time_record_real_world]) for key in keys]
         return {
             'best_metric': self._best_test_metric,
             'best_metric_full': self._best_test_metric_full,
@@ -299,15 +300,17 @@ class Server(Node):
 
             self.logger.info("Received update from all clients")
 
-            receive_update_time = [e['time_receive_request'] - self._time_send_train for e in self._c_up]
-            finish_update_time = [e['time_finish_update'] - e['time_start_update'] for e in self._c_up]
-            update_receive_time = [e['time_receive_update'] - e['time_finish_update'] for e in self._c_up]
-            latest_time_record = self._time_record[-1]
+            receive_update_time = np.array([e['time_receive_request'] - self._time_send_train for e in self._c_up])
+            finish_update_time = np.array([e['time_finish_update'] - e['time_start_update'] for e in self._c_up])
+            update_receive_time = np.array([e['time_receive_update'] - e['time_finish_update'] for e in self._c_up])
+            latest_time_record = self._time_record_real_world[-1]
             cur_round_info = self._info_each_round[self._current_round]
 
             latest_time_record['update_send'] = np.mean(receive_update_time)
             latest_time_record['update_run'] = np.mean(finish_update_time)
             latest_time_record['update_receive'] = np.mean(update_receive_time)
+            self._time_record_federated[-1]['max_train'] = np.max(
+                receive_update_time + finish_update_time + update_receive_time)
             del receive_update_time, finish_update_time, update_receive_time
 
             # From request update, until receives all clients' update
@@ -339,6 +342,7 @@ class Server(Node):
             # Fed Aggregate : computation time
             self._time_agg_train_end = time.time()
             latest_time_record['agg_server'] = self._time_agg_train_end - self._time_agg_train_start
+            self._time_record_federated[-1]['train_agg'] = self._time_agg_train_end - self._time_agg_train_start
 
             cur_round_info['time_train_send'] = latest_time_record['update_send']
             cur_round_info['time_train_run'] = latest_time_record['update_send']
@@ -380,9 +384,9 @@ class Server(Node):
             self.logger.info("=== Evaluate ===")
             self.logger.info('Receive evaluate result form %s clients' % len(self._c_eval))
 
-            receive_eval_time = [e['time_receive_request'] - self._time_agg_train_end for e in self._c_eval]
-            finish_eval_time = [e['time_finish_evaluate'] - e['time_start_evaluate'] for e in self._c_eval]
-            eval_receive_time = [e['time_receive_evaluate'] - e['time_finish_evaluate'] for e in self._c_eval]
+            receive_eval_time = np.array([e['time_receive_request'] - self._time_agg_train_end for e in self._c_eval])
+            finish_eval_time = np.array([e['time_finish_evaluate'] - e['time_start_evaluate'] for e in self._c_eval])
+            eval_receive_time = np.array([e['time_receive_evaluate'] - e['time_finish_evaluate'] for e in self._c_eval])
 
             self.logger.info(
                 'Update Run min %s max %s mean %s'
@@ -415,7 +419,7 @@ class Server(Node):
                     )
                     self.logger.info('Test %s : %s' % (key, avg_test_metrics[key]))
 
-            latest_time_record = self._time_record[-1]
+            latest_time_record = self._time_record_real_world[-1]
             cur_round_info = self._info_each_round[self._current_round]
             cur_round_info.update(avg_val_metrics)
             cur_round_info.update(avg_test_metrics)
@@ -425,10 +429,13 @@ class Server(Node):
 
             self._time_agg_eval_end = time.time()
             latest_time_record['server_eval'] = self._time_agg_eval_end - self._time_agg_eval_start
+            self._time_record_federated[-1]['eval_agg'] = self._time_agg_eval_end - self._time_agg_eval_start
 
             latest_time_record['eval_send'] = np.mean(receive_eval_time)
             latest_time_record['eval_run'] = np.mean(finish_eval_time)
             latest_time_record['eval_receive'] = np.mean(eval_receive_time)
+            self._time_record_federated[-1]['max_eval'] = np.max(
+                receive_eval_time + finish_eval_time + eval_receive_time)
             del receive_eval_time, finish_eval_time, eval_receive_time
 
             self._avg_test_metrics.append(avg_test_metrics)
@@ -523,7 +530,8 @@ class Server(Node):
 
         # Record the time
         self._time_send_train = time.time()
-        self._time_record.append({'round': self._current_round})
+        self._time_record_real_world.append({'round': self._current_round})
+        self._time_record_federated.append({'round': self._current_round})
         self.logger.info("##### Round {} #####".format(self._current_round))
 
         # buffers all client updates

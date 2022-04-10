@@ -156,6 +156,7 @@ model_config = {
     'FedModel': {
         'name': args.strategy,
         'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 3000, 'num_tolerance': 100,
+        'max_train_clients': 1000, 'max_eval_clients': 1000,
         'rounds_between_val': 1,
     }
 }
@@ -164,11 +165,12 @@ runtime_config = {
     'log': {'log_dir': args.log_dir}, 
     'docker': {'num_containers': 100, 'enable_gpu': False, 'num_gpu': 0},
     'communication': {
-        # 'limit_network_resource': True,
         'limit_network_resource': False,
         'bandwidth_upload': '100Mbit',
         'bandwidth_download': '100Mbit',
-        'latency': '50ms'
+        'latency': '50ms',
+        # TODO: Clear the true
+        'fast_mode': True
         }
 }
 
@@ -299,8 +301,8 @@ params = {
 
 if __name__ == '__main__':
 
-    for _ in range(repeat):
-        data_config['random_seed'] = _
+    for r in range(repeat):
+        params['data_config']['random_seed'] = r
         if args.tune is None:
             p = Process(target=run, args=(execution, mode, config), kwargs=params)
             p.start()

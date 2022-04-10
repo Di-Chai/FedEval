@@ -52,6 +52,8 @@ _STRATEGY_ETA_KEY = 'eta'
 _STRATEGY_B_KEY = 'B'
 _STRATEGY_C_KEY = 'C'
 _STRATEGY_E_KEY = 'E'
+_STRATEGY_MAX_TRAIN_CLIENTS = 'max_train_clients'
+_STRATEGY_MAX_EVAL_CLIENTS = 'max_eval_clients'
 _STRATEGY_MAX_ROUND_NUM_KEY = 'max_rounds'
 _STRATEGY_TOLERANCE_NUM_KEY = 'num_tolerance'
 _STRATEGY_NUM_ROUNDS_BETWEEN_VAL_KEY = 'rounds_between_val'
@@ -93,6 +95,8 @@ _DEFAULT_MDL_CFG: RawConfigurationDict = {
         _STRATEGY_B_KEY: 32,
         _STRATEGY_C_KEY: 0.1,
         _STRATEGY_E_KEY: 1,
+        _STRATEGY_MAX_TRAIN_CLIENTS: 1000,
+        _STRATEGY_MAX_EVAL_CLIENTS: 1000,
         _STRATEGY_MAX_ROUND_NUM_KEY: 3000,
         _STRATEGY_TOLERANCE_NUM_KEY: 100,
         _STRATEGY_NUM_ROUNDS_BETWEEN_VAL_KEY: 1,
@@ -168,6 +172,7 @@ _RT_COMM_LIMIT_FLAG_KEY = 'limit_network_resource'
 _RT_COMM_BANDWIDTH_UP_KEY = 'bandwidth_upload'
 _RT_COMM_BANDWIDTH_DOWN_KEY = 'bandwidth_download'
 _RT_COMM_LATENCY_KEY = 'latency'
+_RT_COMM_FAST_MODE = 'fast_mode'
 
 _DEFAULT_RT_CFG: RawConfigurationDict = {
     _RT_COMMUNICATION_KEY: {
@@ -176,7 +181,8 @@ _DEFAULT_RT_CFG: RawConfigurationDict = {
         _RT_COMM_LIMIT_FLAG_KEY: True,
         _RT_COMM_BANDWIDTH_UP_KEY: '30Mbit',
         _RT_COMM_BANDWIDTH_DOWN_KEY: '10Mbit',
-        _RT_COMM_LATENCY_KEY: '50ms'
+        _RT_COMM_LATENCY_KEY: '50ms',
+        _RT_COMM_FAST_MODE: False
     },
     _RT_LOG_KEY: {
         _RT_L_DIR_PATH_KEY: 'log/quickstart',
@@ -505,6 +511,20 @@ class _ModelConfig(_Configuraiton):
         in each round.
         """
         return int(self._strategy_cfg[_STRATEGY_E_KEY])
+
+    @property
+    def max_train_clients(self) -> int:
+        """
+        Returns: the maximum number of clients during the training
+        """
+        return int(self._strategy_cfg[_STRATEGY_MAX_TRAIN_CLIENTS])
+
+    @property
+    def max_eval_clients(self) -> int:
+        """
+        Returns: the maximum number of clients during the evaluation
+        """
+        return int(self._strategy_cfg[_STRATEGY_MAX_EVAL_CLIENTS])
 
     @property
     def max_round_num(self) -> int:
@@ -956,6 +976,15 @@ class _RuntimeConfig(_Configuraiton):
     def comm_port(self) -> int:
         """the port for communication on the server side."""
         return int(self._inner[_RT_COMMUNICATION_KEY][_RT_COMM_PORT_KEY])
+
+    @property
+    def comm_fast_mode(self) -> bool:
+        """
+        In fast mode, all the clients in one container will only download the parameters once
+         to improve the efficiency, e.g., when tuning the parameters.
+        Turn off the fast_mode if you are benchmarking the communication and time
+        """
+        return bool(self._inner[_RT_COMMUNICATION_KEY][_RT_COMM_FAST_MODE])
 
 
 # --- Configuration Manager Interfaces ---
