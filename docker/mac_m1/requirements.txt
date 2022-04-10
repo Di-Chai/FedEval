@@ -1,0 +1,40 @@
+# Communications
+# -- Web Service --
+Flask==1.1.2
+# -- SocketIO --
+Flask-SocketIO==4.3.1
+socketIO-client==0.7.2
+python-engineio==3.13.1
+python-socketio==4.6.0
+# -- gRPC --
+grpcio
+grpcio-tools
+
+# Computation
+numpy
+scipy
+sklearn
+pandas
+torch
+tensorflow
+
+# NLP datasets
+nltk
+pillow
+
+# SSH
+paramiko
+
+# Monitor
+psutil
+tzlocal<3.0
+apscheduler<4.0
+
+# Serializer
+PyYAML
+pympler
+hickle
+
+# Plots and CV
+matplotlib
+opencv-python-headless

@@ -234,7 +234,7 @@ if args.tune == 'lr':
         model_config['FedModel']['max_rounds'] = 3000
     if args.strategy == 'FedSGD':
         # Simulation
-        model_config['FedModel']['max_rounds'] = 3000
+        model_config['FedModel']['max_rounds'] = 5000
         runtime_config['docker']['enable_gpu'] = True
         runtime_config['docker']['num_gpu'] = 1
         # Change the batch size
@@ -274,11 +274,21 @@ if host_name == "workstation":
     runtime_config['docker']['num_gpu'] = 2
 
 if host_name == "gpu06":
-    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['enable_gpu'] = True
     runtime_config['docker']['num_containers'] = 64
     runtime_config['docker']['num_gpu'] = 8
 
 if host_name == "gpu05":
+    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['num_containers'] = 40
+    runtime_config['docker']['num_gpu'] = 1
+
+if host_name == "gpu01":
+    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['num_containers'] = 40
+    runtime_config['docker']['num_gpu'] = 1
+
+if host_name == "gpu02":
     runtime_config['docker']['enable_gpu'] = False
     runtime_config['docker']['num_containers'] = 40
     runtime_config['docker']['num_gpu'] = 1
