@@ -289,9 +289,9 @@ if host_name == "gpu01":
     runtime_config['docker']['num_gpu'] = 1
 
 if host_name == "gpu02":
-    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['enable_gpu'] = True
     runtime_config['docker']['num_containers'] = 40
-    runtime_config['docker']['num_gpu'] = 1
+    runtime_config['docker']['num_gpu'] = 2
 
 if host_name == "ministation":
     runtime_config['docker']['enable_gpu'] = False
