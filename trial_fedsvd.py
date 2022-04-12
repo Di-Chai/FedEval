@@ -8,7 +8,8 @@ from FedEval.run_util import _load_config, _save_config
 
 args_parser = argparse.ArgumentParser()
 args_parser.add_argument('--mode', '-m', choices=('svd', 'lr', 'pca'))
-args_parser.add_argument('--task', '-t', choices=('latency', 'bandwidth', 'vary_clients', 'large_scale', 'precision', 'large_scale_recsys'))
+args_parser.add_argument('--task', '-t', choices=('latency', 'bandwidth', 'vary_clients', 'large_scale', 'precision',
+                                                  'large_scale_recsys', 'small_scale', 'block_size', 'optimization', 'disk'))
 args = args_parser.parse_args()
 
 svd_mode = args.mode
@@ -21,6 +22,7 @@ if hostname == 'workstation':
     python = "sudo /home/ubuntu/.virtualenvs/chaidi/bin/python"
 else:
     python = "python"
+
 
 # Base Config files
 config_dir = os.path.join('configs', 'FedSVD')
@@ -96,6 +98,23 @@ if task == 'vary_clients':
             _save_config(c1, c2, c3, config_dir)
             os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
 
+if task == 'small_scale':
+    # Comparing to PPDSVD
+    assert svd_mode == 'svd'
+    c1['feature_size'] = 1000
+    c1['dataset'] = 'synthetic_matrix_horizontal'
+    c3['communication']['limit_network_resource'] = True
+    c3['communication']['latency'] = '25ms'
+    c3['communication']['bandwidth_upload'] = '1024Mbit'
+    c3['communication']['bandwidth_download'] = '1024Mbit'
+    c3['server']['num_clients'] = 2
+    c3['docker']['num_containers'] = 2
+    for per_client_sample_size in [5000]: #[5, 10, 15, 20, 25, 50, 100, 150, 200, 250, 500, 1000, 1500]:
+        c1['sample_size'] = per_client_sample_size  # per client
+        _save_config(c1, c2, c3, config_dir)
+        os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+
+
 if task == 'large_scale':
     c1['dataset'] = 'vertical_linear_regression_memmap'
     c1['feature_size'] = 500  # per client
@@ -119,6 +138,8 @@ if task == 'precision':
     #   number here, and the actual data size is determined by the real-world data.
     c1['feature_size'] = 100000
     c1['sample_size'] = 100000
+    if svd_mode == 'pca':
+        c2['FedModel']['fedsvd_top_k'] = 3
     c3['communication']['limit_network_resource'] = False
     c3['server']['num_clients'] = 2
     c3['docker']['num_containers'] = 2
@@ -164,5 +185,110 @@ if task == 'large_scale_recsys':
     _save_config(c1, c2, c3, config_dir)
     os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
 
-if task == 'optimiztion':
-    pass
+if task == 'optimization':
+    assert svd_mode == 'svd'
+    c1['feature_size'] = 10000
+    c1['sample_size'] = 25000
+    c3['communication']['limit_network_resource'] = False
+    c3['server']['num_clients'] = 2
+    c3['docker']['num_containers'] = 2
+    # No Opt
+    c1['dataset'] = 'synthetic_matrix_horizontal'
+    c2['FedModel']['fedsvd_opt_1'] = False
+    c2['FedModel']['fedsvd_opt_2'] = False
+    _save_config(c1, c2, c3, config_dir)
+    os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+    # Opt 1
+    c1['dataset'] = 'synthetic_matrix_horizontal'
+    c2['FedModel']['fedsvd_opt_1'] = True
+    c2['FedModel']['fedsvd_opt_2'] = False
+    _save_config(c1, c2, c3, config_dir)
+    os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+    # Opt 1,2
+    c1['dataset'] = 'synthetic_matrix_horizontal'
+    c2['FedModel']['fedsvd_opt_1'] = True
+    c2['FedModel']['fedsvd_opt_2'] = True
+    _save_config(c1, c2, c3, config_dir)
+    os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+    # Opt 1,2,3
+    c1['dataset'] = 'synthetic_matrix_horizontal_memmap'
+    c2['FedModel']['fedsvd_opt_1'] = True
+    c2['FedModel']['fedsvd_opt_2'] = True
+    _save_config(c1, c2, c3, config_dir)
+    os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+
+    c3['communication']['limit_network_resource'] = False
+    c3['server']['num_clients'] = 2
+    c3['docker']['num_containers'] = 2
+
+    # Large-scale LR, Opt 1,2
+    c1['dataset'] = 'vertical_linear_regression'
+    c1['feature_size'] = 500  # per client
+    c3['server']['num_clients'] = 2
+    c3['docker']['num_containers'] = 2
+    c1['sample_size'] = 10000000
+    _save_config(c1, c2, c3, config_dir)
+    os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+    # Large-scale LR, Opt 1,2,3
+    c1['dataset'] = 'vertical_linear_regression_memmap'
+    c1['feature_size'] = 500  # per client
+    c3['server']['num_clients'] = 2
+    c3['docker']['num_containers'] = 2
+    c1['sample_size'] = 10000000
+    _save_config(c1, c2, c3, config_dir)
+    os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+
+
+if task == 'block_size':
+    assert svd_mode == 'svd'
+    c1['dataset'] = 'synthetic_matrix_horizontal'
+    c1['feature_size'] = 10000
+    c1['sample_size'] = 50000
+    c3['communication']['limit_network_resource'] = True
+    c3['communication']['latency'] = '25ms'
+    c3['communication']['bandwidth_upload'] = '1024Mbit'
+    c3['communication']['bandwidth_download'] = '1024Mbit'
+    c3['server']['num_clients'] = 2
+    c3['docker']['num_containers'] = 2
+    for block_size in [10, 100, 1000, 10000]:
+        c2['FedModel']['fedsvd_mode'] = 'svd'
+        c2['FedModel']['fedsvd_top_k'] = -1
+        c2['FedModel']['block_size'] = block_size  # per client
+        _save_config(c1, c2, c3, config_dir)
+        os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+    for block_size in [10, 100, 1000, 10000]:
+        c2['FedModel']['fedsvd_mode'] = 'svd'
+        c2['FedModel']['fedsvd_top_k'] = 100
+        c2['FedModel']['block_size'] = block_size  # per client
+        _save_config(c1, c2, c3, config_dir)
+        os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+    for block_size in [10, 100, 1000, 10000]:
+        c2['FedModel']['fedsvd_mode'] = 'pca'
+        c2['FedModel']['fedsvd_top_k'] = 10
+        c2['FedModel']['block_size'] = block_size  # per client
+        _save_config(c1, c2, c3, config_dir)
+        os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+    c1['dataset'] = 'vertical_linear_regression'
+    c1['feature_size'] = 5000
+    c1['sample_size'] = 100000
+    for block_size in [10, 100, 1000, 10000]:
+        c2['FedModel']['fedsvd_mode'] = 'lr'
+        c2['FedModel']['fedsvd_top_k'] = -1
+        c2['FedModel']['block_size'] = block_size  # per client
+        _save_config(c1, c2, c3, config_dir)
+        os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')
+
+
+if task == 'disk':
+    assert svd_mode == 'lr'
+    c3['communication']['limit_network_resource'] = True
+    c3['communication']['latency'] = '25ms'
+    c3['communication']['bandwidth_upload'] = '1024Mbit'
+    c3['communication']['bandwidth_download'] = '1024Mbit'
+    c1['dataset'] = 'vertical_linear_regression_memmap'
+    c1['feature_size'] = 500  # per client
+    c3['server']['num_clients'] = 2
+    c3['docker']['num_containers'] = 2
+    c1['sample_size'] = 5000000
+    _save_config(c1, c2, c3, config_dir)
+    os.system(f'{python} -m FedEval.run_util -m local -c {config_dir} -e run')

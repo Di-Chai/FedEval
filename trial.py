@@ -1,7 +1,6 @@
 import os
 import argparse
 import socket
-import numpy as np
 
 from FedEval.run_util import run
 from multiprocessing import Process
@@ -66,7 +65,7 @@ fine_tuned_params = {
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.7}, 
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.01},
+        'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'MLP'
     },
     'femnist': {
@@ -75,7 +74,7 @@ fine_tuned_params = {
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.1},
+        'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': 0.1},
         'model': 'LeNet'
     },
     'celeba': {
@@ -84,7 +83,7 @@ fine_tuned_params = {
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.01},
+        'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'LeNet'
     },
     "semantic140": {
@@ -93,7 +92,7 @@ fine_tuned_params = {
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.05},
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.03},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': 0.01},
+        'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'StackedLSTM'
     },
     "shakespeare": {
@@ -102,7 +101,7 @@ fine_tuned_params = {
         'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
         'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
         'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
-        'LocalCentral': {'B': 64, 'C': None, 'E': None, 'lr': None},
+        'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': None},
         'model': 'StackedLSTM'
     }
 }
@@ -176,21 +175,31 @@ runtime_config = {
 
 ##################################################
 # Dataset Config
+# All set to small dataset!
+
+"""
+MNIST: 100
+FEMnist: 100, 1000, 3500
+CelebA: 100, 1000, 9343
+Sent140: 100, 1000, 10000, 50579
+Shakespeare: 100, 1121
+"""
+
 if args.dataset == 'mnist':
     data_config['sample_size'] = 700
     runtime_config['server']['num_clients'] = 100
 
 if args.dataset == 'femnist':
     data_config['sample_size'] = None
-    runtime_config['server']['num_clients'] = 3500
+    runtime_config['server']['num_clients'] = 1000
 
 if args.dataset == 'celeba':
     data_config['sample_size'] = None
-    runtime_config['server']['num_clients'] = 9343
+    runtime_config['server']['num_clients'] = 1000
 
 if args.dataset == 'semantic140':
     data_config['sample_size'] = None
-    runtime_config['server']['num_clients'] = 50579
+    runtime_config['server']['num_clients'] = 1000
     model_config['MLModel']['embedding_dim'] = 0
     model_config['MLModel']['loss'] = 'binary_crossentropy'
     model_config['MLModel']['metrics'] = ['binary_accuracy']
@@ -219,9 +228,12 @@ if args.strategy == 'FedSTC':
     model_config['FedModel']['sparsity'] = 0.01
 
 if args.strategy == 'LocalCentral':
-    model_config['FedModel']['C'] = 1.0
-    model_config['FedModel']['E'] = 3000
-    model_config['FedModel']['max_rounds'] = 1
+    model_config['FedModel']['C'] = None
+    model_config['FedModel']['E'] = None
+    model_config['FedModel']['max_rounds'] = 10000
+    # Simulation & Docker
+    runtime_config['docker']['enable_gpu'] = True
+    runtime_config['docker']['num_gpu'] = 1
 
 if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
     model_config['MLModel']['hidden_units'] = 64
@@ -230,8 +242,6 @@ if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
 # Limit the max_epoch to 100 if doing LR tuning
 if args.tune == 'lr':
     runtime_config['communication']['limit_network_resource'] = False
-    if args.strategy != 'LocalCentral':
-        model_config['FedModel']['max_rounds'] = 3000
     if args.strategy == 'FedSGD':
         # Simulation
         model_config['FedModel']['max_rounds'] = 5000

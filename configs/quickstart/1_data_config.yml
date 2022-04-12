@@ -1,5 +1,5 @@
 data_dir: data
-dataset: mnist
+dataset: femnist
 non-iid: False
 non-iid-class: 1 # Only work when non-iid = True
 non-iid-strategy: average # Only work when non-iid = True

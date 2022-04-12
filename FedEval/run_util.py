@@ -535,6 +535,14 @@ def run(execution, mode, config, overwrite_config=False, **kwargs):
         fed_sgd_simulator(UNIFIED_JOB_ID)
         exit(0)
 
+    if execution == 'simulate_central':
+        central_simulator(UNIFIED_JOB_ID)
+        exit(0)
+
+    if execution == 'simulate_local':
+        local_simulator(UNIFIED_JOB_ID)
+        exit(0)
+
     if mode == 'local':
         current_path = os.path.abspath('./')
         os.system(
@@ -747,7 +755,10 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
     output_dir = os.path.join(runtime_config.log_dir_path, 'fed_sgd_simulator')
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir, exist_ok=True)
-    with open(os.path.join(output_dir, f'{UNIFIED_JOB_ID}_fed_sgd_simulator.csv'), 'w') as f:
+    with open(os.path.join(
+            output_dir,
+            f'{UNIFIED_JOB_ID}_{data_config.dataset_name}_{runtime_config.client_num}_fed_sgd_simulator.csv'
+    ), 'w') as f:
         f.write(', '.join(
             [str(e) for e in [data_config.dataset_name, runtime_config.client_num, model_config.learning_rate]]
         ) + '\n')
@@ -756,9 +767,133 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
         f.write(f'Best Metric, {best_test_metric[0]}, {best_test_metric[1]}')
 
 
+def central_simulator(UNIFIED_JOB_ID):
+    import hickle
+    from FedEval.utils import ParamParser
+    from FedEval.run import generate_data
+    config_manager = ConfigurationManager()
+    data_config = config_manager.data_config
+    model_config = config_manager.model_config
+    runtime_config = config_manager.runtime_config
+    print('#' * 80)
+    print('->', 'Starting simulation on central training')
+    print('#' * 80)
+    generate_data(True)
+    print('#' * 80)
+    print('->', 'Data Generated')
+    print('#' * 80)
+    client_data_name = [
+        os.path.join(config_manager.dir_name, e) for e in os.listdir(config_manager.dir_name) if e.startswith('client')
+    ]
+    client_data_name = sorted(client_data_name, key=lambda x: int(x.split('_')[-1].strip('.pkl')))
+    client_data = []
+    for data_name in client_data_name:
+        with open(data_name, 'r') as f:
+            client_data.append(hickle.load(f))
+
+    x_train = np.concatenate([e['x_train'] for e in client_data], axis=0)
+    y_train = np.concatenate([e['y_train'] for e in client_data], axis=0)
+    x_val = np.concatenate([e['x_val'] for e in client_data], axis=0)
+    y_val = np.concatenate([e['y_val'] for e in client_data], axis=0)
+    x_test = np.concatenate([e['x_test'] for e in client_data], axis=0)
+    y_test = np.concatenate([e['y_test'] for e in client_data], axis=0)
+    del client_data
+
+    parameter_parser = ParamParser()
+    ml_model = parameter_parser.parse_model()
+    early_stop = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss', patience=model_config.tolerance_num, restore_best_weights=True
+    )
+    output_dir = os.path.join(runtime_config.log_dir_path, 'central_simulator')
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+    log_file_name = os.path.join(
+        output_dir, f'{UNIFIED_JOB_ID}_{data_config.dataset_name}_{runtime_config.client_num}_central_simulator.csv'
+    )
+    csv_logger = tf.keras.callbacks.CSVLogger(filename=log_file_name, append=True)
+    ml_model.fit(
+        x_train, y_train, batch_size=model_config.B, epochs=model_config.max_round_num,
+        validation_data=(x_val, y_val), callbacks=[early_stop, csv_logger]
+    )
+    val_loss, val_acc = ml_model.evaluate(x_val, y_val, verbose=0, batch_size=model_config.B)
+    test_loss, test_acc = ml_model.evaluate(x_test, y_test, verbose=0, batch_size=model_config.B)
+
+    with open(log_file_name, 'a+') as f:
+        f.write(', '.join(
+            [str(e) for e in [data_config.dataset_name, runtime_config.client_num, model_config.learning_rate]]
+        ) + '\n')
+        f.write(f'Best VAL Metric, {val_loss}, {val_acc}\n')
+        f.write(f'Best TEST Metric, {test_loss}, {test_acc}\n')
+
+
+def local_simulator(UNIFIED_JOB_ID):
+    import hickle
+    from FedEval.utils import ParamParser
+    from FedEval.run import generate_data
+    config_manager = ConfigurationManager()
+    data_config = config_manager.data_config
+    model_config = config_manager.model_config
+    runtime_config = config_manager.runtime_config
+    print('#' * 80)
+    print('->', 'Starting simulation on local training')
+    print('#' * 80)
+    generate_data(True)
+    print('#' * 80)
+    print('->', 'Data Generated')
+    print('#' * 80)
+    client_data_name = [
+        os.path.join(config_manager.dir_name, e) for e in os.listdir(config_manager.dir_name) if e.startswith('client')
+    ]
+    client_data_name = sorted(client_data_name, key=lambda x: int(x.split('_')[-1].strip('.pkl')))
+    client_data = []
+    for data_name in client_data_name:
+        with open(data_name, 'r') as f:
+            client_data.append(hickle.load(f))
+
+    parameter_parser = ParamParser()
+    ml_model = parameter_parser.parse_model()
+
+    initial_weights = ml_model.get_weights()
+    output_dir = os.path.join(runtime_config.log_dir_path, 'local_simulator')
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+    log_file_name = os.path.join(
+        output_dir, f'{UNIFIED_JOB_ID}_{data_config.dataset_name}_{runtime_config.client_num}_local_simulator.csv'
+    )
+
+    average_test_acc = []
+    for i in range(len(client_data)):
+        xy = client_data[i]
+        with open(log_file_name, 'a+') as f:
+            f.write(f'! Client {i} !\n')
+        ml_model.set_weights(initial_weights)
+        early_stop = tf.keras.callbacks.EarlyStopping(
+            monitor='val_loss', patience=model_config.tolerance_num, restore_best_weights=True
+        )
+        csv_logger = tf.keras.callbacks.CSVLogger(filename=log_file_name, append=True)
+        ml_model.fit(
+            xy['x_train'], xy['y_train'], batch_size=model_config.B, epochs=model_config.max_round_num,
+            validation_data=(xy['x_val'], xy['y_val']), callbacks=[early_stop, csv_logger]
+        )
+        val_loss, val_acc = ml_model.evaluate(xy['x_val'], xy['y_val'], verbose=0, batch_size=model_config.B)
+        test_loss, test_acc = ml_model.evaluate(xy['x_test'], xy['y_test'], verbose=0, batch_size=model_config.B)
+        with open(log_file_name, 'a+') as f:
+            f.write(', '.join(
+                [str(e) for e in [data_config.dataset_name, runtime_config.client_num, model_config.learning_rate]]
+            ) + '\n')
+            f.write(f'Client {i} Best VAL Metric, {val_loss}, {val_acc}\n')
+            f.write(f'Client {i} Best TEST Metric, {test_loss}, {test_acc}\n')
+        average_test_acc.append(test_acc)
+    with open(log_file_name, 'a+') as f:
+        f.write(f'Average Best Test Metric, {np.mean(average_test_acc)}')
+
+
 if __name__ == '__main__':
     args_parser = argparse.ArgumentParser()
-    args_parser.add_argument('--execute', '-e', choices=('run', 'stop', 'upload', 'log', 'simulate_fedsgd'),
+    args_parser.add_argument('--execute', '-e', choices=(
+        'run', 'stop', 'upload', 'log',
+        'simulate_fedsgd', 'simulate_central', 'simulate_local'
+    ),
                              help='Start or Stop the experiments')
     args_parser.add_argument('--mode', '-m', choices=('remote', 'local'),
                              help='Run the experiments locally or remotely that presented the runtime_config')

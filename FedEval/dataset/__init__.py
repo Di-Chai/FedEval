@@ -2,6 +2,8 @@ from .FedImage import *
 from .FedMatrix import *
 from .Semantic140 import *
 from .Shakespeare import *
+from .CelebA import *
+from .FEMNIST import *
 
 
 # Used by the server, because it cannot reach the raw data
