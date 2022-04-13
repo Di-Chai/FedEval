@@ -20,6 +20,7 @@ from .container import ContainerId
 from .logger import HyperLogger
 from .node import Node
 from ..strategy.FederatedStrategy import HostParamsType
+from ..utils import ParamParser
 
 
 class Server(Node):
@@ -57,7 +58,7 @@ class Server(Node):
             'num_clients': cfg_mgr.runtime_config.client_num,
             'max_num_rounds': cfg_mgr.model_config.max_round_num,
             'num_tolerance': cfg_mgr.model_config.tolerance_num,
-            'num_clients_contacted_per_round': cfg_mgr.num_of_clients_contacted_per_round,
+            'num_clients_contacted_per_round': cfg_mgr.num_of_train_clients_contacted_per_round,
             'rounds_between_val': cfg_mgr.model_config.num_of_rounds_between_val,
         }
         self.logger.info(_run_config)
@@ -66,6 +67,7 @@ class Server(Node):
     def _init_metric_states(self):
         # weights should be an ordered list of parameter
         # for stats
+        self._avg_train_metrics: List = []
         self._avg_val_metrics: List = []
         self._avg_test_metrics: List = []
         self._one_last_evaluation_done = False
@@ -113,6 +115,21 @@ class Server(Node):
         self._init_statistical_states()
         self._init_control_states()
         self._init_metric_states()
+        if not ConfigurationManager().model_config.distributed_evaluate:
+            self._init_val_and_test_data()
+
+    def _init_val_and_test_data(self):
+        parameter_parser = ParamParser()
+        cfg = ConfigurationManager()
+        self._val_data = []
+        self._test_data = []
+        for c_id in range(cfg.runtime_config.client_num):
+            tmp_train, val_data, test_data = parameter_parser.parse_data(c_id)
+            self._val_data.append(val_data)
+            self._test_data.append(test_data)
+            del tmp_train
+        self._val_data = np.concatenate(self._val_data, axis=0)
+        self._test_data = np.concatenate(self._test_data, axis=0)
 
     def _refresh_update_cache(self) -> None:
         self._c_up = list()
@@ -165,7 +182,7 @@ class Server(Node):
                 'dashboard.html',
                 status='Finish' if self._STOP else 'Running',
                 rounds=f"{self._current_round} / {cfg_mgr.model_config.max_round_num}",
-                num_online_clients=f"{cfg_mgr.num_of_clients_contacted_per_round} / {len(self._communicator.ready_client_ids)} / {cfg_mgr.runtime_config.client_num}",
+                num_online_clients=f"{cfg_mgr.num_of_train_clients_contacted_per_round} / {len(self._communicator.ready_client_ids)} / {cfg_mgr.runtime_config.client_num}",
                 avg_test_metric=self._avg_test_metrics,
                 avg_test_metric_keys=self.__get_avg_test_metric_keys(),
                 avg_val_metric=self._avg_val_metrics,
@@ -185,8 +202,9 @@ class Server(Node):
                 'finished': self._server_job_finish,
                 'rounds': self._current_round,
                 'results': [
-                    None if not self._avg_val_metrics else self._avg_val_metrics[-1], 
-                    None if not self._avg_test_metrics else self._avg_test_metrics[-1]
+                    'No Train Results' if not self._avg_train_metrics else self._avg_train_metrics[-1],
+                    'No Val Results' if not self._avg_val_metrics else self._avg_val_metrics[-1],
+                    'No Test Results' if not self._avg_test_metrics else self._avg_test_metrics[-1]
                     ],
                 'log_dir': self._hyper_logger.dir_path,
             })
@@ -334,6 +352,10 @@ class Server(Node):
                 self._current_round
             )
             cur_round_info['train_loss'] = aggr_train_loss
+            self._avg_train_metrics.append({
+                'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'train_loss': aggr_train_loss
+            })
 
             self.logger.info("=== Train ===")
             self.logger.info('Receive update result form %s clients' % len(self._c_up))
@@ -520,7 +542,7 @@ class Server(Node):
                 self._hyper_logger.snapshot_config_into_files() # just for backward compatibility
                 self.logger.info("start to next round...")
                 self.train_next_round() #TODO(fgh) into loop form
-
+    
     # Note: we assume that during training the #workers will be >= MIN_NUM_WORKERS
     def train_next_round(self):
 

@@ -25,16 +25,16 @@ class FedAvg(FedStrategy):
 
     def host_select_train_clients(self, ready_clients):
         cfg = ConfigurationManager()
-        num_selected_clients = min(cfg.model_config.max_train_clients, cfg.num_of_clients_contacted_per_round)
-        if self.eval_selected_clients is not None and len(self.eval_selected_clients) >= num_selected_clients:
+        if self.eval_selected_clients is not None and \
+                len(self.eval_selected_clients) >= cfg.num_of_train_clients_contacted_per_round:
             self.train_selected_clients = np.random.choice(
-                list(self.eval_selected_clients), num_selected_clients, replace=False
+                list(self.eval_selected_clients), cfg.num_of_train_clients_contacted_per_round, replace=False
             )
             # Clear the selected evaluation clients
             self.eval_selected_clients = None
         else:
             self.train_selected_clients = np.random.choice(
-                list(ready_clients), num_selected_clients, replace=False
+                list(ready_clients), cfg.num_of_train_clients_contacted_per_round, replace=False
             )
         print('self.train_selected_clients', self.train_selected_clients)
         return self.train_selected_clients.tolist()
@@ -43,7 +43,7 @@ class FedAvg(FedStrategy):
         cfg = ConfigurationManager()
         self.eval_selected_clients = np.random.choice(
             list(ready_clients),
-            min(cfg.model_config.max_eval_clients, cfg.num_of_clients_contacted_per_round),
+            cfg.num_of_eval_clients_contacted_per_round,
             replace=False
         )
         return self.eval_selected_clients.tolist()

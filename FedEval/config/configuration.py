@@ -52,8 +52,8 @@ _STRATEGY_ETA_KEY = 'eta'
 _STRATEGY_B_KEY = 'B'
 _STRATEGY_C_KEY = 'C'
 _STRATEGY_E_KEY = 'E'
-_STRATEGY_MAX_TRAIN_CLIENTS = 'max_train_clients'
-_STRATEGY_MAX_EVAL_CLIENTS = 'max_eval_clients'
+_STRATEGY_E_RATIO = 'evaluate_ratio'
+_STRATEGY_E_DISTRIBUTE = 'distributed_evaluate'
 _STRATEGY_MAX_ROUND_NUM_KEY = 'max_rounds'
 _STRATEGY_TOLERANCE_NUM_KEY = 'num_tolerance'
 _STRATEGY_NUM_ROUNDS_BETWEEN_VAL_KEY = 'rounds_between_val'
@@ -95,8 +95,8 @@ _DEFAULT_MDL_CFG: RawConfigurationDict = {
         _STRATEGY_B_KEY: 32,
         _STRATEGY_C_KEY: 0.1,
         _STRATEGY_E_KEY: 1,
-        _STRATEGY_MAX_TRAIN_CLIENTS: 1000,
-        _STRATEGY_MAX_EVAL_CLIENTS: 1000,
+        _STRATEGY_E_RATIO: 1.0,
+        _STRATEGY_E_DISTRIBUTE: True,
         _STRATEGY_MAX_ROUND_NUM_KEY: 3000,
         _STRATEGY_TOLERANCE_NUM_KEY: 100,
         _STRATEGY_NUM_ROUNDS_BETWEEN_VAL_KEY: 1,
@@ -513,18 +513,12 @@ class _ModelConfig(_Configuraiton):
         return int(self._strategy_cfg[_STRATEGY_E_KEY])
 
     @property
-    def max_train_clients(self) -> int:
-        """
-        Returns: the maximum number of clients during the training
-        """
-        return int(self._strategy_cfg[_STRATEGY_MAX_TRAIN_CLIENTS])
+    def evaluate_ratio(self):
+        return float(self._strategy_cfg[_STRATEGY_E_RATIO])
 
     @property
-    def max_eval_clients(self) -> int:
-        """
-        Returns: the maximum number of clients during the evaluation
-        """
-        return int(self._strategy_cfg[_STRATEGY_MAX_EVAL_CLIENTS])
+    def distributed_evaluate(self):
+        return bool(self._strategy_cfg[_STRATEGY_E_DISTRIBUTE])
 
     @property
     def max_round_num(self) -> int:
@@ -1035,7 +1029,7 @@ class ServerConfigurationManagerInterface(ABC):
         NotImplementedError: called without implementation.
     """
     @abstractproperty
-    def num_of_clients_contacted_per_round(self) -> int:
+    def num_of_train_clients_contacted_per_round(self) -> int:
         raise NotImplementedError
 
 
@@ -1348,11 +1342,18 @@ class ConfigurationManager(Singleton,
         return self._rt_cfg
 
     @property
-    def num_of_clients_contacted_per_round(self) -> int:
+    def num_of_train_clients_contacted_per_round(self) -> int:
         """the number of clients selected to participate the main
         federated process in each round.
         """
         return int(self._rt_cfg.client_num * self._mdl_cfg.C)
+
+    @property
+    def num_of_eval_clients_contacted_per_round(self) -> int:
+        """the number of clients selected to participate the main
+        federated process in each round.
+        """
+        return int(self._rt_cfg.client_num * self._mdl_cfg.evaluate_ratio)
 
     @staticmethod
     def from_yamls(data_cfg_stream: _Stream,

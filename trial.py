@@ -154,9 +154,9 @@ model_config = {
     },
     'FedModel': {
         'name': args.strategy,
-        'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 3000, 'num_tolerance': 100,
+        'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 5000, 'num_tolerance': 10,
         'max_train_clients': 1000, 'max_eval_clients': 1000,
-        'rounds_between_val': 1,
+        'rounds_between_val': 1, 'evaluate_ratio': 1.0
     }
 }
 runtime_config = {

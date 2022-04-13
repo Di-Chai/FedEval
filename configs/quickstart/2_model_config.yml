@@ -4,11 +4,11 @@ FedModel:
   B: 32
   C: 0.1
   E: 1
+  distributed_evaluate: false
+  evaluate_ratio: 1.0
   max_rounds: 3000
   num_tolerance: 100
   rounds_between_val: 1
-  max_train_clients: 1000
-  max_eval_clients: 1000
   # FedSTC
   sparsity: 0.01
   # FedProx

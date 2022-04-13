@@ -416,7 +416,7 @@ class FedStrategy(FedStrategyInterface):
 
     def host_select_train_clients(self, ready_clients: List[ClientId]) -> List[ClientId]:
         self.train_selected_clients = random.sample(
-            list(ready_clients), ConfigurationManager().num_of_clients_contacted_per_round)
+            list(ready_clients), ConfigurationManager().num_of_train_clients_contacted_per_round)
         return self.train_selected_clients
 
     def host_select_evaluate_clients(self, ready_clients: List[ClientId]) -> List[ClientId]:
