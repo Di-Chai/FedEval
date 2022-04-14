@@ -213,7 +213,9 @@ class FedData(metaclass=ABCMeta):
                 for e in range(self.num_class):
                     if class_consumption[e] < num_of_each_class[e]:
                         candidate_class.append(e)
-                choose_class = np.random.choice(candidate_class, non_iid_class_num, replace=False)
+                choose_class = np.random.choice(
+                    candidate_class, min(non_iid_class_num, len(candidate_class)), replace=False
+                )
                 if strategy == 'average':
                     local_class_size_mask = np.zeros([self.num_class], dtype=int)
                     local_class_size_mask[choose_class] = 1

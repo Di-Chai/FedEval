@@ -69,8 +69,8 @@ if __name__ == '__main__':
             aggregated_gradients.append(np.average([e[i] for e in batched_gradients], axis=0, weights=actual_size))
         ml_model.optimizer.apply_gradients(zip(aggregated_gradients, ml_model.trainable_variables))
         # Evaluate
-        val_log = ml_model.distribute_evaluate(x_val, y_val, verbose=0)
-        test_log = ml_model.distribute_evaluate(x_test, y_test, verbose=0)
+        val_log = ml_model.evaluate(x_val, y_val, verbose=0)
+        test_log = ml_model.evaluate(x_test, y_test, verbose=0)
         print(f'Epoch {epoch} Val Loss {val_log[0]}, Val Acc {val_log[1]}, Test Loss {test_log[0]}, Test Acc {test_log[1]}')
         if val_log[0] < early_stopping_metric:
             early_stopping_metric = val_log[0]

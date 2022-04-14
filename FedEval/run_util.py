@@ -734,8 +734,8 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
             aggregated_gradients.append(np.average([e[i] for e in batched_gradients], axis=0, weights=actual_size))
         ml_model.optimizer.apply_gradients(zip(aggregated_gradients, ml_model.trainable_variables))
         # Evaluate
-        val_log = ml_model.distribute_evaluate(x_val, y_val, verbose=0, batch_size=batch_size)
-        test_log = ml_model.distribute_evaluate(x_test, y_test, verbose=0, batch_size=batch_size)
+        val_log = ml_model.evaluate(x_val, y_val, verbose=0, batch_size=batch_size)
+        test_log = ml_model.evaluate(x_test, y_test, verbose=0, batch_size=batch_size)
         print(
             f'Epoch {epoch} Val Loss {val_log[0]}, Val Acc {val_log[1]}, '
             f'Test Loss {test_log[0]}, Test Acc {test_log[1]}'
@@ -799,6 +799,7 @@ def central_simulator(UNIFIED_JOB_ID):
     y_test = np.concatenate([e['y_test'] for e in client_data], axis=0)
     del client_data
 
+    start_train_time = time.time()
     parameter_parser = ParamParser()
     ml_model = parameter_parser.parse_model()
     early_stop = tf.keras.callbacks.EarlyStopping(
@@ -815,13 +816,14 @@ def central_simulator(UNIFIED_JOB_ID):
         x_train, y_train, batch_size=model_config.B, epochs=model_config.max_round_num,
         validation_data=(x_val, y_val), callbacks=[early_stop, csv_logger]
     )
-    val_loss, val_acc = ml_model.distribute_evaluate(x_val, y_val, verbose=0, batch_size=model_config.B)
-    test_loss, test_acc = ml_model.distribute_evaluate(x_test, y_test, verbose=0, batch_size=model_config.B)
+    val_loss, val_acc = ml_model.evaluate(x_val, y_val, verbose=0, batch_size=model_config.B)
+    test_loss, test_acc = ml_model.evaluate(x_test, y_test, verbose=0, batch_size=model_config.B)
 
     with open(log_file_name, 'a+') as f:
         f.write(', '.join(
             [str(e) for e in [data_config.dataset_name, runtime_config.client_num, model_config.learning_rate]]
         ) + '\n')
+        f.write(f'Central Train Finished, Duration {time.time() - start_train_time}\n')
         f.write(f'Best VAL Metric, {val_loss}, {val_acc}\n')
         f.write(f'Best TEST Metric, {test_loss}, {test_acc}\n')
 
@@ -864,6 +866,7 @@ def local_simulator(UNIFIED_JOB_ID):
     average_test_acc = []
     for i in range(len(client_data)):
         xy = client_data[i]
+        start_time = time.time()
         with open(log_file_name, 'a+') as f:
             f.write(f'! Client {i} !\n')
         ml_model.set_weights(initial_weights)
@@ -875,12 +878,13 @@ def local_simulator(UNIFIED_JOB_ID):
             xy['x_train'], xy['y_train'], batch_size=model_config.B, epochs=model_config.max_round_num,
             validation_data=(xy['x_val'], xy['y_val']), callbacks=[early_stop, csv_logger]
         )
-        val_loss, val_acc = ml_model.distribute_evaluate(xy['x_val'], xy['y_val'], verbose=0, batch_size=model_config.B)
-        test_loss, test_acc = ml_model.distribute_evaluate(xy['x_test'], xy['y_test'], verbose=0, batch_size=model_config.B)
+        val_loss, val_acc = ml_model.evaluate(xy['x_val'], xy['y_val'], verbose=0, batch_size=model_config.B)
+        test_loss, test_acc = ml_model.evaluate(xy['x_test'], xy['y_test'], verbose=0, batch_size=model_config.B)
         with open(log_file_name, 'a+') as f:
             f.write(', '.join(
                 [str(e) for e in [data_config.dataset_name, runtime_config.client_num, model_config.learning_rate]]
             ) + '\n')
+            f.write(f'Client {i} Finished Duration {time.time() - start_time}\n')
             f.write(f'Client {i} Best VAL Metric, {val_loss}, {val_acc}\n')
             f.write(f'Client {i} Best TEST Metric, {test_loss}, {test_acc}\n')
         average_test_acc.append(test_acc)

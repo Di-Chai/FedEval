@@ -319,8 +319,8 @@ class FedAvg_example(FedAvg):
         """
         evaluate = {}
         # val and test
-        val_result = self.ml_model.distribute_evaluate(x=self.val_data['x'], y=self.val_data['y'])
-        test_result = self.ml_model.distribute_evaluate(x=self.test_data['x'], y=self.test_data['y'])
+        val_result = self.ml_model.evaluate(x=self.val_data['x'], y=self.val_data['y'])
+        test_result = self.ml_model.evaluate(x=self.test_data['x'], y=self.test_data['y'])
         metrics_names = self.ml_model.metrics_names
         # Reformat
         evaluate.update({'val_' + metrics_names[i]: float(val_result[i]) for i in range(len(metrics_names))})

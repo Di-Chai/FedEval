@@ -101,7 +101,7 @@ fine_tuned_params = {
         'FedAvg': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
         'FedProx': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
         'FedOpt': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
-        'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': None},
+        'LocalCentral': {'B': 8192 * 2, 'C': None, 'E': None, 'lr': None},
         'model': 'StackedLSTM'
     }
 }
@@ -135,8 +135,7 @@ tune_params = {
     #        1e-3, 3e-3, 5e-3, 7e-3, 9e-3,
     #        1e-2, 3e-2, 5e-2, 7e-2, 9e-2,
     #        1e-1, 3e-1, 5e-1, 7e-1, 9e-1, 1.0]
-    # 'lr': [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0]
-    'lr': [1e-2, 5e-2, 1e-1, 5e-1, 1.0]
+    'lr': [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0]
 }
 
 data_config = {

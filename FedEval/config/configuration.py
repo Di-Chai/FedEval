@@ -361,6 +361,8 @@ class _DataConfig(_Configuraiton):
     @property
     def sample_size(self) -> int:
         """return the number of samples owned by each client."""
+        if self._inner[_D_SAMPLE_SIZE_KEY] is None:
+            return None
         return int(self._inner[_D_SAMPLE_SIZE_KEY])
 
     @property
