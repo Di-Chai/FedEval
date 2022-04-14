@@ -1346,14 +1346,14 @@ class ConfigurationManager(Singleton,
         """the number of clients selected to participate the main
         federated process in each round.
         """
-        return int(self._rt_cfg.client_num * self._mdl_cfg.C)
+        return max(1, int(self._rt_cfg.client_num * self._mdl_cfg.C))
 
     @property
     def num_of_eval_clients_contacted_per_round(self) -> int:
         """the number of clients selected to participate the main
         federated process in each round.
         """
-        return int(self._rt_cfg.client_num * self._mdl_cfg.evaluate_ratio)
+        return max(1, int(self._rt_cfg.client_num * self._mdl_cfg.evaluate_ratio))
 
     @staticmethod
     def from_yamls(data_cfg_stream: _Stream,
