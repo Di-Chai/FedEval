@@ -19,45 +19,6 @@ args_parser.add_argument('--exec', '-e', type=str)
 args = args_parser.parse_args()
 
 
-"""
-Tuned learning rate:
-CelebA: 
-    FedSGD: 0.03
-    FedAvg: 0.3
-    FedProx: 0.1
-    FedSTC: 
-    FedOpt: 0.5
-    LocalCentral: 0.01
-FEMNIST:
-    FedSGD: 0.009
-    FedAvg: 0.3
-    FedSTC: 0.005
-    FedProx: 0.3
-    FedOpt: 0.3
-    LocalCentral: 0.1
-MNIST:
-    FedAvg: 0.7
-    FedOpt: 0.5
-    FedSGD: 0.07
-    FedSTC: 0.3
-    FedProx: 0.5
-    LocalCentral: 0.01
-Sent140:
-    FedSGD: 0.009
-    FedAvg: 0.05
-    FedSTC: 0.007
-    FedProx: 0.03
-    FedOpt: 0.1
-    LocalCentral: 0.01
-Shake:
-    FedSGD: 0.1
-    FedAvg:
-    FedSTC:
-    FedProx:
-    FedOpt:
-    LocalCentral: 0.01
-"""
-
 fine_tuned_params = {
     'mnist': {
         'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.07},
@@ -131,17 +92,13 @@ mode = args.mode
 repeat = args.repeat
 
 tune_params = {
-    # 'lr': [1e-4, 3e-4, 5e-4, 7e-4, 9e-4,
-    #        1e-3, 3e-3, 5e-3, 7e-3, 9e-3,
-    #        1e-2, 3e-2, 5e-2, 7e-2, 9e-2,
-    #        1e-1, 3e-1, 5e-1, 7e-1, 9e-1, 1.0]
     'lr': [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0]
 }
 
 data_config = {
     'dataset': args.dataset, 'data_dir': 'data',
     'non-iid': True if args.non_iid.lower() == 'true' else False,
-    'sample_size': 600,
+    'sample_size': None,
     'non-iid-strategy': 'average' if args.dataset == 'mnist' else 'natural', 
     'non-iid-class': args.non_iid_class,
     'random_seed': 0,
@@ -246,7 +203,7 @@ if args.tune == 'lr':
     runtime_config['communication']['limit_network_resource'] = False
     if args.strategy == 'FedSGD':
         # Simulation
-        model_config['FedModel']['max_rounds'] = 5000
+        model_config['FedModel']['max_rounds'] = 10000
         runtime_config['docker']['enable_gpu'] = True
         runtime_config['docker']['num_gpu'] = 1
         # Change the batch size
