@@ -121,15 +121,22 @@ class Server(Node):
     def _init_val_and_test_data(self):
         parameter_parser = ParamParser()
         cfg = ConfigurationManager()
-        self._val_data = []
-        self._test_data = []
+        _val_data = []
+        _test_data = []
         for c_id in range(cfg.runtime_config.client_num):
             tmp_train, val_data, test_data = parameter_parser.parse_data(c_id)
-            self._val_data.append(val_data)
-            self._test_data.append(test_data)
+            _val_data.append(val_data)
+            _test_data.append(test_data)
             del tmp_train
-        self._val_data = np.concatenate(self._val_data, axis=0)
-        self._test_data = np.concatenate(self._test_data, axis=0)
+        self._strategy.val_data = {
+            'x': np.concatenate([e['x'] for e in _val_data], axis=0),
+            'y': np.concatenate([e['y'] for e in _val_data], axis=0)
+        }
+        self._strategy.test_data = {
+            'x': np.concatenate([e['x'] for e in _test_data], axis=0),
+            'y': np.concatenate([e['y'] for e in _test_data], axis=0)
+        }
+        del _val_data, _test_data
 
     def _refresh_update_cache(self) -> None:
         self._c_up = list()
@@ -376,7 +383,10 @@ class Server(Node):
             self._server_receive_bytes, self._server_send_bytes = self._communicator.get_comm_in_and_out()
 
             if self._current_round % ConfigurationManager().model_config.num_of_rounds_between_val == 0:
-                self.evaluate()
+                if ConfigurationManager().model_config.distributed_evaluate:
+                    self.distribute_evaluate()
+                else:
+                    self.server_evaluation()
             else:
                 self.train_next_round()
 
@@ -393,156 +403,160 @@ class Server(Node):
                 num_clients_required = len(self._strategy.eval_selected_clients)
                 receive_all = len(self._c_eval) == num_clients_required
 
-            if not receive_all:
-                #TODO(fgh) raise an Exception
-                return
+            if receive_all:
+                self.aggregate_evaluate()
 
-            # sort according to the client id
-            try:
-                self._c_eval = sorted(self._c_eval, key=lambda x: int(x['cid']))
-            except TypeError as error:
-                print('Debug Mode', error)
+    def server_evaluation(self):
+        evaluation_results = {
+            'cid': 0, 'time_receive_request': time.time(), 'time_start_evaluate': time.time()
+        }
+        evaluation_results['evaluate'] = self._strategy.local_evaluate()
+        evaluation_results['time_finish_evaluate'] = time.time()
+        evaluation_results['time_receive_evaluate'] = time.time()
+        self._c_eval = [evaluation_results]
+        self.aggregate_evaluate()
 
-            self.logger.info("=== Evaluate ===")
-            self.logger.info('Receive evaluate result form %s clients' % len(self._c_eval))
+    def aggregate_evaluate(self):
+        # sort according to the client id
+        self._c_eval = sorted(self._c_eval, key=lambda x: int(x['cid']))
 
-            receive_eval_time = np.array([e['time_receive_request'] - self._time_agg_train_end for e in self._c_eval])
-            finish_eval_time = np.array([e['time_finish_evaluate'] - e['time_start_evaluate'] for e in self._c_eval])
-            eval_receive_time = np.array([e['time_receive_evaluate'] - e['time_finish_evaluate'] for e in self._c_eval])
+        self.logger.info("=== Evaluate ===")
+        self.logger.info('Receive evaluate result form %s clients' % len(self._c_eval))
 
-            self.logger.info(
-                'Update Run min %s max %s mean %s'
-                % (min(finish_eval_time), max(finish_eval_time), np.mean(finish_eval_time))
-            )
+        receive_eval_time = np.array([e['time_receive_request'] - self._time_agg_train_end for e in self._c_eval])
+        finish_eval_time = np.array([e['time_finish_evaluate'] - e['time_start_evaluate'] for e in self._c_eval])
+        eval_receive_time = np.array([e['time_receive_evaluate'] - e['time_finish_evaluate'] for e in self._c_eval])
 
-            self._time_agg_eval_start = time.time()
+        self.logger.info(
+            'Update Run min %s max %s mean %s'
+            % (min(finish_eval_time), max(finish_eval_time), np.mean(finish_eval_time))
+        )
 
-            avg_val_metrics = {}
-            avg_test_metrics = {}
-            full_test_metric = {}
-            for key in self._c_eval[0]['evaluate']:
-                if key == 'val_size':
-                    continue
-                if key == 'test_size':
-                    continue
-                    # full_test_metric['test_size'] = [
-                    #     float(update['evaluate']['test_size']) for update in self.c_eval]
-                if key.startswith('val_'):
-                    avg_val_metrics[key] = np.average(
-                        [float(update['evaluate'][key]) for update in self._c_eval],
-                        weights=[float(update['evaluate']['val_size']) for update in self._c_eval]
-                    )
-                    self.logger.info('Val %s : %s' % (key, avg_val_metrics[key]))
-                if key.startswith('test_'):
-                    full_test_metric[key] = [float(update['evaluate'][key]) for update in self._c_eval]
-                    avg_test_metrics[key] = np.average(
-                        full_test_metric[key],
-                        weights=[float(update['evaluate']['test_size']) for update in self._c_eval]
-                    )
-                    self.logger.info('Test %s : %s' % (key, avg_test_metrics[key]))
+        self._time_agg_eval_start = time.time()
 
-            latest_time_record = self._time_record_real_world[-1]
-            cur_round_info = self._info_each_round[self._current_round]
-            cur_round_info.update(avg_val_metrics)
-            cur_round_info.update(avg_test_metrics)
+        avg_val_metrics = {}
+        avg_test_metrics = {}
+        full_test_metric = {}
+        for key in self._c_eval[0]['evaluate']:
+            if key == 'val_size':
+                continue
+            if key == 'test_size':
+                continue
+                # full_test_metric['test_size'] = [
+                #     float(update['evaluate']['test_size']) for update in self.c_eval]
+            if key.startswith('val_'):
+                avg_val_metrics[key] = np.average(
+                    [float(update['evaluate'][key]) for update in self._c_eval],
+                    weights=[float(update['evaluate']['val_size']) for update in self._c_eval]
+                )
+                self.logger.info('Val %s : %s' % (key, avg_val_metrics[key]))
+            if key.startswith('test_'):
+                full_test_metric[key] = [float(update['evaluate'][key]) for update in self._c_eval]
+                avg_test_metrics[key] = np.average(
+                    full_test_metric[key],
+                    weights=[float(update['evaluate']['test_size']) for update in self._c_eval]
+                )
+                self.logger.info('Test %s : %s' % (key, avg_test_metrics[key]))
 
-            avg_test_metrics['time'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            avg_val_metrics['time'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self._time_agg_eval_end = time.time()
+        self._time_record_real_world[-1]['server_eval'] = self._time_agg_eval_end - self._time_agg_eval_start
+        self._time_record_federated[-1]['eval_agg'] = self._time_agg_eval_end - self._time_agg_eval_start
 
-            self._time_agg_eval_end = time.time()
-            latest_time_record['server_eval'] = self._time_agg_eval_end - self._time_agg_eval_start
-            self._time_record_federated[-1]['eval_agg'] = self._time_agg_eval_end - self._time_agg_eval_start
+        self._time_record_real_world[-1]['eval_send'] = np.mean(receive_eval_time)
+        self._time_record_real_world[-1]['eval_run'] = np.mean(finish_eval_time)
+        self._time_record_real_world[-1]['eval_receive'] = np.mean(eval_receive_time)
+        self._time_record_federated[-1]['max_eval'] = np.max(
+            receive_eval_time + finish_eval_time + eval_receive_time)
+        del receive_eval_time, finish_eval_time, eval_receive_time
 
-            latest_time_record['eval_send'] = np.mean(receive_eval_time)
-            latest_time_record['eval_run'] = np.mean(finish_eval_time)
-            latest_time_record['eval_receive'] = np.mean(eval_receive_time)
-            self._time_record_federated[-1]['max_eval'] = np.max(
-                receive_eval_time + finish_eval_time + eval_receive_time)
-            del receive_eval_time, finish_eval_time, eval_receive_time
+        self._info_each_round[self._current_round]['time_eval_send'] = self._time_record_real_world[-1]['eval_send']
+        self._info_each_round[self._current_round]['time_eval_run'] = self._time_record_real_world[-1]['eval_run']
+        self._info_each_round[self._current_round]['time_eval_receive'] = self._time_record_real_world[-1][
+            'eval_receive']
+        self._info_each_round[self._current_round]['time_eval_agg'] = self._time_record_real_world[-1]['server_eval']
 
-            self._avg_test_metrics.append(avg_test_metrics)
-            self._avg_val_metrics.append(avg_val_metrics)
+        avg_val_metrics.update({'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
+        avg_test_metrics.update({'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
+        self._avg_test_metrics.append(avg_test_metrics)
+        self._avg_val_metrics.append(avg_val_metrics)
+        self._info_each_round[self._current_round].update(avg_val_metrics)
+        self._info_each_round[self._current_round].update(avg_test_metrics)
 
-            current_metric = avg_val_metrics.get('val_loss')
-            self.logger.info('val loss %s' % current_metric)
+        current_metric = avg_val_metrics.get('val_loss')
+        self.logger.info('val loss %s' % current_metric)
 
-            cur_round_info['time_eval_send'] = latest_time_record['eval_send']
-            cur_round_info['time_eval_run'] = latest_time_record['eval_run']
-            cur_round_info['time_eval_receive'] = latest_time_record['eval_receive']
-            cur_round_info['time_eval_agg'] = latest_time_record['server_eval']
+        if self._best_val_metric is None or \
+                (current_metric is not None and self._best_val_metric > current_metric):
+            self._best_val_metric = current_metric
+            self._best_round = self._current_round
+            self._invalid_tolerate = 0
+            self._best_test_metric.update(avg_test_metrics)
+            self._hyper_logger.snap_server_side_best_model_weights_into_file(
+                self._current_upload_info)
+            self.logger.info(str(self._best_test_metric))
+            self._best_test_metric_full = full_test_metric
+        else:
+            self._invalid_tolerate += 1
 
-            if self._best_val_metric is None or \
-                    (current_metric is not None and self._best_val_metric > current_metric):
-                self._best_val_metric = current_metric
-                self._best_round = self._current_round
-                self._invalid_tolerate = 0
-                self._best_test_metric.update(avg_test_metrics)
-                self._hyper_logger.snap_server_side_best_model_weights_into_file(
-                    self._current_upload_info)
-                self.logger.info(str(self._best_test_metric))
-                self._best_test_metric_full = full_test_metric
+        if self._invalid_tolerate > ConfigurationManager().model_config.tolerance_num:
+            self.logger.info("converges! starting test phase..")
+            self._STOP = True
+
+        max_round_num = ConfigurationManager().model_config.max_round_num
+        if self._current_round >= max_round_num:
+            self.logger.info("get to maximum step, stop...")
+            self._STOP = True
+
+        if self._strategy.stop:
+            self._STOP = True
+
+        # Collect the send and received bytes
+        self._server_receive_bytes, self._server_send_bytes = self._communicator.get_comm_in_and_out()
+
+        if self._STOP:
+            self.logger.info("== done ==")
+            self.logger.info("Federated training finished ... ")
+            self.logger.info("best full test metric: " +
+                             json.dumps(self._best_test_metric_full))
+            self.logger.info("best model at round {}".format(self._best_round))
+            for key in self._best_test_metric:
+                self.logger.info(
+                    "get best test {} {}".format(key, self._best_test_metric[key])
+                )
+            self._training_stop_time = time.time()
+            # Time
+            result_json = self.snapshot_result(self._training_stop_time)
+            self._hyper_logger.snapshot_results_into_file(result_json)
+            self._hyper_logger.snapshot_config_into_files()
+            self.logger.info(f'Total time: {result_json["total_time"]}')
+            self.logger.info(f'Time Detail: {result_json["time_detail"]}')
+            self.logger.info(f'Total Rounds: {self._current_round}')
+            self.logger.info(f'Server Send(GB): {result_json["server_send"]}')
+            self.logger.info(f'Server Receive(GB): {result_json["server_receive"]}')
+            del result_json
+
+            # Clean cached models, while the best model will be kept
+            if self._strategy.host_params_type == HostParamsType.Uniform:
+                self._hyper_logger.clear_snapshot(round_num=self._current_round, latest_k=0)
             else:
-                self._invalid_tolerate += 1
+                self._hyper_logger.clear_snapshot(
+                    round_num=self._current_round,
+                    latest_k=0, client_id_list=self._communicator.ready_client_ids
+                )
+            # Stop all the clients
+            self._communicator.invoke_all(ClientEvent.Stop)
+            # Call the server exit job
+            self._strategy.host_exit_job(self)
+            # Server job finish
+            self._server_job_finish = True
+        else:
+            results = self.snapshot_result(time.time())
+            self._hyper_logger.snapshot_results_into_file(results)
+            del results
+            self._hyper_logger.snapshot_config_into_files()  # just for backward compatibility
+            self.logger.info("start to next round...")
+            self.train_next_round()  # TODO(fgh) into loop form
 
-            if self._invalid_tolerate > ConfigurationManager().model_config.tolerance_num:
-                self.logger.info("converges! starting test phase..")
-                self._STOP = True
-
-            max_round_num = ConfigurationManager().model_config.max_round_num
-            if self._current_round >= max_round_num:
-                self.logger.info("get to maximum step, stop...")
-                self._STOP = True
-
-            if self._strategy.stop:
-                self._STOP = True
-
-            # Collect the send and received bytes
-            self._server_receive_bytes, self._server_send_bytes = self._communicator.get_comm_in_and_out()
-
-            if self._STOP:
-                self.logger.info("== done ==")
-                self.logger.info("Federated training finished ... ")
-                self.logger.info("best full test metric: " +
-                                    json.dumps(self._best_test_metric_full))
-                self.logger.info("best model at round {}".format(self._best_round))
-                for key in self._best_test_metric:
-                    self.logger.info(
-                        "get best test {} {}".format(key, self._best_test_metric[key])
-                    )
-                self._training_stop_time = time.time()
-                # Time
-                result_json = self.snapshot_result(self._training_stop_time)
-                self._hyper_logger.snapshot_results_into_file(result_json)
-                self._hyper_logger.snapshot_config_into_files()
-                self.logger.info(f'Total time: {result_json["total_time"]}')
-                self.logger.info(f'Time Detail: {result_json["time_detail"]}')
-                self.logger.info(f'Total Rounds: {self._current_round}')
-                self.logger.info(f'Server Send(GB): {result_json["server_send"]}')
-                self.logger.info(f'Server Receive(GB): {result_json["server_receive"]}')
-                del result_json
-
-                # Clean cached models, while the best model will be kept
-                if self._strategy.host_params_type == HostParamsType.Uniform:
-                    self._hyper_logger.clear_snapshot(round_num=self._current_round, latest_k=0)
-                else:
-                    self._hyper_logger.clear_snapshot(
-                        round_num=self._current_round,
-                        latest_k=0, client_id_list=self._communicator.ready_client_ids
-                    )
-                # Stop all the clients
-                self._communicator.invoke_all(ClientEvent.Stop)
-                # Call the server exit job
-                self._strategy.host_exit_job(self)
-                # Server job finish
-                self._server_job_finish = True
-            else:
-                results = self.snapshot_result(time.time())
-                self._hyper_logger.snapshot_results_into_file(results)
-                del results
-                self._hyper_logger.snapshot_config_into_files() # just for backward compatibility
-                self.logger.info("start to next round...")
-                self.train_next_round() #TODO(fgh) into loop form
-    
     # Note: we assume that during training the #workers will be >= MIN_NUM_WORKERS
     def train_next_round(self):
 
@@ -591,7 +605,7 @@ class Server(Node):
                 )
         self.logger.info('Finished sending update requests, waiting resp from clients')
 
-    def evaluate(self, eval_best_model=False):
+    def distribute_evaluate(self, eval_best_model=False):
         self.logger.info('Starting eval')
         self._refresh_evaluation_cache()
 

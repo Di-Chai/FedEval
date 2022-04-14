@@ -190,14 +190,18 @@ class FedData(metaclass=ABCMeta):
                 # sorted by the label
                 train_index = sorted(train_index, key=lambda x: np.argmax(self.y[x]))
 
-            num_of_each_class = self.y.sum(0)
+            num_of_each_class = self.y[train_index].sum(0)
             class_pointer = np.array([int(np.sum(num_of_each_class[0:i])) for i in range(self.num_class)])
 
             # manual set test set
             class_size = int(train_size / non_iid_class_num)
-
+            class_consumption = np.zeros([self.num_class], dtype=int)
             for i in range(self.num_clients):
-                choose_class = np.random.choice(range(self.num_class), non_iid_class_num, replace=False)
+                candidate_class = []
+                for e in range(self.num_class):
+                    if class_consumption[e] < num_of_each_class[e]:
+                        candidate_class.append(e)
+                choose_class = np.random.choice(candidate_class, non_iid_class_num, replace=False)
                 if strategy == 'average':
                     local_class_size_mask = np.zeros([self.num_class], dtype=int)
                     local_class_size_mask[choose_class] = 1
@@ -212,6 +216,12 @@ class FedData(metaclass=ABCMeta):
                     local_class_size = np.sum(local_class_size, axis=0, dtype=int)
                 else:
                     raise ValueError('strategy name error')
+                for e in range(self.num_class):
+                    if (local_class_size[e] + class_consumption[e]) > num_of_each_class[e]:
+                        local_class_size[e] = num_of_each_class[e] - class_consumption[e]
+                class_consumption += local_class_size
+                assert np.any(class_consumption <= num_of_each_class),\
+                    f"{class_consumption} {num_of_each_class} {local_class_size}"
                 local = []
                 for j in range(self.num_class):
                     local += train_index[class_pointer[j]:class_pointer[j] + local_class_size[j]]

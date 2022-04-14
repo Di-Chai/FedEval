@@ -143,4 +143,5 @@ docker_pre_downloaded
 trials/
 id_rsa
 debug*.py
+debug*
 *tmp*

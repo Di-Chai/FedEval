@@ -60,47 +60,47 @@ Shake:
 
 fine_tuned_params = {
     'mnist': {
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.07},
-        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.3},
-        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.7}, 
-        'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
-        'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
+        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.07},
+        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.3},
+        'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.7},
+        'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.5},
+        'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'MLP'
     },
     'femnist': {
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.009},  # re
-        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.005},  # re
-        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
-        'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
-        'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
+        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.009},  # re
+        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.005},  # re
+        'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.3},
+        'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.3},
+        'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.3},
         'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': 0.1},
         'model': 'LeNet'
     },
     'celeba': {
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.03},  # re
-        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},  # re
-        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.3},
-        'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
-        'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.5},
+        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.03},  # re
+        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},  # re
+        'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.3},
+        'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
+        'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'LeNet'
     },
     "semantic140": {
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.009},  # re
-        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.007},  # re
-        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.05},
-        'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.03},
-        'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': 0.1},
+        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.009},  # re
+        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.007},  # re
+        'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.05},
+        'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.03},
+        'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'StackedLSTM'
     },
     "shakespeare": {
-        'FedSGD': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': 0.1},  # re
-        'FedSTC': {'B': 1000, 'C': 1.0, 'E': 1, 'lr': None},  # re
-        'FedAvg': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
-        'FedProx': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
-        'FedOpt': {'B': 32, 'C': 0.1, 'E': 10, 'lr': None},
+        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.1},  # re
+        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},  # re
+        'FedAvg': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
+        'FedProx': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
+        'FedOpt': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
         'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': None},
         'model': 'StackedLSTM'
     }
@@ -135,7 +135,8 @@ tune_params = {
     #        1e-3, 3e-3, 5e-3, 7e-3, 9e-3,
     #        1e-2, 3e-2, 5e-2, 7e-2, 9e-2,
     #        1e-1, 3e-1, 5e-1, 7e-1, 9e-1, 1.0]
-    'lr': [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0]
+    # 'lr': [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0]
+    'lr': [1e-2, 5e-2, 1e-1, 5e-1, 1.0]
 }
 
 data_config = {
@@ -154,7 +155,9 @@ model_config = {
     },
     'FedModel': {
         'name': args.strategy,
-        'B': p['B'], 'C': p['C'], 'E': p['E'], 'max_rounds': 5000, 'num_tolerance': 10,
+        'B': p['B'], 'C': p['C'], 'E': p['E'],
+        'distributed_evaluate': False,
+        'max_rounds': 5000, 'num_tolerance': 100,
         'max_train_clients': 1000, 'max_eval_clients': 1000,
         'rounds_between_val': 1, 'evaluate_ratio': 1.0
     }
@@ -205,7 +208,7 @@ if args.dataset == 'semantic140':
     model_config['MLModel']['metrics'] = ['binary_accuracy']
 
 if args.dataset == 'shakespeare':
-    runtime_config['server']['num_clients'] = 1121
+    runtime_config['server']['num_clients'] = 100
     data_config['normalize'] = False
     model_config['MLModel']['embedding_dim'] = 8
 

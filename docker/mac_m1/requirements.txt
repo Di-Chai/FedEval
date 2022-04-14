@@ -16,7 +16,6 @@ scipy
 sklearn
 pandas
 torch
-tensorflow
 
 # NLP datasets
 nltk

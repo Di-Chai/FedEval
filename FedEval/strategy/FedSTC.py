@@ -127,5 +127,7 @@ class FedSTC(FedStrategy):
             self.server_residual[i].copy() + delta_W[i].copy() - delta_W_plus_r[i].copy()
             for i in range(len(param_shapes))
         ]
+        self.host_params = [self.host_params[e] + delta_W_plus_r[e] for e in range(len(self.host_params))]
+        self.ml_model.set_weights(self.host_params)
         # Compress the stc(delta_w + R) and return
         return [self.compress(e.reshape([-1, ])) for e in delta_W_plus_r]

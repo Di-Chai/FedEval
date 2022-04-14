@@ -408,6 +408,7 @@ class FedStrategy(FedStrategyInterface):
             client_params = self.callback.on_host_aggregate_begin(client_params)
         # update host params
         self.host_params = aggregate_weighted_average(client_params, aggregate_weights)
+        self.ml_model.set_weights(self.host_params)
         return self.host_params
 
     def host_exit_job(self, host):
@@ -437,6 +438,7 @@ class FedStrategy(FedStrategyInterface):
             self.ml_model.set_weights(model)
         self.local_params_pre = self.ml_model.get_weights()
         mdl_cfg = ConfigurationManager().model_config
+        print(f"Debug, x-size {self.train_data['x'].shape} y-size {self.train_data['y'].shape}")
         train_log = self.ml_model.fit(
             x=self.train_data['x'], y=self.train_data['y'],
             epochs=mdl_cfg.E,
@@ -458,9 +460,9 @@ class FedStrategy(FedStrategyInterface):
     def local_evaluate(self) -> Mapping[str, Union[int, float]]:
         # val and test
         val_result = self.ml_model.evaluate(
-            x=self.val_data['x'], y=self.val_data['y'])
+            x=self.val_data['x'], y=self.val_data['y'], batch_size=4096)
         test_result = self.ml_model.evaluate(
-            x=self.test_data['x'], y=self.test_data['y'])
+            x=self.test_data['x'], y=self.test_data['y'], batch_size=4096)
         metrics_names = self.ml_model.metrics_names
         # Reformat
         evaluate = {

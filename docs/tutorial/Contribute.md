@@ -234,11 +234,11 @@ from .FedAvg import FedAvg
 class FedAvg_example(FedAvg):
 
     def __init__(self, role, data_config, model_config, runtime_config, param_parser=ParamParser):
-      # By defaullt, the init function will do the following things:
-      # (1) initialize the ML model at self.ml_model
-      # (2) load the dataset if current role is client
-      # (3) initialize some variables if current role is server, e.g., self.params
-      super().__init__(role, data_config, model_config, runtime_config)
+        # By defaullt, the init function will do the following things:
+        # (1) initialize the ML model at self.ml_model
+        # (2) load the dataset if current role is client
+        # (3) initialize some variables if current role is server, e.g., self.params
+        super().__init__(role, data_config, model_config, runtime_config)
 
     # (1) Host functions
     def host_get_init_params(self):
@@ -261,7 +261,7 @@ class FedAvg_example(FedAvg):
         """
         self.params = aggregate_weighted_average(client_params, aggregate_weights)
         return self.params
-		
+
     # (2) Client functions
     def set_host_params_to_local(self, host_params, current_round):
         """
@@ -319,8 +319,8 @@ class FedAvg_example(FedAvg):
         """
         evaluate = {}
         # val and test
-        val_result = self.ml_model.evaluate(x=self.val_data['x'], y=self.val_data['y'])
-        test_result = self.ml_model.evaluate(x=self.test_data['x'], y=self.test_data['y'])
+        val_result = self.ml_model.distribute_evaluate(x=self.val_data['x'], y=self.val_data['y'])
+        test_result = self.ml_model.distribute_evaluate(x=self.test_data['x'], y=self.test_data['y'])
         metrics_names = self.ml_model.metrics_names
         # Reformat
         evaluate.update({'val_' + metrics_names[i]: float(val_result[i]) for i in range(len(metrics_names))})
@@ -329,7 +329,7 @@ class FedAvg_example(FedAvg):
         evaluate.update({'val_size': self.val_data_size})
         evaluate.update({'test_size': self.test_data_size})
         return evaluate
-      
+
 ```
 
 **Step 2 (Example)**

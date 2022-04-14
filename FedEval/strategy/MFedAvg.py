@@ -28,6 +28,7 @@ class MFedAvg(FedAvg):
             self.host_params[i] - self.v[i]
             for i in range(len(self.host_params))
         ]
+        self.ml_model.set_weights(self.host_params)
         return self.host_params
 
 

@@ -76,6 +76,7 @@ class FedSCA(FedAvg):
         for i in range(len(self.host_params)):
             self.host_params[i] += mdl_cfg.learning_rate * delta_x[i]
             self.server_c[i] += mdl_cfg.C * delta_c[i]
+        self.ml_model.set_weights(self.host_params)
         return self.host_params, self.server_c
 
     def fit_on_local_data(self):

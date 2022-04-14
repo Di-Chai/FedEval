@@ -1,10 +1,10 @@
 data_dir: data
-dataset: femnist
-non-iid: False
+dataset: mnist
+non-iid: true
 non-iid-class: 1 # Only work when non-iid = True
 non-iid-strategy: average # Only work when non-iid = True
 normalize: true
-sample_size: 600
+sample_size: 700
 random_seed: 100
 train_val_test:
   - 0.8

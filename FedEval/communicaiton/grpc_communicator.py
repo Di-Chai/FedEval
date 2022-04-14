@@ -114,7 +114,7 @@ class _Master(FederatedLearningServicer):
                             'time_start_evaluate': evaluation_result.time_start_evaluate,
                             'time_finish_evaluate': evaluation_result.time_finish_evaluate,
                             'time_receive_request': evaluation_result.time_receive_request,
-                            'evaluate': load_from_json_str(evaluation_result.evaluate),
+                            'evaluate': load_from_json_str(evaluation_result.distribute_evaluate),
                         }
                         self._handlers[event](response)
                     else:
