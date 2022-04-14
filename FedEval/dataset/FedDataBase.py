@@ -1,4 +1,5 @@
 import copy
+import logging
 import os
 import pickle
 import hickle
@@ -114,6 +115,7 @@ class FedData(metaclass=ABCMeta):
         return self._regenerate
 
     def _save_dataset_files(self, dataset: List[Mapping[str, List[np.ndarray]]]) -> None:
+        client_data_size = []
         for i in range(len(dataset)):
             train, val, test = dataset[i]
             target = {
@@ -124,8 +126,12 @@ class FedData(metaclass=ABCMeta):
                 'x_test': self.x[test],
                 'y_test': self.y[test],
             }
+            client_data_size.append([len(train), len(val), len(test)])
             hickle.dump(target, os.path.join(self.output_dir, f'client_{i}.pkl'))
             del target
+        client_data_size = np.mean(client_data_size, axis=0).astype(int)
+        print(f'Average Client sample size: train {client_data_size[0]} val {client_data_size[1]} '
+              f'test {client_data_size[2]}')
 
     # def _generate_local_data(self, local) -> Mapping[str, List[np.ndarray]]:
     #     train, val, test = split_data(local, self.train_val_test)
@@ -153,6 +159,12 @@ class FedData(metaclass=ABCMeta):
         local_dataset = []
 
         if strategy == 'natural':
+
+            if d_cfg.sample_size is not None:
+                logging.warning(
+                    'Sample size is not working! '
+                    'The actual number of data sample held by each client is inherently decided by the data itself. '
+                )
 
             if self.identity is None:
                 raise AttributeError('Selected dataset has no identity')

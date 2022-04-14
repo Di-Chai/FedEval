@@ -1,3 +1,8 @@
+# Fix version (for python3.9)
+jinja2<3.1.0
+itsdangerous==2.0.1
+werkzeug==2.0.3
+
 # Communications
 # -- Web Service --
 Flask==1.1.2
@@ -32,6 +37,7 @@ apscheduler<4.0
 # Serializer
 PyYAML
 pympler
+h5py==2.10
 hickle
 
 # Plots and CV

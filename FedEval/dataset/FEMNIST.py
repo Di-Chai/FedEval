@@ -30,8 +30,10 @@ class femnist(FedData):
         client_sample_number = reduce(
             lambda a, b: a+b, [[[e, len(tmp_d['user_data'][e]['x'])] for e in tmp_d['user_data']] for tmp_d in data])
         client_sample_number = sorted(client_sample_number, key=lambda e: e[1], reverse=True)
-        top_selected_clients = set([e[0] for e in client_sample_number][:self.num_clients])
-
+        # top_selected_clients = set([e[0] for e in client_sample_number][:self.num_clients])
+        # Random Choice
+        top_selected_clients = np.random.choice(
+            [e[0] for e in client_sample_number], replace=False, size=self.num_clients)
         total_num_samples = sum([e[1] for e in client_sample_number])
 
         x = []

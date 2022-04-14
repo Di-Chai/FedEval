@@ -145,7 +145,7 @@ data_config = {
     'sample_size': 600,
     'non-iid-strategy': 'average' if args.dataset == 'mnist' else 'natural', 
     'non-iid-class': args.non_iid_class,
-    'random_seed': None,
+    'random_seed': 0,
 }
 model_config = {
     'MLModel': {
