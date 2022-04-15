@@ -749,6 +749,7 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
         if patience > model_config.tolerance_num:
             print('Train Finished')
             print(f'Best Test Metric {test_log}')
+            break
         del batched_gradients
         del actual_size
         test_metric_each_round.append([epoch] + test_log)
