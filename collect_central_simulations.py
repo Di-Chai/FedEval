@@ -34,7 +34,7 @@ for key in result_dict:
     )
     print('Repeat', key.strip('\n'), len(result_dict[key]))
 
-with open('simulate_local.csv', 'w') as f:
+with open('simulate_central.csv', 'w') as f:
     f.write('Repeat, Dataset, #Clients, LR, Duration, ValAcc, TestAcc, DurationStd, ValStd, TestStd\n')
     f.writelines(results)
 
