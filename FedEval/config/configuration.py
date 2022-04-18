@@ -191,7 +191,7 @@ _DEFAULT_RT_CFG: RawConfigurationDict = {
         _RT_L_CONSOLE_LEVEL_KEY: 'ERROR',
     },
     _RT_DOCKER_KEY: {
-        _RT_D_IMAGE_LABEL_KEY: 'fedeval:gpu',
+        _RT_D_IMAGE_LABEL_KEY: 'fedeval:sdfsdf',
         _RT_D_CONTAINER_NUM_KEY: 10,
         _RT_D_GPU_ENABLE_KEY: False,
         _RT_D_GPU_NUM_KEY: 0,
@@ -1235,7 +1235,13 @@ class ConfigurationManager(Singleton,
                 self._init_file_names()
                 self._encoding = _DEFAULT_ENCODING
                 self.__init_role()
+                # Set random seeds
+                import tensorflow as tf
+                import numpy as np
+                tf.random.set_seed(self._d_cfg.random_seed)
+                np.random.seed(self._d_cfg.random_seed)
                 ConfigurationManager.__initiated = True
+                
 
     def _init_file_names(self,
                          data_config_filename: str = DEFAULT_D_CFG_FILENAME,

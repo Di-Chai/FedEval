@@ -3,7 +3,6 @@ import copy
 import datetime
 import json
 import os
-import pdb
 import platform
 import shutil
 import time
@@ -874,22 +873,21 @@ def local_simulator(UNIFIED_JOB_ID):
         early_stop = tf.keras.callbacks.EarlyStopping(
             monitor='val_loss', patience=model_config.tolerance_num, restore_best_weights=True
         )
-        csv_logger = tf.keras.callbacks.CSVLogger(filename=log_file_name, append=True)
         ml_model.fit(
             xy['x_train'], xy['y_train'], batch_size=model_config.B, epochs=model_config.max_round_num,
-            validation_data=(xy['x_val'], xy['y_val']), callbacks=[early_stop, csv_logger]
+            validation_data=(xy['x_val'], xy['y_val']), callbacks=[early_stop]
         )
         val_loss, val_acc = ml_model.evaluate(xy['x_val'], xy['y_val'], verbose=0, batch_size=model_config.B)
         test_loss, test_acc = ml_model.evaluate(xy['x_test'], xy['y_test'], verbose=0, batch_size=model_config.B)
         with open(log_file_name, 'a+') as f:
-            f.write(', '.join(
-                [str(e) for e in [data_config.dataset_name, runtime_config.client_num, model_config.learning_rate]]
-            ) + '\n')
             f.write(f'Client {i} Finished Duration {time.time() - start_time}\n')
             f.write(f'Client {i} Best VAL Metric, {val_loss}, {val_acc}\n')
             f.write(f'Client {i} Best TEST Metric, {test_loss}, {test_acc}\n')
         average_test_acc.append(test_acc)
     with open(log_file_name, 'a+') as f:
+        f.write(', '.join(
+                [str(e) for e in [data_config.dataset_name, runtime_config.client_num, model_config.learning_rate]]
+            ) + '\n')
         f.write(f'Average Best Test Metric, {np.mean(average_test_acc)}')
 
 

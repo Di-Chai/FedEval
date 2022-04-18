@@ -1,4 +1,4 @@
-import random
+import numpy as np
 from abc import ABCMeta, abstractmethod, abstractproperty
 from enum import Enum
 from typing import Iterable, List, Mapping, Optional, Tuple, Union
@@ -298,7 +298,7 @@ class FedStrategy(FedStrategyInterface):
     def __init__(self, param_parser_type: type = ParamParser, logger=None):
         self._param_parser: ParamParserInterface = param_parser_type()
         if not isinstance(self._param_parser, ParamParserInterface):
-            raise ValueError(f"param_parser_class({type(param_parser_type)})" 
+            raise ValueError(f"param_parser_class({type(param_parser_type)})"
                              + f"should implement {type(ParamParserInterface)}")
         self._init_states()
         self._init_model()
@@ -393,9 +393,11 @@ class FedStrategy(FedStrategyInterface):
 
     def load_data_with(self, client_id) -> None:
         if ConfigurationManager().role != Role.Client:
-            raise TypeError(f"This {self.__class__.__name__}'s role is not a {Role.Client.value}.")
+            raise TypeError(
+                f"This {self.__class__.__name__}'s role is not a {Role.Client.value}.")
         self._client_id = client_id
-        self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(self.client_id)
+        self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(
+            self.client_id)
 
     def host_get_init_params(self) -> ModelWeights:
         # By default, the host params will be downloaded
@@ -405,9 +407,11 @@ class FedStrategy(FedStrategyInterface):
 
     def update_host_params(self, client_params, aggregate_weights) -> None:
         if self._has_callback():
-            client_params = self.callback.on_host_aggregate_begin(client_params)
+            client_params = self.callback.on_host_aggregate_begin(
+                client_params)
         # update host params
-        self.host_params = aggregate_weighted_average(client_params, aggregate_weights)
+        self.host_params = aggregate_weighted_average(
+            client_params, aggregate_weights)
         self.ml_model.set_weights(self.host_params)
         return self.host_params
 
@@ -416,8 +420,8 @@ class FedStrategy(FedStrategyInterface):
             self.callback.on_host_exit()
 
     def host_select_train_clients(self, ready_clients: List[ClientId]) -> List[ClientId]:
-        self.train_selected_clients = random.sample(
-            list(ready_clients), ConfigurationManager().num_of_train_clients_contacted_per_round)
+        self.train_selected_clients = np.random.choice(
+            list(ready_clients), ConfigurationManager().num_of_train_clients_contacted_per_round, replace=False)
         return self.train_selected_clients
 
     def host_select_evaluate_clients(self, ready_clients: List[ClientId]) -> List[ClientId]:
@@ -438,7 +442,8 @@ class FedStrategy(FedStrategyInterface):
             self.ml_model.set_weights(model)
         self.local_params_pre = self.ml_model.get_weights()
         mdl_cfg = ConfigurationManager().model_config
-        print(f"Debug, x-size {self.train_data['x'].shape} y-size {self.train_data['y'].shape}")
+        print(
+            f"Debug, x-size {self.train_data['x'].shape} y-size {self.train_data['y'].shape}")
         train_log = self.ml_model.fit(
             x=self.train_data['x'], y=self.train_data['y'],
             epochs=mdl_cfg.E,

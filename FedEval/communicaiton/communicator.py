@@ -114,8 +114,8 @@ class ServerCommunicator(Communicatior):
 
     @property
     def ready_client_ids(self) -> Iterable[ClientId]:
-        return self._client_node_ctx_mgr.online_client_ids
-
+        return sorted(self._client_node_ctx_mgr.online_client_ids)
+    
     @abstractmethod
     def run_server(self) -> None:
         pass

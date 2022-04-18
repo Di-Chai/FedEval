@@ -1,8 +1,6 @@
 import os
 import json
 import numpy as np
-import tensorflow as tf
-import matplotlib.pyplot as plt
 from .FedDataBase import FedData, shuffle
 from functools import reduce
 
@@ -53,7 +51,7 @@ class femnist(FedData):
 
         if len(y.shape) == 1 or y.shape[-1] == 1:
             self.num_class = np.max(y) + 1
-            y = tf.keras.utils.to_categorical(y, self.num_class)
+            y = np.eye(self.num_class)[y]
         else:
             self.num_class = y.shape[-1]
 
