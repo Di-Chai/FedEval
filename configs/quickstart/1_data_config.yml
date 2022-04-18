@@ -1,8 +1,8 @@
 data_dir: data
-dataset: semantic140
+dataset: mnist
 non-iid: true
 non-iid-class: 1 # Only work when non-iid = True
-non-iid-strategy: natural # Only work when non-iid = True
+non-iid-strategy: average # Only work when non-iid = True
 normalize: true
 sample_size: 700
 random_seed: 0
