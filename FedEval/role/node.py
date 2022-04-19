@@ -22,9 +22,8 @@ class Node(metaclass=ABCMeta):
         self.logger.setLevel(logging.INFO)
 
         time_str = time.strftime('%Y_%m%d_%H%M%S', time.localtime())
-        rt_cfg = ConfigurationManager().runtime_config
         self.log_dir = os.path.join(
-            rt_cfg.log_dir_path, log_dir_name, time_str)
+            ConfigurationManager().log_dir_path, log_dir_name, time_str)
         os.makedirs(self.log_dir, exist_ok=True)
         log_file = os.path.join(self.log_dir, 'train.log')
         fh = logging.FileHandler(log_file, encoding='utf8')

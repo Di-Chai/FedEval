@@ -898,11 +898,6 @@ class _RuntimeConfig(_Configuraiton):
         """the total number of the clients."""
         return int(self._inner[_RT_SERVER_KEY][_RT_S_CLIENTS_NUM_KEY])
 
-    @property
-    def log_dir_path(self) -> str:
-        """the path of the base of log directory."""
-        return self._inner[_RT_LOG_KEY][_RT_L_DIR_PATH_KEY]
-
     @staticmethod
     def _check_log_level_validity(level: str) -> None:
         """make sure the given string is one of the logging levels.
@@ -1266,10 +1261,11 @@ class ConfigurationManager(Singleton,
 
     @property
     def config_unique_id(self):
-        unique_configs = [f'{key}={value}' for key, value in self._d_cfg.inner.items()]
-        unique_configs += [f'{key}={value}' for key, value in self._mdl_cfg.inner.items()]
-        unique_configs += [f'{key}={value}' for key, value in self._rt_cfg.inner.items()]
-        unique_configs = sorted(unique_configs)
+        unique_configs = [
+            json.dumps(self._d_cfg.inner, sort_keys=True),
+            json.dumps(self._mdl_cfg.inner, sort_keys=True),
+            json.dumps(self._rt_cfg.inner, sort_keys=True)
+        ]
         return self._get_md5(','.join(unique_configs))
 
     @staticmethod
@@ -1280,13 +1276,21 @@ class ConfigurationManager(Singleton,
         return hl.hexdigest()
 
     @property
-    def dir_name(self) -> str:
+    def data_dir_name(self) -> str:
         """The output directory of the clients' data.
 
         Returns:
             str: the name of the data directory.
         """
         return os.path.join(self._d_cfg.inner[_D_DIR_KEY], f'{self._d_cfg.dataset_name}_{self.data_unique_id[:10]}')
+
+    @property
+    def log_dir_path(self) -> str:
+        """the path of the base of log directory."""
+        return os.path.join(
+            self._rt_cfg.inner[_RT_LOG_KEY][_RT_L_DIR_PATH_KEY],
+            self._job_id + '_' + self.config_unique_id[:8]
+        )
 
     @property
     @Singleton.thread_safe_ensurance
@@ -1418,7 +1422,7 @@ class ConfigurationManager(Singleton,
         mdl_cfg = self.model_config.inner
         rt_cfg = self.runtime_config.inner
 
-        d_filname = self.data_config_filename
+        d_filename = self.data_config_filename
         mdl_filename = self.model_config_filename
         rt_filename = self.runtime_config_filename
         encoding = encoding or self.encoding
@@ -1427,13 +1431,13 @@ class ConfigurationManager(Singleton,
             return _CfgYamlInterface.save_yaml_configs_to_files(
                 d_cfg, mdl_cfg, rt_cfg,
                 dst_dir_path,
-                d_filname, mdl_filename, rt_filename,
+                d_filename, mdl_filename, rt_filename,
                 encoding=encoding)
         elif serializer == _CfgSerializer.JSON:
             return _CfgJsonInterface.save_json_configs_to_files(
                 d_cfg, mdl_cfg, rt_cfg,
                 dst_dir_path,
-                d_filname, mdl_filename, rt_filename,
+                d_filename, mdl_filename, rt_filename,
                 encoding=encoding)
         else:
             raise NotImplementedError

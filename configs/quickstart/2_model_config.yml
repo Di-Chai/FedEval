@@ -6,7 +6,7 @@ FedModel:
   E: 1
   distributed_evaluate: false
   evaluate_ratio: 1.0
-  max_rounds: 3000
+  max_rounds: 10
   num_tolerance: 100
   rounds_between_val: 1
   # FedSTC

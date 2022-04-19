@@ -96,7 +96,7 @@ class ParamParser(ParamParserInterface):
 
     @staticmethod
     def parse_data(client_id) -> Tuple[XYData, XYData, XYData]:
-        data_path = os.path.join(ConfigurationManager().dir_name, f'client_{client_id}.pkl')
+        data_path = os.path.join(ConfigurationManager().data_dir_name, f'client_{client_id}.pkl')
         data = hickle.load(data_path)
         train_data = {'x': data.get('x_train', []), 'y': data.get('y_train', [])}
         val_data = {'x': data.get('x_val', []), 'y': data.get('y_val', [])}

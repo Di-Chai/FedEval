@@ -30,8 +30,8 @@ for key in result_dict:
     results.append(
         str(len(result_dict[key])) + ', ' + key.strip('\n') + ', ' + acc_mean + ', ' + acc_std + '\n'
     )
-    print('Repeat', key.strip('\n'), len(result_dict[key]))
 
 with open('simulate_local.csv', 'w') as f:
     f.write('Repeat, Dataset, #Clients, LR, TestAcc, TestStd\n')
     f.writelines(results)
+    print('Repeat', key.strip('\n'), len(result_dict[key]))

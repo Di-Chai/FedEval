@@ -16,7 +16,7 @@ class LocalCentral(FedStrategy):
 
         cfg_mgr = ConfigurationManager()
         client_num = cfg_mgr.runtime_config.client_num
-        data_dir = cfg_mgr.data_config.dir_name
+        data_dir = cfg_mgr.data_config.data_dir_name
         if cfg_mgr.role == Role.Server:
             x_train = []
             y_train = []

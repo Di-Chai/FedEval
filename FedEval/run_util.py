@@ -476,7 +476,7 @@ def recursive_update_dict(target: dict, update: dict):
     return target
 
 
-def run(execution, mode, config, overwrite_config=False, **kwargs):
+def run(execution, mode, config, overwrite_config=False, skip_if_exit=True, **kwargs):
 
     if len(kwargs) > 0:
         print('*' * 40)
@@ -504,6 +504,9 @@ def run(execution, mode, config, overwrite_config=False, **kwargs):
         runtime_config['server']['listen'] = '0.0.0.0'
     # --- configurations modification area end ---
 
+    UNIFIED_JOB_ID = datetime.datetime.now().strftime('%Y_%m%d_%H%M%S')
+    os.environ['UNIFIED_JOB_ID'] = UNIFIED_JOB_ID
+
     cfg_mgr = ConfigurationManager(data_config, model_config, runtime_config)
     if overwrite_config:
         new_config_dir_path = config
@@ -511,6 +514,16 @@ def run(execution, mode, config, overwrite_config=False, **kwargs):
         new_config_dir_path = config + '_' + cfg_mgr.config_unique_id[:10]
     cfg_mgr.to_files(new_config_dir_path)
     rt_cfg = cfg_mgr.runtime_config
+
+    config_unique_id = cfg_mgr.config_unique_id
+
+    if os.path.isfile(os.path.join(cfg_mgr.log_dir_path, 'history.json')):
+        with open(os.path.join(cfg_mgr.log_dir_path, 'history.json'), 'r') as f:
+            history = json.load(f)
+        if config_unique_id in history and history[config_unique_id].get('finished', False) is True:
+            print(f"Found existing log in {history[config_unique_id].get('log_path')}")
+            print('Skipping this run...')
+            return
 
     if execution == 'upload':
         print('Uploading to the server')
@@ -527,8 +540,6 @@ def run(execution, mode, config, overwrite_config=False, **kwargs):
         if mode == 'remote':
             server_stop()
         exit(0)
-
-    UNIFIED_JOB_ID = datetime.datetime.now().strftime('%Y_%m%d_%H%M%S')
 
     if execution == 'simulate_fedsgd':
         fed_sgd_simulator(UNIFIED_JOB_ID)
@@ -663,6 +674,20 @@ def run(execution, mode, config, overwrite_config=False, **kwargs):
     if mode == 'remote':
         server_stop()
 
+    _write_history()
+
+
+def _write_history():
+    cfg_mgr = ConfigurationManager()
+    if os.path.isfile(os.path.join(cfg_mgr.log_dir_path, 'history.json')):
+        with open(os.path.join(cfg_mgr.log_dir_path, 'history.json'), 'r') as f:
+            history = json.load(f)
+    else:
+        history = {}
+    history[cfg_mgr.config_unique_id] = {'finished': True, 'log_path': cfg_mgr.log_dir_path}
+    with open(os.path.join(cfg_mgr.log_dir_path, 'history.json'), 'w') as f:
+        json.dump(history, f)
+
 
 def _compute_gradients(model, x, y):
     with tf.GradientTape() as tape:
@@ -694,7 +719,7 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
     print('->', 'Data Generated')
     print('#' * 80)
     client_data_name = [
-        os.path.join(config_manager.dir_name, e) for e in os.listdir(config_manager.dir_name) if e.startswith('client')
+        os.path.join(config_manager.data_dir_name, e) for e in os.listdir(config_manager.data_dir_name) if e.startswith('client')
     ]
     client_data_name = sorted(client_data_name, key=lambda x: int(x.split('_')[-1].strip('.pkl')))
     client_data = []
@@ -752,9 +777,8 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
         del batched_gradients
         del actual_size
         test_metric_each_round.append([epoch] + test_log)
-    output_dir = os.path.join(runtime_config.log_dir_path, 'fed_sgd_simulator')
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
+    output_dir = config_manager.log_dir_path
+    os.makedirs(output_dir, exist_ok=True)
     with open(os.path.join(
             output_dir,
             f'{UNIFIED_JOB_ID}_{data_config.dataset_name}_{runtime_config.client_num}_fed_sgd_simulator.csv'
@@ -765,6 +789,7 @@ def fed_sgd_simulator(UNIFIED_JOB_ID):
         for e in test_metric_each_round:
             f.write(', '.join([str(e1) for e1 in e]) + '\n')
         f.write(f'Best Metric, {best_test_metric[0]}, {best_test_metric[1]}')
+    _write_history()
 
 
 def central_simulator(UNIFIED_JOB_ID):
@@ -783,7 +808,7 @@ def central_simulator(UNIFIED_JOB_ID):
     print('->', 'Data Generated')
     print('#' * 80)
     client_data_name = [
-        os.path.join(config_manager.dir_name, e) for e in os.listdir(config_manager.dir_name) if e.startswith('client')
+        os.path.join(config_manager.data_dir_name, e) for e in os.listdir(config_manager.data_dir_name) if e.startswith('client')
     ]
     client_data_name = sorted(client_data_name, key=lambda x: int(x.split('_')[-1].strip('.pkl')))
     client_data = []
@@ -805,9 +830,8 @@ def central_simulator(UNIFIED_JOB_ID):
     early_stop = tf.keras.callbacks.EarlyStopping(
         monitor='val_loss', patience=model_config.tolerance_num, restore_best_weights=True
     )
-    output_dir = os.path.join(runtime_config.log_dir_path, 'central_simulator')
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
+    output_dir = config_manager.log_dir_path
+    os.makedirs(output_dir, exist_ok=True)
     log_file_name = os.path.join(
         output_dir, f'{UNIFIED_JOB_ID}_{data_config.dataset_name}_{runtime_config.client_num}_central_simulator.csv'
     )
@@ -826,6 +850,7 @@ def central_simulator(UNIFIED_JOB_ID):
         f.write(f'Central Train Finished, Duration {time.time() - start_train_time}\n')
         f.write(f'Best VAL Metric, {val_loss}, {val_acc}\n')
         f.write(f'Best TEST Metric, {test_loss}, {test_acc}\n')
+    _write_history()
 
 
 def local_simulator(UNIFIED_JOB_ID):
@@ -844,7 +869,7 @@ def local_simulator(UNIFIED_JOB_ID):
     print('->', 'Data Generated')
     print('#' * 80)
     client_data_name = [
-        os.path.join(config_manager.dir_name, e) for e in os.listdir(config_manager.dir_name) if e.startswith('client')
+        os.path.join(config_manager.data_dir_name, e) for e in os.listdir(config_manager.data_dir_name) if e.startswith('client')
     ]
     client_data_name = sorted(client_data_name, key=lambda x: int(x.split('_')[-1].strip('.pkl')))
     client_data = []
@@ -856,9 +881,8 @@ def local_simulator(UNIFIED_JOB_ID):
     ml_model = parameter_parser.parse_model()
 
     initial_weights = ml_model.get_weights()
-    output_dir = os.path.join(runtime_config.log_dir_path, 'local_simulator')
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
+    output_dir = config_manager.log_dir_path
+    os.makedirs(output_dir, exist_ok=True)
     log_file_name = os.path.join(
         output_dir, f'{UNIFIED_JOB_ID}_{data_config.dataset_name}_{runtime_config.client_num}_local_simulator.csv'
     )
@@ -886,9 +910,10 @@ def local_simulator(UNIFIED_JOB_ID):
         average_test_acc.append(test_acc)
     with open(log_file_name, 'a+') as f:
         f.write(', '.join(
-                [str(e) for e in [data_config.dataset_name, runtime_config.client_num, model_config.learning_rate]]
-            ) + '\n')
+            [str(e) for e in [data_config.dataset_name, runtime_config.client_num, model_config.learning_rate]]
+        ) + '\n')
         f.write(f'Average Best Test Metric, {np.mean(average_test_acc)}')
+    _write_history()
 
 
 if __name__ == '__main__':
@@ -910,4 +935,4 @@ if __name__ == '__main__':
             raise ValueError('Please provide log_dir')
         LogAnalysis(args.path).to_csv('_'.join(args.path.split('/')) + '.csv')
     else:
-        run(execution=args.execute, mode=args.mode, config=args.config, overwrite_config=False)
+        run(execution=args.execute, mode=args.mode, config=args.config, overwrite_config=False, skip_if_exit=True)

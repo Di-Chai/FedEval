@@ -51,7 +51,7 @@ class FedData(metaclass=ABCMeta):
     def __init__(self):
         cfg_mgr = ConfigurationManager()
         d_cfg, mdl_cfg, rt_cfg = cfg_mgr.data_config, cfg_mgr.model_config, cfg_mgr.runtime_config
-        self.output_dir = cfg_mgr.dir_name
+        self.output_dir = cfg_mgr.data_dir_name
         self.num_clients = rt_cfg.client_num
         self.train_val_test = d_cfg.data_partition
 

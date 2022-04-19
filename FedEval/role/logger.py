@@ -26,10 +26,7 @@ class HyperLogger:
         lvl = eval(HyperLogger._LOG_LEVEL_EVAL_PATTERN.format(rt_cfg.base_log_level))
         logger.setLevel(lvl)
 
-        _log_dir_path = os.path.join(
-            rt_cfg.log_dir_path, log_dir_name,
-            config_manager.job_id + '_' + config_manager.config_unique_id[:6]
-        )
+        _log_dir_path = os.path.join(config_manager.log_dir_path, log_dir_name)
         self._log_dir_path = os.path.abspath(_log_dir_path)
         os.makedirs(self._log_dir_path, exist_ok=True)
         log_file_path = os.path.join(self._log_dir_path, 'train.log')
