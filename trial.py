@@ -210,7 +210,7 @@ if args.tune == 'lr':
         if args.dataset == 'mnist':
             model_config['FedModel']['B'] = 8192 * 4
         elif args.dataset == 'femnist':
-            model_config['FedModel']['B'] = 8192 * 2
+            model_config['FedModel']['B'] = 8192 * 4
         elif args.dataset == 'celeba':
             model_config['FedModel']['B'] = 8192
         elif args.dataset == 'semantic140':
