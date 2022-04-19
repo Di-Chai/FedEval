@@ -517,14 +517,6 @@ def run(execution, mode, config, overwrite_config=False, skip_if_exit=True, **kw
 
     config_unique_id = cfg_mgr.config_unique_id
 
-    if os.path.isfile(os.path.join(cfg_mgr.log_dir_path, 'history.json')):
-        with open(os.path.join(cfg_mgr.log_dir_path, 'history.json'), 'r') as f:
-            history = json.load(f)
-        if config_unique_id in history and history[config_unique_id].get('finished', False) is True:
-            print(f"Found existing log in {history[config_unique_id].get('log_path')}")
-            print('Skipping this run...')
-            return
-
     if execution == 'upload':
         print('Uploading to the server')
         if rt_cfg.machines is None:
@@ -532,160 +524,173 @@ def run(execution, mode, config, overwrite_config=False, skip_if_exit=True, **kw
                              os.path.join(config, '3_runtime_config.yml'))
         upload_to_server(local_dirs=['FedEval', 'configs'], file_type=(
             '.py', '.yml', '.css', '.html', 'eot', 'svg', 'ttf', 'woff'))
-        exit(0)
 
     if execution == 'stop':
         if mode == 'local':
             local_stop()
         if mode == 'remote':
             server_stop()
-        exit(0)
+
+    if os.path.isfile(os.path.join(cfg_mgr.history_record_path, 'history.json')):
+        with open(os.path.join(cfg_mgr.history_record_path, 'history.json'), 'r') as f:
+            history = json.load(f)
+        if config_unique_id in history and history[config_unique_id].get('finished', False) is True:
+            print('#' * 40)
+            print(f"Found existing log in {history[config_unique_id].get('log_path')}")
+            print('Skipping this run...')
+            print('#' * 40)
+            execution = None
 
     if execution == 'simulate_fedsgd':
         fed_sgd_simulator(UNIFIED_JOB_ID)
-        exit(0)
+        _write_history()
 
     if execution == 'simulate_central':
         central_simulator(UNIFIED_JOB_ID)
-        exit(0)
+        _write_history()
 
     if execution == 'simulate_local':
         local_simulator(UNIFIED_JOB_ID)
-        exit(0)
+        _write_history()
 
-    if mode == 'local':
-        current_path = os.path.abspath('./')
-        os.system(
-            sudo + f'docker run -it --rm '
-                   f'-e UNIFIED_JOB_ID={UNIFIED_JOB_ID} '
-                   f'-v {current_path}:{current_path} '
-                   f'-w {current_path} {rt_cfg.image_label} '
-                   f'python3 -W ignore -m FedEval.run -f data -c {new_config_dir_path}'
-        )
-        os.system(
-            sudo + f'docker run -it --rm '
-                   f'-e UNIFIED_JOB_ID={UNIFIED_JOB_ID} '
-                   f'-v {current_path}:{current_path} '
-                   f'-w {current_path} {rt_cfg.image_label} '
-                   f'python3 -W ignore -m FedEval.run -f compose-local -c {new_config_dir_path}'
-        )
-        os.system(sudo + 'docker-compose --compatibility up -d')
+    if execution == 'run':
 
-    if mode == 'remote':
-
-        import paramiko
-
-        upload_to_server(local_dirs=('FedEval', 'configs'))
-
-        for m_name, machine in rt_cfg.machines.items():
-
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            host = machine.addr
-            port = machine.port
-            user_name = machine.username
-            remote_path = machine.work_dir_path
-
-            key_file = machine.key_filename
-            ssh.connect(hostname=host, port=port, username=user_name, key_filename=key_file)
-
-            _, stdout, stderr = ssh.exec_command(
+        if mode == 'local':
+            current_path = os.path.abspath('./')
+            os.system(
                 sudo + f'docker run -it --rm '
                        f'-e UNIFIED_JOB_ID={UNIFIED_JOB_ID} '
-                       f'-v {remote_path}:{remote_path} '
-                       f'-w {remote_path} {rt_cfg.image_label} '
+                       f'-v {current_path}:{current_path} '
+                       f'-w {current_path} {rt_cfg.image_label} '
                        f'python3 -W ignore -m FedEval.run -f data -c {new_config_dir_path}'
             )
-            print(''.join(stdout.readlines()))
-            print(''.join(stderr.readlines()))
-
-            _, stdout, stderr = ssh.exec_command(
+            os.system(
                 sudo + f'docker run -it --rm '
                        f'-e UNIFIED_JOB_ID={UNIFIED_JOB_ID} '
-                       f'-v {remote_path}:{remote_path} '
-                       f'-w {remote_path} {rt_cfg.image_label} '
-                       f'python3 -W ignore -m FedEval.run -f compose-server -c {new_config_dir_path}'
+                       f'-v {current_path}:{current_path} '
+                       f'-w {current_path} {rt_cfg.image_label} '
+                       f'python3 -W ignore -m FedEval.run -f compose-local -c {new_config_dir_path}'
             )
-            print(''.join(stdout.readlines()))
-            print(''.join(stderr.readlines()))
-
-            if machine.is_server:
-                print('Start Server')
-                _, stdout, stderr = ssh.exec_command(
-                    f'cd {remote_path};' +
-                    sudo + 'docker-compose --compatibility -f docker-compose-server.yml up -d')
-            else:
-                print('Start Clients', m_name)
-                _, stdout, stderr = ssh.exec_command(
-                    f'cd {remote_path};' +
-                    sudo + f'docker-compose --compatibility -f docker-compose-{m_name}.yml up -d')
-
-            print(''.join(stdout.readlines()))
-            print(''.join(stderr.readlines()))
-
-    print('Start succeed!')
-
-    time.sleep(20)
-
-    host = '127.0.0.1' if mode == 'local' else rt_cfg.central_server_addr
-    port = rt_cfg.central_server_port
-
-    status_url = f'http://{host}:{port}/status'
-    print(f'Starting to monitor at {status_url}, check every 10 seconds')
-    dashboard_url = f'http://{host}:{port}/dashboard'
-    print(f'Check the dashboard at {dashboard_url}')
-
-    check_status_result = check_status(host + ':' + str(port))
-    current_round = None
-
-    while True:
-        if check_status_result['success']:
-            if not check_status_result['data'].get('finished', False):
-                received_round = check_status_result['data'].get('rounds')
-                if received_round is not None and (current_round is None or current_round < received_round):
-                    print('Running at Round %s' % received_round, 'Results', check_status_result['data'].get('results', 'unknown'))
-                    current_round = received_round
-                time.sleep(10)
-            else:
-                break
-        else:
-            print('Check failed, try later')
-            time.sleep(10)
-        check_status_result = check_status(host + ':' + str(port))
-
-    status_data = check_status_result['data']
-    if status_data is not None:
-
-        log_dir = status_data['log_dir']
-        log_file = log_dir + '/train.log'
-        result_file = log_dir + '/results.json'
+            os.system(sudo + 'docker-compose --compatibility up -d')
 
         if mode == 'remote':
-            if log_dir.startswith('/FML/'):
-                log_dir = log_dir[5:]
-            os.makedirs(log_dir, exist_ok=True)
-            download_from_server(remote_dirs=[log_dir], file_type=[
-                                 '.yml', '.json', '.log'])
 
-    if mode == 'local':
-        local_stop()
+            import paramiko
 
-    if mode == 'remote':
-        server_stop()
+            upload_to_server(local_dirs=('FedEval', 'configs'))
 
-    _write_history()
+            for m_name, machine in rt_cfg.machines.items():
+
+                ssh = paramiko.SSHClient()
+                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+                host = machine.addr
+                port = machine.port
+                user_name = machine.username
+                remote_path = machine.work_dir_path
+
+                key_file = machine.key_filename
+                ssh.connect(hostname=host, port=port, username=user_name, key_filename=key_file)
+
+                _, stdout, stderr = ssh.exec_command(
+                    sudo + f'docker run -it --rm '
+                           f'-e UNIFIED_JOB_ID={UNIFIED_JOB_ID} '
+                           f'-v {remote_path}:{remote_path} '
+                           f'-w {remote_path} {rt_cfg.image_label} '
+                           f'python3 -W ignore -m FedEval.run -f data -c {new_config_dir_path}'
+                )
+                print(''.join(stdout.readlines()))
+                print(''.join(stderr.readlines()))
+
+                _, stdout, stderr = ssh.exec_command(
+                    sudo + f'docker run -it --rm '
+                           f'-e UNIFIED_JOB_ID={UNIFIED_JOB_ID} '
+                           f'-v {remote_path}:{remote_path} '
+                           f'-w {remote_path} {rt_cfg.image_label} '
+                           f'python3 -W ignore -m FedEval.run -f compose-server -c {new_config_dir_path}'
+                )
+                print(''.join(stdout.readlines()))
+                print(''.join(stderr.readlines()))
+
+                if machine.is_server:
+                    print('Start Server')
+                    _, stdout, stderr = ssh.exec_command(
+                        f'cd {remote_path};' +
+                        sudo + 'docker-compose --compatibility -f docker-compose-server.yml up -d')
+                else:
+                    print('Start Clients', m_name)
+                    _, stdout, stderr = ssh.exec_command(
+                        f'cd {remote_path};' +
+                        sudo + f'docker-compose --compatibility -f docker-compose-{m_name}.yml up -d')
+
+                print(''.join(stdout.readlines()))
+                print(''.join(stderr.readlines()))
+
+        print('Start succeed!')
+
+        time.sleep(20)
+
+        host = '127.0.0.1' if mode == 'local' else rt_cfg.central_server_addr
+        port = rt_cfg.central_server_port
+
+        status_url = f'http://{host}:{port}/status'
+        print(f'Starting to monitor at {status_url}, check every 10 seconds')
+        dashboard_url = f'http://{host}:{port}/dashboard'
+        print(f'Check the dashboard at {dashboard_url}')
+
+        check_status_result = check_status(host + ':' + str(port))
+        current_round = None
+
+        while True:
+            if check_status_result['success']:
+                if not check_status_result['data'].get('finished', False):
+                    received_round = check_status_result['data'].get('rounds')
+                    if received_round is not None and (current_round is None or current_round < received_round):
+                        print('Running at Round %s' % received_round, 'Results', check_status_result['data'].get('results', 'unknown'))
+                        current_round = received_round
+                    time.sleep(10)
+                else:
+                    break
+            else:
+                print('Check failed, try later')
+                time.sleep(10)
+            check_status_result = check_status(host + ':' + str(port))
+
+        status_data = check_status_result['data']
+        if status_data is not None:
+
+            log_dir = status_data['log_dir']
+            log_file = log_dir + '/train.log'
+            result_file = log_dir + '/results.json'
+
+            if mode == 'remote':
+                if log_dir.startswith('/FML/'):
+                    log_dir = log_dir[5:]
+                os.makedirs(log_dir, exist_ok=True)
+                download_from_server(remote_dirs=[log_dir], file_type=[
+                                     '.yml', '.json', '.log'])
+
+        if mode == 'local':
+            local_stop()
+
+        if mode == 'remote':
+            server_stop()
+
+        _write_history()
+
+    if not overwrite_config:
+        shutil.rmtree(new_config_dir_path)
 
 
 def _write_history():
     cfg_mgr = ConfigurationManager()
-    if os.path.isfile(os.path.join(cfg_mgr.log_dir_path, 'history.json')):
-        with open(os.path.join(cfg_mgr.log_dir_path, 'history.json'), 'r') as f:
+    if os.path.isfile(os.path.join(cfg_mgr.history_record_path, 'history.json')):
+        with open(os.path.join(cfg_mgr.history_record_path, 'history.json'), 'r') as f:
             history = json.load(f)
     else:
         history = {}
     history[cfg_mgr.config_unique_id] = {'finished': True, 'log_path': cfg_mgr.log_dir_path}
-    with open(os.path.join(cfg_mgr.log_dir_path, 'history.json'), 'w') as f:
+    with open(os.path.join(cfg_mgr.history_record_path, 'history.json'), 'w') as f:
         json.dump(history, f)
 
 

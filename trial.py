@@ -280,8 +280,8 @@ params = {
 
 if __name__ == '__main__':
 
-    for r in range(repeat):
-        params['data_config']['random_seed'] = r
+    for seed in range(repeat):
+        params['data_config']['random_seed'] = seed
         if args.tune is None:
             p = Process(target=run, args=(execution, mode, config), kwargs=params)
             p.start()

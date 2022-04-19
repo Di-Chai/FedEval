@@ -1293,6 +1293,11 @@ class ConfigurationManager(Singleton,
         )
 
     @property
+    def history_record_path(self) -> str:
+        """the path of the history record."""
+        return self._rt_cfg.inner[_RT_LOG_KEY][_RT_L_DIR_PATH_KEY]
+
+    @property
     @Singleton.thread_safe_ensurance
     def job_id(self) -> str:
         return str(self._job_id)
