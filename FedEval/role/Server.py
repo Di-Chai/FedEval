@@ -88,7 +88,7 @@ class Server(Node):
         self._time_agg_eval_start: Optional[float] = None
         self._time_agg_eval_end: Optional[float] = None
         self._time_record_real_world: List[Dict[str, Any]] = []
-        self._time_record_federated: List[List[float]] = []
+        self._time_record_federated: List[Dict[str, Any]] = []
         self._training_start_time: float = time.time()   # seconds
         self._training_stop_time: float = None       # seconds
 
@@ -243,23 +243,36 @@ class Server(Node):
         return return_value
 
     def snapshot_result(self, cur_time: float) -> Mapping[str, Any]:
+
+        def seconds_to_hms(time_in_seconds):
+            m, s = divmod(time_in_seconds, 60)
+            h, m = divmod(m, 60)
+            return h, m, s
+
         cur_time = self._training_stop_time or cur_time
-        m, s = divmod(int(round(cur_time) - int(round(self._training_start_time))), 60)
-        h, m = divmod(m, 60)
+        h_real, m_real, s_real = seconds_to_hms(int(round(cur_time) - int(round(self._training_start_time))))
+        total_time_in_seconds_federated = sum([
+            sum([e.get('max_train', 0), e.get('train_agg', 0), e.get('max_eval', 0), e.get('eval_agg', 0)]
+                ) for e in self._time_record_federated
+        ])
+        h_fed, m_fed, s_fed = seconds_to_hms(total_time_in_seconds_federated)
         keys = ['update_send', 'update_run', 'update_receive', 'agg_server',
                 'eval_send', 'eval_run', 'eval_receive', 'server_eval']
-        avg_time_records = [np.mean([e.get(key, 0)
-                                     for e in self._time_record_real_world]) for key in keys]
+        avg_time_records = [np.mean([e.get(key, 0) for e in self._time_record_real_world]) for key in keys]
+
         return {
             'best_metric': self._best_test_metric,
             'best_metric_full': self._best_test_metric_full,
-            'total_time': f'{h}:{m}:{s}',
+            'total_time': f'{h_real}:{m_real}:{s_real}',
             'total_time_in_seconds': cur_time - self._training_start_time,
+            'total_time_federated': f'{h_fed}:{m_fed}:{s_fed}',
+            'total_time_in_seconds_federated': total_time_in_seconds_federated,
             'time_detail': str(avg_time_records),
             'total_rounds': self._current_round,
             'server_send': self._server_send_bytes / (1 << 30),
             'server_receive': self._server_receive_bytes / (1 << 30),
-            'info_each_round': self._info_each_round
+            'info_each_round': self._info_each_round,
+            'federated_time_each_round': self._time_record_federated
         }
 
     @property
