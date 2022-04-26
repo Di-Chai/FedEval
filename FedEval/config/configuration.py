@@ -17,9 +17,13 @@ from .singleton import Singleton
 
 RawConfigurationDict = Mapping[str, Any]
 
-DEFAULT_D_CFG_FILENAME = '1_data_config.yml'
-DEFAULT_MDL_CFG_FILENAME = '2_model_config.yml'
-DEFAULT_RT_CFG_FILENAME = '3_runtime_config.yml'
+DEFAULT_D_CFG_FILENAME_YAML = '1_data_config.yml'
+DEFAULT_MDL_CFG_FILENAME_YAML = '2_model_config.yml'
+DEFAULT_RT_CFG_FILENAME_YAML = '3_runtime_config.yml'
+
+DEFAULT_D_CFG_FILENAME_JSON = '1_data_config.yml'
+DEFAULT_MDL_CFG_FILENAME_JSON = '2_model_config.yml'
+DEFAULT_RT_CFG_FILENAME_JSON = '3_runtime_config.yml'
 
 # default data configurations
 _D_DIR_KEY = 'data_dir'
@@ -226,6 +230,7 @@ _DEFAULT_RT_CFG: RawConfigurationDict = {
     },
 }
 
+
 # --- Configuration Entities ---
 class _Configuraiton(object):
     def __init__(self, config: RawConfigurationDict) -> None:
@@ -398,7 +403,7 @@ class _ModelConfig(_Configuraiton):
         super().__init__(model_config)
         self._strategy_cfg = model_config[_STRATEGY_KEY]
         self._ml_cfg = model_config[_ML_KEY]
-    
+
     @staticmethod
     def _config_filter(config: RawConfigurationDict) -> RawConfigurationDict:
         # Fed Model filters
@@ -412,10 +417,10 @@ class _ModelConfig(_Configuraiton):
             config[_STRATEGY_KEY][_STRATEGY_FEDOPT_BETA1_KEY] = None
             config[_STRATEGY_KEY][_STRATEGY_FEDOPT_BETA2_KEY] = None
         if config[_STRATEGY_KEY][_STRATEGY_NAME_KEY] != 'FedOpt' and \
-            config[_STRATEGY_KEY][_STRATEGY_NAME_KEY] != 'FedSCA':
+                config[_STRATEGY_KEY][_STRATEGY_NAME_KEY] != 'FedSCA':
             config[_STRATEGY_KEY][_STRATEGY_ETA_KEY] = None
         return config
-    
+
     @staticmethod
     def __check_raw_config(config: RawConfigurationDict) -> None:
         _ModelConfig.__check_runtime_config_shallow_structure(config)
@@ -504,7 +509,7 @@ class _ModelConfig(_Configuraiton):
         Examples:
             if there are 100 available clients in a test network with a C of 0.2,
             then there should be (100*0.2=)20 clients in each round of iterations.
-        """ 
+        """
         return float(self._strategy_cfg[_STRATEGY_C_KEY])
 
     @property
@@ -669,7 +674,7 @@ class _ModelConfig(_Configuraiton):
         """
         if self.strategy_name != 'FedSVD':
             raise AttributeError
-        assert self._strategy_cfg[_STRATEGY_FEDSVD_MODE] in ['svd', 'pca', 'lr'],\
+        assert self._strategy_cfg[_STRATEGY_FEDSVD_MODE] in ['svd', 'pca', 'lr'], \
             f'Unknown FedSVD Mode: {self._strategy_cfg[_STRATEGY_FEDSVD_MODE]}, ' \
             f'should be either svd or pca'
         return str(self._strategy_cfg[_STRATEGY_FEDSVD_MODE])
@@ -1018,6 +1023,7 @@ class ClientConfigurationManagerInterface(ABC):
     """
     pass
 
+
 class ServerConfigurationManagerInterface(ABC):
     """an interface of ConfigurationManager from the central server side,
     regulating the essential functions as clients.
@@ -1025,6 +1031,7 @@ class ServerConfigurationManagerInterface(ABC):
     Raises:
         NotImplementedError: called without implementation.
     """
+
     @abstractproperty
     def num_of_train_clients_contacted_per_round(self) -> int:
         raise NotImplementedError
@@ -1034,64 +1041,44 @@ class ServerConfigurationManagerInterface(ABC):
 _DEFAULT_ENCODING = 'utf-8'
 _Stream = Union[str, bytes, TextIO]
 
+
 class _CfgYamlInterface(ABC):
     """an interface that regulates the methods used to serialize
     and deserialize configuraitons in YAML.
     """
-    @staticmethod
-    @abstractmethod
-    def from_yamls(data_cfg_stream: _Stream,
-                   model_cfg_stream: _Stream,
-                   runtime_cfg_stream: _Stream) -> ConfigurationManagerInterface:
-        raise NotImplementedError
-
-    @abstractmethod
-    def to_yamls(self) -> Tuple[str, str, str]:
-        """convert self into YAML strings.
-
-        Returns:
-            Tuple[str, str, str]: [data_config_string,
-                                   model_config_string,
-                                   runtime_config_string]
-        """
-        raise NotImplementedError
 
     @staticmethod
-    def load_yaml_configs(src_path,
-                           data_cofig_filename: str = DEFAULT_D_CFG_FILENAME,
-                           model_config_filename: str = DEFAULT_MDL_CFG_FILENAME,
-                           runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME,
-                           encoding=_DEFAULT_ENCODING) -> Tuple[RawConfigurationDict, RawConfigurationDict, RawConfigurationDict]:
-        _d_cfg_path = os.path.join(src_path, data_cofig_filename)
+    def load_configs(
+            src_path,
+            data_config_filename: str = DEFAULT_D_CFG_FILENAME_YAML,
+            model_config_filename: str = DEFAULT_MDL_CFG_FILENAME_YAML,
+            runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME_YAML,
+            encoding=_DEFAULT_ENCODING
+    ) -> Tuple[RawConfigurationDict, RawConfigurationDict, RawConfigurationDict]:
+        _d_cfg_path = os.path.join(src_path, data_config_filename)
         _mdl_cfg_path = os.path.join(src_path, model_config_filename)
         _rt_cfg_path = os.path.join(src_path, runtime_config_filename)
-        return _CfgYamlInterface.load_yaml_configs_from_files(
-            _d_cfg_path, _mdl_cfg_path, _rt_cfg_path, encoding=encoding)
-
-    @staticmethod
-    def load_yaml_configs_from_files(data_cfg_path: str,
-                                      model_cfg_path: str,
-                                      runtime_cfg_path: str,
-                                      encoding=_DEFAULT_ENCODING) -> Tuple[RawConfigurationDict, RawConfigurationDict, RawConfigurationDict]:
-        with open(data_cfg_path, 'r', encoding=encoding) as f:
-            d_cfg = yaml.load(f)
-        with open(model_cfg_path, 'r', encoding=encoding) as f:
-            mdl_cfg = yaml.load(f)
-        with open(runtime_cfg_path, 'r', encoding=encoding) as f:
-            rt_cfg = yaml.load(f)
+        with open(_d_cfg_path, 'r', encoding=encoding) as f:
+            d_cfg = yaml.safe_load(f)
+        with open(_mdl_cfg_path, 'r', encoding=encoding) as f:
+            mdl_cfg = yaml.safe_load(f)
+        with open(_rt_cfg_path, 'r', encoding=encoding) as f:
+            rt_cfg = yaml.safe_load(f)
         return d_cfg, mdl_cfg, rt_cfg
 
     @staticmethod
-    def save_yaml_configs_to_files(data_cfg: RawConfigurationDict,
-                           model_cfg: RawConfigurationDict,
-                           runtime_cfg: RawConfigurationDict,
-                           dst_path,
-                           data_cofig_filename: str = DEFAULT_D_CFG_FILENAME,
-                           model_config_filename: str = DEFAULT_MDL_CFG_FILENAME,
-                           runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME,
-                           encoding=_DEFAULT_ENCODING) -> None:
+    def save_configs(
+            data_cfg: RawConfigurationDict,
+            model_cfg: RawConfigurationDict,
+            runtime_cfg: RawConfigurationDict,
+            dst_path,
+            data_config_filename: str = DEFAULT_D_CFG_FILENAME_YAML,
+            model_config_filename: str = DEFAULT_MDL_CFG_FILENAME_YAML,
+            runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME_YAML,
+            encoding=_DEFAULT_ENCODING
+    ) -> None:
         os.makedirs(dst_path, exist_ok=True)
-        _d_cfg_path = os.path.join(dst_path, data_cofig_filename)
+        _d_cfg_path = os.path.join(dst_path, data_config_filename)
         _mdl_cfg_path = os.path.join(dst_path, model_config_filename)
         _rt_cfg_path = os.path.join(dst_path, runtime_config_filename)
         with open(_d_cfg_path, 'w', encoding=encoding) as f:
@@ -1106,48 +1093,39 @@ class _CfgJsonInterface(ABC):
     """an interface that regulates the methods used to serialize
     and deserialize configuraitons in JSON.
     """
-    @staticmethod
-    @abstractmethod
-    def from_jsons(data_cfg_stream: _Stream,
-                   model_cfg_stream: _Stream,
-                   runtime_cfg_stream: _Stream) -> ConfigurationManagerInterface:
-        raise NotImplementedError
-
-    @abstractmethod
-    def to_jsons(self) -> Tuple[str, str, str]:
-        """convert self into JSON strings.
-
-        Returns:
-            Tuple[str, str, str]: [data_config_string,
-                                   model_config_string,
-                                   runtime_config_string]
-        """
-        raise NotImplementedError
 
     @staticmethod
-    def load_json_configs_from_files(data_cfg_path: str,
-                                      model_cfg_path: str,
-                                      runtime_cfg_path: str,
-                                      encoding=_DEFAULT_ENCODING) -> Tuple[RawConfigurationDict, RawConfigurationDict, RawConfigurationDict]:
-        with open(data_cfg_path, 'r', encoding=encoding) as f:
+    def load_configs(
+            src_path,
+            data_config_filename: str = DEFAULT_D_CFG_FILENAME_JSON,
+            model_config_filename: str = DEFAULT_MDL_CFG_FILENAME_JSON,
+            runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME_JSON,
+            encoding=_DEFAULT_ENCODING
+    ) -> Tuple[RawConfigurationDict, RawConfigurationDict, RawConfigurationDict]:
+        _d_cfg_path = os.path.join(src_path, data_config_filename)
+        _mdl_cfg_path = os.path.join(src_path, model_config_filename)
+        _rt_cfg_path = os.path.join(src_path, runtime_config_filename)
+        with open(_d_cfg_path, 'r', encoding=encoding) as f:
             d_cfg = json.load(f)
-        with open(model_cfg_path, 'r', encoding=encoding) as f:
+        with open(_mdl_cfg_path, 'r', encoding=encoding) as f:
             mdl_cfg = json.load(f)
-        with open(runtime_cfg_path, 'r', encoding=encoding) as f:
+        with open(_rt_cfg_path, 'r', encoding=encoding) as f:
             rt_cfg = json.load(f)
         return d_cfg, mdl_cfg, rt_cfg
 
     @staticmethod
-    def save_json_configs_to_files(data_cfg: RawConfigurationDict,
-                                    model_cfg: RawConfigurationDict,
-                                    runtime_cfg: RawConfigurationDict,
-                                    dst_path,
-                                    data_cofig_filename: str = DEFAULT_D_CFG_FILENAME,
-                                    model_config_filename: str = DEFAULT_MDL_CFG_FILENAME,
-                                    runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME,
-                                    encoding=_DEFAULT_ENCODING) -> None:
+    def save_configs(
+            data_cfg: RawConfigurationDict,
+            model_cfg: RawConfigurationDict,
+            runtime_cfg: RawConfigurationDict,
+            dst_path,
+            data_config_filename: str = DEFAULT_D_CFG_FILENAME_YAML,
+            model_config_filename: str = DEFAULT_MDL_CFG_FILENAME_YAML,
+            runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME_YAML,
+            encoding=_DEFAULT_ENCODING
+    ) -> None:
         os.makedirs(dst_path, exist_ok=True)
-        _d_cfg_path = os.path.join(dst_path, data_cofig_filename)
+        _d_cfg_path = os.path.join(dst_path, data_config_filename)
         _mdl_cfg_path = os.path.join(dst_path, model_config_filename)
         _rt_cfg_path = os.path.join(dst_path, runtime_config_filename)
         with open(_d_cfg_path, 'w', encoding=encoding) as f:
@@ -1168,11 +1146,10 @@ class _CfgFileInterface(ABC):
     """an interface that regulates the methods used to serialize
     and deserialize configuraitons from the file system.
     """
+
     @staticmethod
     @abstractmethod
-    def from_files(data_cfg_path: str,
-                   model_cfg_path: str,
-                   runtime_cfg_path: str,
+    def from_files(from_config_path: str,
                    serializer: Union[str, _CfgSerializer] = _CfgSerializer.YAML,
                    encoding=_DEFAULT_ENCODING) -> ConfigurationManagerInterface:
         raise NotImplementedError
@@ -1184,22 +1161,25 @@ class _CfgFileInterface(ABC):
                  encoding: Optional[str] = None) -> None:
         raise NotImplementedError
 
+    @staticmethod
     def serializer2enum(serializer: Union[str, _CfgSerializer]) -> _CfgSerializer:
         """convert serializer name(string) into enum type"""
         if isinstance(serializer, str):
             try:
                 serializer = _CfgSerializer(serializer)
-            except:
+            except ValueError:
                 raise ValueError(f'{serializer} is not supported currently.')
         if not isinstance(serializer, _CfgSerializer):
             raise ValueError(f'invalid serializer type: {serializer.__class__.__name__}.')
         return serializer
 
-# --- Role-related Configuration Interface --- 
+
+# --- Role-related Configuration Interface ---
 class _RoledConfigurationInterface(ABC):
     @abstractproperty
     def role(self) -> Role:
         raise NotImplementedError
+
 
 # --- Configuration Manager ---
 class ConfigurationManager(Singleton,
@@ -1210,8 +1190,8 @@ class ConfigurationManager(Singleton,
                            _CfgJsonInterface,
                            _CfgFileInterface,
                            _RoledConfigurationInterface):
-    __init_once_lock = RLock()   # thread lock for __initiated
-    __initiated = False # whether this class has been initiated
+    __init_once_lock = RLock()  # thread lock for __initiated
+    __initiated = False  # whether this class has been initiated
 
     def __init__(self,
                  data_config: RawConfigurationDict = _DEFAULT_D_CFG,
@@ -1225,7 +1205,7 @@ class ConfigurationManager(Singleton,
                 self._mdl_cfg: _ModelConfig = _ModelConfig(model_config)
                 self._rt_cfg: _RuntimeConfig = _RuntimeConfig(runtime_config)
 
-                self._job_id = os.environ.get('UNIFIED_JOB_ID', datetime.datetime.now().strftime('%Y_%m%d_%H%M%S'))
+                self._job_time = os.environ.get('UNIFIED_JOB_TIME', datetime.datetime.now().strftime('%Y_%m%d_%H%M%S'))
 
                 self._init_file_names()
                 self._encoding = _DEFAULT_ENCODING
@@ -1236,12 +1216,11 @@ class ConfigurationManager(Singleton,
                 tf.random.set_seed(self._d_cfg.random_seed)
                 np.random.seed(self._d_cfg.random_seed)
                 ConfigurationManager.__initiated = True
-                
 
     def _init_file_names(self,
-                         data_config_filename: str = DEFAULT_D_CFG_FILENAME,
-                         model_config_filename: str = DEFAULT_MDL_CFG_FILENAME,
-                         runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME) -> None:
+                         data_config_filename: str = DEFAULT_D_CFG_FILENAME_YAML,
+                         model_config_filename: str = DEFAULT_MDL_CFG_FILENAME_YAML,
+                         runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME_YAML) -> None:
         self._d_cfg_filename = data_config_filename
         self._mdl_cfg_filename = model_config_filename
         self._rt_cfg_filename = runtime_config_filename
@@ -1289,7 +1268,7 @@ class ConfigurationManager(Singleton,
         """the path of the base of log directory."""
         return os.path.join(
             self._rt_cfg.inner[_RT_LOG_KEY][_RT_L_DIR_PATH_KEY],
-            self._job_id + '_' + self.config_unique_id[:8]
+            self._job_time + '_' + self.config_unique_id[:8]
         )
 
     @property
@@ -1300,7 +1279,7 @@ class ConfigurationManager(Singleton,
     @property
     @Singleton.thread_safe_ensurance
     def job_id(self) -> str:
-        return str(self._job_id)
+        return str(self._job_time)
 
     @property
     @Singleton.thread_safe_ensurance
@@ -1373,55 +1352,87 @@ class ConfigurationManager(Singleton,
         return max(1, int(self._rt_cfg.client_num * self._mdl_cfg.evaluate_ratio))
 
     @staticmethod
-    def from_yamls(data_cfg_stream: _Stream,
-                   model_cfg_stream: _Stream,
-                   runtime_cfg_stream: _Stream) -> ConfigurationManagerInterface:
-        d_cfg = yaml.load(data_cfg_stream)
-        mdl_cfg = yaml.load(model_cfg_stream)
-        rt_cfg = yaml.load(runtime_cfg_stream)
-        return ConfigurationManager(d_cfg, mdl_cfg, rt_cfg)
-
-    def to_yamls(self) -> Tuple[str, str, str]:
-        d_cfg = self.data_config.inner
-        mdl_cfg = self.model_config.inner
-        rt_cfg = self.runtime_config.inner
-        return yaml.dump(d_cfg), yaml.dump(mdl_cfg), yaml.dump(rt_cfg)
-
-    @staticmethod
-    def from_jsons(data_cfg_stream: _Stream,
-                   model_cfg_stream: _Stream,
-                   runtime_cfg_stream: _Stream) -> ConfigurationManagerInterface:
-        d_cfg = json.loads(data_cfg_stream)
-        mdl_cfg = json.loads(model_cfg_stream)
-        rt_cfg = json.loads(runtime_cfg_stream)
-        return ConfigurationManager(d_cfg, mdl_cfg, rt_cfg)
-
-    def to_jsons(self) -> Tuple[str, str, str]:
-        d_cfg = self.data_config.inner
-        mdl_cfg = self.model_config.inner
-        rt_cfg = self.runtime_config.inner
-        return json.dumps(d_cfg), json.dumps(mdl_cfg), json.dumps(rt_cfg)
-
-    @staticmethod
-    def from_files(data_cfg_path: str,
-                   model_cfg_path: str,
-                   runtime_cfg_path: str,
-                   serializer: Union[str, _CfgSerializer] = _CfgSerializer.YAML,
-                   encoding=_DEFAULT_ENCODING) -> ConfigurationManagerInterface:
+    def load_configs(
+        src_path,
+        serializer: Union[str, _CfgSerializer] = _CfgSerializer.YAML,
+        data_config_filename: str = DEFAULT_D_CFG_FILENAME_YAML,
+        model_config_filename: str = DEFAULT_MDL_CFG_FILENAME_YAML,
+        runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME_YAML,
+        encoding=_DEFAULT_ENCODING
+    ) -> Tuple[RawConfigurationDict, RawConfigurationDict, RawConfigurationDict]:
         serializer = _CfgFileInterface.serializer2enum(serializer)
         if serializer == _CfgSerializer.YAML:
-            return _CfgYamlInterface.load_yaml_configs_from_files(
-                data_cfg_path, model_cfg_path, runtime_cfg_path, encoding=encoding)
+            return _CfgYamlInterface.load_configs(
+                src_path, encoding=encoding,
+                data_config_filename=data_config_filename,
+                model_config_filename=model_config_filename,
+                runtime_config_filename=runtime_config_filename
+            )
         elif serializer == _CfgSerializer.JSON:
-            return _CfgJsonInterface.load_json_configs_from_files(
-                data_cfg_path, model_cfg_path, runtime_cfg_path, encoding=encoding)
+            return _CfgYamlInterface.load_configs(
+                src_path, encoding=encoding,
+                data_config_filename=data_config_filename,
+                model_config_filename=model_config_filename,
+                runtime_config_filename=runtime_config_filename
+            )
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f'Invalid serializer {serializer}')
 
-    def to_files(self,
-                 dst_dir_path: str,
-                 serializer: Union[str, _CfgSerializer] = _CfgSerializer.YAML,
-                 encoding: Optional[str] = None) -> None:
+    @staticmethod
+    def save_configs(
+        data_cfg: RawConfigurationDict,
+        model_cfg: RawConfigurationDict,
+        runtime_cfg: RawConfigurationDict,
+        dst_path,
+        data_config_filename: str = DEFAULT_D_CFG_FILENAME_YAML,
+        model_config_filename: str = DEFAULT_MDL_CFG_FILENAME_YAML,
+        runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME_YAML,
+        encoding=_DEFAULT_ENCODING,
+        serializer: Union[str, _CfgSerializer] = _CfgSerializer.YAML,
+    ):
+        serializer = _CfgFileInterface.serializer2enum(serializer)
+        if serializer == _CfgSerializer.YAML:
+            return _CfgYamlInterface.save_configs(
+                data_cfg=data_cfg, model_cfg=model_cfg, runtime_cfg=runtime_cfg,
+                dst_path=dst_path, encoding=encoding,
+                data_config_filename=data_config_filename,
+                model_config_filename=model_config_filename,
+                runtime_config_filename=runtime_config_filename
+            )
+        elif serializer == _CfgSerializer.JSON:
+            return _CfgJsonInterface.save_configs(
+                data_cfg=data_cfg, model_cfg=model_cfg, runtime_cfg=runtime_cfg,
+                dst_path=dst_path, encoding=encoding,
+                data_config_filename=data_config_filename,
+                model_config_filename=model_config_filename,
+                runtime_config_filename=runtime_config_filename
+            )
+        else:
+            raise NotImplementedError(f'Invalid serializer {serializer}')
+
+    @staticmethod
+    def from_files(
+        src_path: str,
+        data_config_filename: str = DEFAULT_D_CFG_FILENAME_YAML,
+        model_config_filename: str = DEFAULT_MDL_CFG_FILENAME_YAML,
+        runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME_YAML,
+        serializer: Union[str, _CfgSerializer] = _CfgSerializer.YAML,
+        encoding=_DEFAULT_ENCODING
+    ) -> ConfigurationManagerInterface:
+        d_cfg, m_cfg, r_cfg = ConfigurationManager.load_configs(
+            src_path=src_path, encoding=encoding, serializer=serializer,
+            data_config_filename=data_config_filename,
+            model_config_filename=model_config_filename,
+            runtime_config_filename=runtime_config_filename
+        )
+        return ConfigurationManager(d_cfg, m_cfg, r_cfg)
+
+    def to_files(
+            self,
+            dst_dir_path: str,
+            serializer: Union[str, _CfgSerializer] = _CfgSerializer.YAML,
+            encoding: Optional[str] = None
+    ) -> None:
         serializer = _CfgFileInterface.serializer2enum(serializer)
         d_cfg = self.data_config.inner
         mdl_cfg = self.model_config.inner
@@ -1433,19 +1444,19 @@ class ConfigurationManager(Singleton,
         encoding = encoding or self.encoding
 
         if serializer == _CfgSerializer.YAML:
-            return _CfgYamlInterface.save_yaml_configs_to_files(
+            return _CfgYamlInterface.save_configs(
                 d_cfg, mdl_cfg, rt_cfg,
                 dst_dir_path,
                 d_filename, mdl_filename, rt_filename,
                 encoding=encoding)
         elif serializer == _CfgSerializer.JSON:
-            return _CfgJsonInterface.save_json_configs_to_files(
+            return _CfgJsonInterface.save_configs(
                 d_cfg, mdl_cfg, rt_cfg,
                 dst_dir_path,
                 d_filename, mdl_filename, rt_filename,
                 encoding=encoding)
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f'Invalid serializer {serializer}')
 
     def __init_role(self) -> None:
         self._role: Optional[Role] = None
