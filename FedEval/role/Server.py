@@ -358,13 +358,8 @@ class Server(Node):
             client_params = [x['weights'] for x in self._c_up]
             aggregate_weights = np.array([x['train_size'] for x in self._c_up]).astype(np.float)
 
-            # update host params and retrieve download information
-            self._current_upload_info = self._strategy.update_host_params(client_params, aggregate_weights)
-            # Save the model weights
-            self._hyper_logger.snapshot_model_weights_into_file(
-                self._current_upload_info, self._current_round,
-                self._strategy.host_params_type
-            )
+            # Update host parameters (e.g., model weights)
+            self._strategy.update_host_params(client_params, aggregate_weights)
 
             aggr_train_loss = self.aggregate_train_loss(
                 [x['train_loss'] for x in self._c_up],
@@ -572,15 +567,17 @@ class Server(Node):
 
     # Note: we assume that during training the #workers will be >= MIN_NUM_WORKERS
     def train_next_round(self):
-
-        selected_clients = self._strategy.host_select_train_clients(self._communicator.ready_client_ids)
+        # Increase the round counter
         self._current_round += 1
+        # Select the training clients
+        selected_clients = self._strategy.host_select_train_clients(self._communicator.ready_client_ids)
+        # Init the time recorder in this round
         self._info_each_round[self._current_round] = {'timestamp': time.time()}
-
-        # Record the time
-        self._time_send_train = time.time()
         self._time_record_real_world.append({'round': self._current_round})
         self._time_record_federated.append({'round': self._current_round})
+        # Record the time
+        self._time_send_train = time.time()
+
         self.logger.info("##### Round {} #####".format(self._current_round))
 
         # buffers all client updates
@@ -588,19 +585,27 @@ class Server(Node):
 
         previous_round = self._current_round - 1
 
+        # Check if the previous round of weights exists on disk
         if not self._hyper_logger.is_snapshot_exist(
                 round_num=previous_round, host_params_type=self._strategy.host_params_type,
-                client_id_list=selected_clients):
-            if self._current_upload_info is None:
-                self._current_upload_info = self._strategy.host_get_init_params()
+                client_id_list=selected_clients
+        ):
+            # retrieve download information
+            self._current_upload_info = self._strategy.retrieve_host_download_info()
+            # Save the model weights
             self._hyper_logger.snapshot_model_weights_into_file(
-                self._current_upload_info, previous_round, self._strategy.host_params_type)
+                self._current_upload_info, previous_round,
+                self._strategy.host_params_type
+            )
 
+        # Distribute the updates
         if self._strategy.host_params_type == HostParamsType.Uniform:
             weight_file_path = self._hyper_logger.model_weight_file_path(previous_round)
             encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(encoding='utf8')
-            data_send = {'round_number': self._current_round,
-                         'weights_file_name': encoded_weight_file_path}
+            data_send = {
+                'round_number': self._current_round,
+                'weights_file_name': encoded_weight_file_path
+            }
             self.logger.info(f'Sending update requests to {selected_clients}')
             self._communicator.invoke_all(ClientEvent.RequestUpdate,
                                           data_send,
@@ -624,11 +629,18 @@ class Server(Node):
 
         selected_clients = self._strategy.host_select_evaluate_clients(self._communicator.ready_client_ids)
 
+        # Check if the current round of weights exists on disk
         if not self._hyper_logger.is_snapshot_exist(
                 round_num=self._current_round, host_params_type=self._strategy.host_params_type,
-                client_id_list=selected_clients):
+                client_id_list=selected_clients
+        ):
+            # retrieve download information
+            self._current_upload_info = self._strategy.retrieve_host_download_info()
+            # Save the model weights
             self._hyper_logger.snapshot_model_weights_into_file(
-                self._current_upload_info, self._current_round, self._strategy.host_params_type)
+                self._current_upload_info, self._current_round,
+                self._strategy.host_params_type
+            )
 
         data_send = {'round_number': self._current_round}
         if self._strategy.host_params_type == HostParamsType.Uniform:
@@ -639,10 +651,6 @@ class Server(Node):
             encoded_weight_file_path = base64.b64encode(weight_file_path.encode(encoding='utf8')).decode(
                 encoding='utf8')
             data_send['weights_file_name'] = encoded_weight_file_path
-            # retrieval send information
-            if selected_clients is None:
-                # selected_clients = self.fed_model.host_select_evaluate_clients(self._communicator.ready_client_ids)
-                selected_clients = self._communicator.ready_client_ids
 
             self.logger.info(f'Sending eval requests to {selected_clients}')
             self._communicator.invoke_all(ClientEvent.RequestEvaluate,

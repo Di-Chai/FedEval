@@ -81,7 +81,7 @@ class FedStrategyHostInterface(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def host_get_init_params(self) -> Tuple[ModelWeights, str]:
+    def retrieve_host_download_info(self) -> Tuple[ModelWeights, str]:
         """get the host download information,
            e.g., model params/weights from its machine/deep learning model.
 
@@ -399,10 +399,10 @@ class FedStrategy(FedStrategyInterface):
         self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(
             self.client_id)
     
-    def host_get_init_params(self) -> ModelWeights:
+    def retrieve_host_download_info(self) -> ModelWeights:
         # By default, the host params will be downloaded
-        if self.host_params is None:
-            self.host_params = self.ml_model.get_weights()
+        #   in each round of training, the host-side ml_model is updated
+        self.host_params = self.ml_model.get_weights()
         return self.host_params
 
     def update_host_params(self, client_params, aggregate_weights) -> None:
@@ -413,7 +413,6 @@ class FedStrategy(FedStrategyInterface):
         self.host_params = aggregate_weighted_average(
             client_params, aggregate_weights)
         self.ml_model.set_weights(self.host_params)
-        return self.host_params
 
     def host_exit_job(self, host):
         if self._has_callback():

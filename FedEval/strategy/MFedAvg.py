@@ -29,7 +29,6 @@ class MFedAvg(FedAvg):
             for i in range(len(self.host_params))
         ]
         self.ml_model.set_weights(self.host_params)
-        return self.host_params
 
 
 class MFedSGD(MFedAvg):

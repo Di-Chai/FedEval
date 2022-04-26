@@ -57,6 +57,7 @@ class FedSTC(FedStrategy):
             self.client_residual = self.init_residual()
         else:
             self.server_residual = self.init_residual()
+            self._delta_W_plus_r = None
 
     @staticmethod
     def stc(input_tensor, sparsity=0.01):
@@ -117,17 +118,21 @@ class FedSTC(FedStrategy):
         delta_W = aggregate_weighted_average(client_params, aggregate_weights)
         del client_params
         delta_W = [delta_W[i].toarray().reshape(param_shapes[i]) for i in range(len(param_shapes))]
-        delta_W_plus_r = [
+        self._delta_W_plus_r = [
             self.stc(delta_W[i].copy() + self.server_residual[i].copy(),
                      sparsity=ConfigurationManager().model_config.stc_sparsity)
             for i in range(len(delta_W))
         ]
         # update the residual
         self.server_residual = [
-            self.server_residual[i].copy() + delta_W[i].copy() - delta_W_plus_r[i].copy()
+            self.server_residual[i].copy() + delta_W[i].copy() - self._delta_W_plus_r[i].copy()
             for i in range(len(param_shapes))
         ]
-        self.host_params = [self.host_params[e] + delta_W_plus_r[e] for e in range(len(self.host_params))]
+        self.host_params = [self.host_params[e] + self._delta_W_plus_r[e] for e in range(len(self.host_params))]
         self.ml_model.set_weights(self.host_params)
-        # Compress the stc(delta_w + R) and return
-        return [self.compress(e.reshape([-1, ])) for e in delta_W_plus_r]
+
+    def retrieve_host_download_info(self):
+        if self._delta_W_plus_r is None:
+            return super(FedSTC, self).retrieve_host_download_info()
+        else:
+            return [self.compress(e.reshape([-1, ])) for e in self._delta_W_plus_r]

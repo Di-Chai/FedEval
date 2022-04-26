@@ -216,6 +216,8 @@ class FedSVD(FedStrategy):
         # Clear the cache before starting
         generate_orthogonal_matrix(clear_cache=True)
 
+        self._fed_svd_status = FedSVDStatus.Init
+
         self._process_memory_usage = {}
         self._total_memory_usage = [0]
         self._scheduler = BackgroundScheduler()
@@ -241,7 +243,7 @@ class FedSVD(FedStrategy):
         self.train_selected_clients = ready_clients
         return self.train_selected_clients
 
-    def _retrieve_host_download_info(self):
+    def retrieve_host_download_info(self):
         self.logger.info(f'FedSVD Server Reporting Status: {self._fed_svd_status}')
         # Masking Server
         if self._fed_svd_status is FedSVDStatus.Init:
@@ -420,10 +422,6 @@ class FedSVD(FedStrategy):
             return {client_id: {'fed_svd_status': self._fed_svd_status}
                     for client_id in self._client_ids_on_receiving}
 
-    def host_get_init_params(self):
-        self._fed_svd_status = FedSVDStatus.Init
-        return self._retrieve_host_download_info()
-
     def update_host_params(self, client_params, *args):
         if self._fed_svd_status is FedSVDStatus.Init:
 
@@ -561,9 +559,6 @@ class FedSVD(FedStrategy):
                 self._total_memory_usage.append(tmp)
             # Release memory
             del client_params
-            # Nothing to download for clients, since the server is stoping
-            return None
-        return self._retrieve_host_download_info()
 
     def safe_memmap_matmul(self, a, b, step_size=1000):
         self.logger.info(f'safe_memmap_matmul {a.shape} {b.shape}')

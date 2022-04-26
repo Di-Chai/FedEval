@@ -61,17 +61,13 @@ class SecureAggregation(FedStrategy):
         self._sss: ShamirSecretSharing = None
         self._total_training_samples = None
 
-    def host_get_init_params(self):
-        self._server_status = SAStatus.Init
-        return self._retrieve_host_download_info()
-
     def host_select_train_clients(self, ready_clients):
         if self._server_status is SAStatus.Init:
             return super(SecureAggregation, self).host_select_train_clients(ready_clients)
         else:
             return self.train_selected_clients
 
-    def _retrieve_host_download_info(self):
+    def retrieve_host_download_info(self):
         self.logger.info("#" * 20)
         self.logger.info(f'Server report round {self.current_round} status {self._server_status}')
         self.logger.info("#" * 20)
@@ -127,7 +123,6 @@ class SecureAggregation(FedStrategy):
             self._server_status = SAStatus.Init
         else:
             raise NotImplementedError
-        return self._retrieve_host_download_info()
 
     def set_host_params_to_local(self, host_params, current_round: int):
         self._client_status = host_params['status']
@@ -215,17 +210,17 @@ class SecureAggregation(FedStrategy):
             self.logger.info('Start Apply Mask')
             for record in self._peer_dh_pk:
                 cid = record['client_id']
+                # Add peer mask
                 random.seed(record['derived_mask_key'])
                 for i in range(len(local_weights)):
-                    # self.logger.info('Start Generate Mask')
-                    tmp_random_mask = np.vectorize(lambda _: random.randint(0, self._p))(local_weights[i])
+                    tmp_random_mask = np.vectorize(lambda _: random.randint(0, self._p))(real_local_weights[i])
                     if cid < self.client_id:
-                        # self.logger.info(f'Start - Mask {tmp_random_mask.shape}')
                         local_weights[i] += (self._p - tmp_random_mask)
                     else:
-                        # self.logger.info(f'Start + Mask {tmp_random_mask.shape}')
                         local_weights[i] += tmp_random_mask
                     del tmp_random_mask
+            # Add individual mask
+
             # self.logger.info('End Apply Mask')
             del real_local_weights
             return local_weights

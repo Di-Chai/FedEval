@@ -60,9 +60,8 @@ class FedSCA(FedAvg):
         self.server_c = [np.zeros(e) for e in param_shapes]
         self.client_c = [np.zeros(e) for e in param_shapes]
 
-    def host_get_init_params(self):
+    def retrieve_host_download_info(self):
         self.host_params = self.ml_model.get_weights()
-        # TODO(fgh): return type is inconsistent with the parent class
         return self.host_params, self.server_c
 
     def set_host_params_to_local(self, host_params, current_round):
@@ -77,7 +76,6 @@ class FedSCA(FedAvg):
             self.host_params[i] += mdl_cfg.learning_rate * delta_x[i]
             self.server_c[i] += mdl_cfg.C * delta_c[i]
         self.ml_model.set_weights(self.host_params)
-        return self.host_params, self.server_c
 
     def fit_on_local_data(self):
         variate_diff = [self.server_c[i] - self.client_c[i] for i in range(len(self.client_c))]
