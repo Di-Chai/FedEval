@@ -47,6 +47,7 @@ class ServerFlaskCommunicator(ServerCommunicator):
         self._socketio = ServerSocketIO(self._app, max_http_buffer_size=1e20,
                                         async_handlers=True, ping_timeout=3600,
                                         ping_interval=1800, cors_allowed_origins='*')
+        logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
     def on(self, event: ClientEvent) -> Callable[[Callable], Any]:
         return self._socketio.on(event2message(event))
