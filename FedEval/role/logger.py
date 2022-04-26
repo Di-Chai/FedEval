@@ -109,12 +109,15 @@ class HyperLogger:
             )
         else:
             for client_id in client_id_list:
+                client_log_dir = os.path.dirname(self.model_weight_file_path(round_num=round_num, client_id=client_id))
+                if not os.path.isdir(client_log_dir):
+                    continue
                 only_keep_k_model_files(
                     os.path.dirname(self.model_weight_file_path(round_num=round_num, client_id=client_id)),
                     k=latest_k
                 )
                 if latest_k <= 0:
-                    os.rmdir(os.path.dirname(self.model_weight_file_path(round_num=round_num, client_id=client_id)))
+                    os.rmdir(client_log_dir)
 
     def is_snapshot_exist(self, round_num: int, host_params_type: str, client_id_list: list = ()):
         if host_params_type == HostParamsType.Uniform:
