@@ -1,5 +1,5 @@
-from .configuration import (DEFAULT_D_CFG_FILENAME, DEFAULT_MDL_CFG_FILENAME,
-                            DEFAULT_RT_CFG_FILENAME,
+from .configuration import (DEFAULT_D_CFG_FILENAME_YAML, DEFAULT_MDL_CFG_FILENAME_YAML,
+                            DEFAULT_RT_CFG_FILENAME_YAML,
                             ClientConfigurationManagerInterface,
                             ConfigurationManager,
                             ConfigurationManagerInterface,
