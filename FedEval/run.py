@@ -6,14 +6,14 @@ from math import ceil
 
 import yaml
 
-from .config import (DEFAULT_D_CFG_FILENAME, DEFAULT_MDL_CFG_FILENAME,
-                     DEFAULT_RT_CFG_FILENAME, ConfigurationManager)
+from .config import (DEFAULT_D_CFG_FILENAME_YAML, DEFAULT_MDL_CFG_FILENAME_YAML,
+                     DEFAULT_RT_CFG_FILENAME_YAML, ConfigurationManager)
 from .dataset import *
 from .model import *
 from .role import Client, Server
 
 
-UNIFIED_JOB_ID = os.getenv('UNIFIED_JOB_ID')
+UNIFIED_JOB_TIME = os.getenv('UNIFIED_JOB_TIME')
 
 
 def generate_data(save_file=True):
@@ -43,30 +43,19 @@ def generate_data(save_file=True):
     return clients_data
 
 
-# def start_clients(params):
-#     cid, c1, c2, c3 = params
-#     Client(data_config=c1, model_config=c2, runtime_config=c3,)
-
-
-def run(role: str):
-    ConfigurationManager()  # init configs
+def run(role: str, config_path=None, unified_job_time=None, container_id=None):
+    if config_path:
+        # init configs (when running without docker)
+        ConfigurationManager.from_files(config_path)
+    if unified_job_time:
+        os.environ['UNIFIED_JOB_TIME'] = unified_job_time
     if role == 'client':
+        if container_id:
+            os.environ['CONTAINER_ID'] = container_id
         Client()
-        # from multiprocessing import Pool
-        # n_jobs = 20
-        # with Pool(processes=n_jobs) as pool:
-        #     pool.map(start_clients, [[str(e), data_config, model_config, runtime_config] for e in range(n_jobs)])
-        # p = Pool()
-        # for i in range(1, 3):
-        #     p.apply_async(start_clients, args=(data_config, model_config, runtime_config, str(i)))
-        # print('Waiting for all subprocesses done...')
-        # p.close()
-        # p.join()
-
     elif role == 'server':
         server = Server()
         server.start()
-
     else:
         raise NotImplementedError
 
@@ -106,9 +95,9 @@ def generate_docker_compose_server(path):
         'deploy': {'resources': {'limits': {'cpus': max(1, int(multiprocessing.cpu_count() / rt_cfg.container_num))}}}
     }
 
-    if UNIFIED_JOB_ID is not None:
-        server_template['environment'].append(f"UNIFIED_JOB_ID={UNIFIED_JOB_ID}")
-        client_template['environment'].append(f"UNIFIED_JOB_ID={UNIFIED_JOB_ID}")
+    if UNIFIED_JOB_TIME is not None:
+        server_template['environment'].append(f"UNIFIED_JOB_TIME={UNIFIED_JOB_TIME}")
+        client_template['environment'].append(f"UNIFIED_JOB_TIME={UNIFIED_JOB_TIME}")
 
     if rt_cfg.gpu_enabled:
         client_template['runtime'] = 'nvidia'
@@ -204,9 +193,9 @@ def generate_docker_compose_local(path):
         'deploy': {'resources': {'limits': {'cpus': max(1, int(multiprocessing.cpu_count() / rt_cfg.container_num))}}}
     }
 
-    if UNIFIED_JOB_ID is not None:
-        server_template['environment'].append(f"UNIFIED_JOB_ID={UNIFIED_JOB_ID}")
-        client_template['environment'].append(f"UNIFIED_JOB_ID={UNIFIED_JOB_ID}")
+    if UNIFIED_JOB_TIME is not None:
+        server_template['environment'].append(f"UNIFIED_JOB_TIME={UNIFIED_JOB_TIME}")
+        client_template['environment'].append(f"UNIFIED_JOB_TIME={UNIFIED_JOB_TIME}")
 
     if rt_cfg.gpu_enabled:
         client_template['runtime'] = 'nvidia'
@@ -261,15 +250,8 @@ if __name__ == '__main__':
 
     args = args_parser.parse_args()
 
-    # load configs
-    with open(os.path.join(args.config, DEFAULT_D_CFG_FILENAME), 'r') as f:
-        data_config = yaml.safe_load(f)
-    with open(os.path.join(args.config, DEFAULT_MDL_CFG_FILENAME), 'r') as f:
-        model_config = yaml.safe_load(f)
-    with open(os.path.join(args.config, DEFAULT_RT_CFG_FILENAME), 'r') as f:
-        runtime_config = yaml.safe_load(f)
     # init configurations
-    ConfigurationManager(data_config, model_config, runtime_config)
+    ConfigurationManager.from_files(args.config)
 
     if args.function == 'data':
         generate_data()
