@@ -2,7 +2,7 @@ import os
 import argparse
 import socket
 
-from FedEval.run_util import run
+from FedEval.run_util import run_util
 from multiprocessing import Process
 
 args_parser = argparse.ArgumentParser()
@@ -189,7 +189,10 @@ if args.strategy == 'FedSTC':
 if args.strategy == 'LocalCentral':
     model_config['FedModel']['C'] = None
     model_config['FedModel']['E'] = None
-    model_config['FedModel']['max_rounds'] = 10000
+    if execution == 'simulate_central':
+        model_config['FedModel']['max_rounds'] = 10000
+    else:
+        model_config['FedModel']['max_rounds'] = 1000
     # Simulation & Docker
     runtime_config['docker']['enable_gpu'] = True
     runtime_config['docker']['num_gpu'] = 1
@@ -283,7 +286,7 @@ if __name__ == '__main__':
     for seed in range(repeat):
         params['data_config']['random_seed'] = seed
         if args.tune is None:
-            p = Process(target=run, args=(execution, mode, config), kwargs=params)
+            p = Process(target=run_util, args=(execution, mode, config), kwargs=params)
             p.start()
             p.join()
         else:
@@ -291,7 +294,7 @@ if __name__ == '__main__':
             if args.tune == 'lr':
                 for lr in tune_params['lr']:
                     params['model_config']['MLModel']['optimizer']['lr'] = lr
-                    p = Process(target=run, args=(execution, mode, config), kwargs=params)
+                    p = Process(target=run_util, args=(execution, mode, config), kwargs=params)
                     p.start()
                     p.join()
             else:
