@@ -1,5 +1,7 @@
 import os
 import json
+import numpy as np
+
 import matplotlib.pyplot as plt
 
 from ..config import ConfigurationManager
@@ -10,7 +12,10 @@ class LogAnalysis:
     def __init__(self, log_dir):
         self.log_dir = log_dir
 
-        self.logs = []
+        self.federated_log_dirs = []
+        self.log_files_central_simulate = []
+        self.log_files_local_simulate = []
+        self.log_files_fedsgd_simulate = []
         for ld in os.listdir(self.log_dir):
             if ld.startswith('.'):
                 continue
@@ -18,11 +23,23 @@ class LogAnalysis:
             if not os.path.isdir(target_ld):
                 continue
             if 'Server' in os.listdir(target_ld):
-                self.logs.append(target_ld)
+                self.federated_log_dirs.append(target_ld)
+            else:
+                files = [os.path.join(target_ld, e) for e in os.listdir(target_ld)]
+                self.log_files_central_simulate += [e for e in files if e.endswith('central_simulator.csv')]
+                self.log_files_fedsgd_simulate += [e for e in files if e.endswith('fed_sgd_simulator.csv')]
+                self.log_files_local_simulate += [e for e in files if e.endswith('local_simulator.csv')]
+
+        if len(self.log_files_central_simulate) > 0:
+            self.process_central_simulate_results(self.log_files_central_simulate)
+        if len(self.log_files_fedsgd_simulate) > 0:
+            self.process_fedsgd_simulate_results(self.log_files_fedsgd_simulate)
+        if len(self.log_files_local_simulate) > 0:
+            self.process_local_simulate_results(self.log_files_local_simulate)
 
         self.configs = []
         self.results = []
-        for log in self.logs:
+        for log in self.federated_log_dirs:
             try:
                 c1, c2, c3 = ConfigurationManager.load_configs(os.path.join(log, 'Server'))
                 with open(os.path.join(log, 'Server', 'results.json'), 'r') as f:
@@ -267,3 +284,107 @@ class LogAnalysis:
         with open(file_name, 'w') as f:
             for e in self.average_results:
                 f.write(', '.join([str(e1) for e1 in e]) + '\n')
+
+    @staticmethod
+    def process_central_simulate_results(log_files):
+        result_dict = {}
+        for log_file in log_files:
+
+            with open(log_file, 'r') as f:
+                central_simulation = f.readlines()
+
+            if not central_simulation[-1].startswith('Best TEST Metric'):
+                print('Incomplete log file, Skip')
+                os.remove(log_file)
+                continue
+
+            duration = central_simulation[-3].strip('\n').split(' ')[-1]
+            val_acc = central_simulation[-2].strip('\n').split(', ')[-1]
+            test_acc = central_simulation[-1].strip('\n').split(', ')[-1]
+            num_rounds = central_simulation[-5].split(',')[0]
+
+            result_dict[central_simulation[-4]] = result_dict.get(central_simulation[-4], []) + [[
+                int(num_rounds), float(duration), float(val_acc), float(test_acc)]]
+
+            print(central_simulation[-4].strip('\n'), val_acc, test_acc, 'max round',
+                  central_simulation[-5].split(',')[0])
+
+        results = []
+        for key in result_dict:
+            acc_mean = ', '.join(np.mean(result_dict[key], axis=0).astype(str).tolist())
+            acc_std = ', '.join(np.std(result_dict[key], axis=0).astype(str).tolist())
+            results.append(
+                str(len(result_dict[key])) + ', ' + key.strip('\n') + ', ' + acc_mean + ', ' + acc_std + '\n'
+            )
+            print('Repeat', key.strip('\n'), len(result_dict[key]))
+
+        with open('simulate_central.csv', 'w') as f:
+            f.write('Repeat, Dataset, #Clients, LR, '
+                    'Round, Duration, ValAcc, TestAcc, '
+                    'RoundStd, DurationStd, ValStd, TestStd\n')
+            f.writelines(results)
+
+    @staticmethod
+    def process_fedsgd_simulate_results(log_files):
+        result_dict = {}
+        for log_file in log_files:
+
+            with open(log_file, 'r') as f:
+                fed_sgd_simulation = f.readlines()
+
+            if not fed_sgd_simulation[-1].startswith('Best Metric'):
+                print('Incomplete log file, Skip')
+                os.remove(log_file)
+                continue
+
+            test_acc = fed_sgd_simulation[-1].strip('\n').split(', ')[-1]
+
+            result_dict[fed_sgd_simulation[0]] = result_dict.get(fed_sgd_simulation[0], []) + [[
+                int(fed_sgd_simulation[-2].split(',')[0]), float(test_acc)]]
+
+            print(fed_sgd_simulation[0].strip('\n'), test_acc, 'max round', fed_sgd_simulation[-2].split(',')[0])
+
+        results = []
+        for key in result_dict:
+            acc_mean = ', '.join(np.mean(result_dict[key], axis=0).astype(str).tolist())
+            acc_std = ', '.join(np.std(result_dict[key], axis=0).astype(str).tolist())
+            results.append(
+                str(len(result_dict[key])) + ', ' + key.strip('\n') + ', ' + acc_mean + ', ' + acc_std + '\n'
+            )
+            print('Repeat', key.strip('\n'), len(result_dict[key]))
+
+        with open('simulate_fed_sgd.csv', 'w') as f:
+            f.write('Repeat, Dataset, #Clients, LR, Round, TestAcc, RoundStd, TestStd\n')
+            f.writelines(results)
+
+    @staticmethod
+    def process_local_simulate_results(log_files):
+        result_dict = {}
+        for log_file in log_files:
+
+            with open(log_file, 'r') as f:
+                local_simulation = f.readlines()
+
+            if not local_simulation[-1].startswith('Average Best Test Metric'):
+                print('Incomplete log file, Skip')
+                os.remove(log_file)
+                continue
+
+            test_acc = local_simulation[-1].strip('\n').split(', ')[-1]
+
+            result_dict[local_simulation[-2]] = result_dict.get(local_simulation[-2], []) + [[float(test_acc)]]
+
+            print(local_simulation[-2].strip('\n'), test_acc)
+
+        results = []
+        for key in result_dict:
+            acc_mean = ', '.join(np.mean(result_dict[key], axis=0).astype(str).tolist())
+            acc_std = ', '.join(np.std(result_dict[key], axis=0).astype(str).tolist())
+            results.append(
+                str(len(result_dict[key])) + ', ' + key.strip('\n') + ', ' + acc_mean + ', ' + acc_std + '\n'
+            )
+            print('Repeat', key.strip('\n'), len(result_dict[key]))
+
+        with open('simulate_local.csv', 'w') as f:
+            f.write('Repeat, Dataset, #Clients, LR, TestAcc, TestStd\n')
+            f.writelines(results)

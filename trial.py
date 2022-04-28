@@ -98,7 +98,7 @@ tune_params = {
 data_config = {
     'dataset': args.dataset, 'data_dir': 'data',
     'non-iid': True if args.non_iid.lower() == 'true' else False,
-    'sample_size': None,
+    'sample_size': 0,
     'non-iid-strategy': 'average' if args.dataset == 'mnist' else 'natural', 
     'non-iid-class': args.non_iid_class,
     'random_seed': 0,
