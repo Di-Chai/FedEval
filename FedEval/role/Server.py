@@ -320,99 +320,92 @@ class Server(Node):
 
         @self._communicator.on(ServerEvent.ResponseUpdate)
         def handle_client_update(data: Mapping[str, Any]):
-
             if data['round_number'] != self._current_round:
                 #TODO(fgh) raise an Exception
                 return
-
-            data['weights'] = pickle_string_to_obj(data['weights'])
-            data['time_receive_update'] = time.time()
             with self._thread_lock:
+                data['weights'] = pickle_string_to_obj(data['weights'])
+                data['time_receive_update'] = time.time()
                 self._c_up.append(data)
                 receive_all = len(self._c_up) == len(self._strategy.train_selected_clients)
-
-            if not receive_all:
-                self.logger.debug(
-                    f"not all the clients' responses are received during the handling of {ServerEvent.ResponseUpdate.value}")
-                return
-
-            self.logger.info("Received update from all clients")
-
-            receive_update_time = np.array([e['time_receive_request'] - self._time_send_train for e in self._c_up])
-            finish_update_time = np.array([e['time_finish_update'] - e['time_start_update'] for e in self._c_up])
-            update_receive_time = np.array([e['time_receive_update'] - e['time_finish_update'] for e in self._c_up])
-            latest_time_record = self._time_record_real_world[-1]
-            cur_round_info = self._info_each_round[self._current_round]
-
-            latest_time_record['update_send'] = np.mean(receive_update_time)
-            latest_time_record['update_run'] = np.mean(finish_update_time)
-            latest_time_record['update_receive'] = np.mean(update_receive_time)
-            self._time_record_federated[-1]['max_train'] = np.max(
-                receive_update_time + finish_update_time + update_receive_time)
-            del receive_update_time, finish_update_time, update_receive_time
-
-            # From request update, until receives all clients' update
-            self._time_agg_train_start = time.time()
-
-            # current train
-            client_params = [x['weights'] for x in self._c_up]
-            aggregate_weights = np.array([x['train_size'] for x in self._c_up]).astype(np.float)
-
-            # Update host parameters (e.g., model weights)
-            self._strategy.update_host_params(client_params, aggregate_weights)
-
-            aggr_train_loss = self.aggregate_train_loss(
-                [x['train_loss'] for x in self._c_up],
-                [x['train_size'] for x in self._c_up],
-                self._current_round
-            )
-            cur_round_info['train_loss'] = aggr_train_loss
-            self._avg_train_metrics.append({
-                'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'train_loss': aggr_train_loss
-            })
-
-            self.logger.info("=== Train ===")
-            self.logger.info('Receive update result form %s clients' % len(self._c_up))
-            self.logger.info("aggr_train_loss {}".format(aggr_train_loss))
-
-            # Fed Aggregate : computation time
-            self._time_agg_train_end = time.time()
-            latest_time_record['agg_server'] = self._time_agg_train_end - self._time_agg_train_start
-            self._time_record_federated[-1]['train_agg'] = self._time_agg_train_end - self._time_agg_train_start
-
-            cur_round_info['time_train_send'] = latest_time_record['update_send']
-            cur_round_info['time_train_run'] = latest_time_record['update_send']
-            cur_round_info['time_train_receive'] = latest_time_record['update_receive']
-            cur_round_info['time_train_agg'] = latest_time_record['agg_server']
-            cur_round_info['round_finish_time'] = time.time()
-
-            # Collect the send and received bytes
-            self._server_receive_bytes, self._server_send_bytes = self._communicator.get_comm_in_and_out()
-
-            if self._current_round % ConfigurationManager().model_config.num_of_rounds_between_val == 0:
-                if ConfigurationManager().model_config.distributed_evaluate:
-                    self.distribute_evaluate()
-                else:
-                    self.server_evaluation()
-            else:
-                self.train_next_round()
+            if receive_all:
+                self.process_update()
 
         @self._communicator.on(ServerEvent.ResponseEvaluate)
         def handle_client_evaluate(data: Mapping[str, Any]):
-
             if data['round_number'] != self._current_round:
                 #TODO(fgh) raise an Exception
                 return
-
             with self._thread_lock:
                 data['time_receive_evaluate'] = time.time()
                 self._c_eval.append(data)
                 num_clients_required = len(self._strategy.eval_selected_clients)
                 receive_all = len(self._c_eval) == num_clients_required
-
             if receive_all:
-                self.aggregate_evaluate()
+                self.process_evaluate()
+
+    def process_update(self):
+        self.logger.info("Received update from all clients")
+
+        receive_update_time = np.array([e['time_receive_request'] - self._time_send_train for e in self._c_up])
+        finish_update_time = np.array([e['time_finish_update'] - e['time_start_update'] for e in self._c_up])
+        update_receive_time = np.array([e['time_receive_update'] - e['time_finish_update'] for e in self._c_up])
+        latest_time_record = self._time_record_real_world[-1]
+        cur_round_info = self._info_each_round[self._current_round]
+
+        latest_time_record['update_send'] = np.mean(receive_update_time)
+        latest_time_record['update_run'] = np.mean(finish_update_time)
+        latest_time_record['update_receive'] = np.mean(update_receive_time)
+        self._time_record_federated[-1]['max_train'] = np.max(
+            receive_update_time + finish_update_time + update_receive_time)
+        del receive_update_time, finish_update_time, update_receive_time
+
+        # From request update, until receives all clients' update
+        self._time_agg_train_start = time.time()
+
+        # current train
+        client_params = [x['weights'] for x in self._c_up]
+        aggregate_weights = np.array([x['train_size'] for x in self._c_up]).astype(np.float)
+
+        # Update host parameters (e.g., model weights)
+        self._strategy.update_host_params(client_params, aggregate_weights)
+
+        aggr_train_loss = self.aggregate_train_loss(
+            [x['train_loss'] for x in self._c_up],
+            [x['train_size'] for x in self._c_up],
+            self._current_round
+        )
+        cur_round_info['train_loss'] = aggr_train_loss
+        self._avg_train_metrics.append({
+            'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'train_loss': aggr_train_loss
+        })
+
+        self.logger.info("=== Train ===")
+        self.logger.info('Receive update result form %s clients' % len(self._c_up))
+        self.logger.info("aggr_train_loss {}".format(aggr_train_loss))
+
+        # Fed Aggregate : computation time
+        self._time_agg_train_end = time.time()
+        latest_time_record['agg_server'] = self._time_agg_train_end - self._time_agg_train_start
+        self._time_record_federated[-1]['train_agg'] = self._time_agg_train_end - self._time_agg_train_start
+
+        cur_round_info['time_train_send'] = latest_time_record['update_send']
+        cur_round_info['time_train_run'] = latest_time_record['update_send']
+        cur_round_info['time_train_receive'] = latest_time_record['update_receive']
+        cur_round_info['time_train_agg'] = latest_time_record['agg_server']
+        cur_round_info['round_finish_time'] = time.time()
+
+        # Collect send and received bytes
+        self._server_receive_bytes, self._server_send_bytes = self._communicator.get_comm_in_and_out()
+
+        if self._current_round % ConfigurationManager().model_config.num_of_rounds_between_val == 0:
+            if ConfigurationManager().model_config.distributed_evaluate:
+                self.distribute_evaluate()
+            else:
+                self.server_evaluation()
+        else:
+            self.train_next_round()
 
     def server_evaluation(self):
         evaluation_results = {
@@ -422,9 +415,9 @@ class Server(Node):
         evaluation_results['time_finish_evaluate'] = time.time()
         evaluation_results['time_receive_evaluate'] = time.time()
         self._c_eval = [evaluation_results]
-        self.aggregate_evaluate()
+        self.process_evaluate()
 
-    def aggregate_evaluate(self):
+    def process_evaluate(self):
         # sort according to the client id
         self._c_eval = sorted(self._c_eval, key=lambda x: int(x['cid']))
 
