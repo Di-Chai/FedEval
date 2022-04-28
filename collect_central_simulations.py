@@ -17,9 +17,10 @@ def process_central_simulate_results(log_files):
         duration = central_simulation[-3].strip('\n').split(' ')[-1]
         val_acc = central_simulation[-2].strip('\n').split(', ')[-1]
         test_acc = central_simulation[-1].strip('\n').split(', ')[-1]
+        num_rounds = central_simulation[-5].split(',')[0]
 
         result_dict[central_simulation[-4]] = result_dict.get(central_simulation[-4], []) + [[
-            float(duration), float(val_acc), float(test_acc)]]
+            int(num_rounds), float(duration), float(val_acc), float(test_acc)]]
 
         print(central_simulation[-4].strip('\n'), val_acc, test_acc, 'max round', central_simulation[-5].split(',')[0])
 
@@ -33,7 +34,9 @@ def process_central_simulate_results(log_files):
         print('Repeat', key.strip('\n'), len(result_dict[key]))
 
     with open('simulate_central.csv', 'w') as f:
-        f.write('Repeat, Dataset, #Clients, LR, Duration, ValAcc, TestAcc, DurationStd, ValStd, TestStd\n')
+        f.write('Repeat, Dataset, #Clients, LR, '
+                'Round, Duration, ValAcc, TestAcc, '
+                'RoundStd, DurationStd, ValStd, TestStd\n')
         f.writelines(results)
 
 
@@ -84,9 +87,9 @@ def process_local_simulate_results(log_files):
 
         test_acc = local_simulation[-1].strip('\n').split(', ')[-1]
 
-        result_dict[local_simulation[-5]] = result_dict.get(local_simulation[-5], []) + [[float(test_acc)]]
+        result_dict[local_simulation[-2]] = result_dict.get(local_simulation[-2], []) + [[float(test_acc)]]
 
-        print(local_simulation[-5].strip('\n'), test_acc)
+        print(local_simulation[-2].strip('\n'), test_acc)
 
     results = []
     for key in result_dict:
@@ -95,11 +98,11 @@ def process_local_simulate_results(log_files):
         results.append(
             str(len(result_dict[key])) + ', ' + key.strip('\n') + ', ' + acc_mean + ', ' + acc_std + '\n'
         )
+        print('Repeat', key.strip('\n'), len(result_dict[key]))
 
     with open('simulate_local.csv', 'w') as f:
         f.write('Repeat, Dataset, #Clients, LR, TestAcc, TestStd\n')
         f.writelines(results)
-        print('Repeat', key.strip('\n'), len(result_dict[key]))
 
 
 if __name__ == '__main__':
