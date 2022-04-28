@@ -221,6 +221,9 @@ if args.tune == 'lr':
         elif args.dataset == 'shakespeare':
             model_config['FedModel']['B'] = 8192 * 2
 
+    if args.dataset == 'shakespeare':
+        tune_params['lr'] = [1.5, 2, 2.5, 3]
+
 ##################################################
 # Hardware Config
 
