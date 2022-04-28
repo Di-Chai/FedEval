@@ -1,7 +1,23 @@
-import fractions
-import logging
-import math
 import sys
+import math
+import gmpy2
+import logging
+import fractions
+
+
+class GaloisFieldParams:
+
+    def __init__(self, p):
+        self._p = p
+        self._max_int = p // 3 - 1
+
+    @property
+    def p(self):
+        return self._p
+
+    @property
+    def max_int(self):
+        return self._max_int
 
 
 class GaloisFieldNumber:
@@ -11,25 +27,15 @@ class GaloisFieldNumber:
     FLOAT_MANTISSA_BITS = sys.float_info.mant_dig
     FULL_PRECISION = math.floor(-FLOAT_MANTISSA_BITS / LOG2_BASE)
 
-    def __init__(self, encoding, exponent, p=2**521-1, max_int=None):
+    def __init__(self, encoding: int, exponent: int, gfp: GaloisFieldParams):
         self.encoding = encoding
         self.exponent = exponent
-        self._p = p
-        self._max_int = max_int or self._get_max_int(self._p)
-
-    @staticmethod
-    def _get_max_int(p):
-        return p // 3 - 1
+        self.gfp = gfp
 
     @classmethod
-    def encode(cls, scalar, p=2 ** 521 - 1, exponent=FULL_PRECISION):
-        # Use rationals instead of floats to avoid overflow.
-        int_rep = round(fractions.Fraction(scalar) * fractions.Fraction(cls.BASE) ** -exponent)
-        _max_int = cls._get_max_int(p)
-        # if abs(int_rep) > _max_int:
-        #     logging.warning('Integer needs to be within +/- %d but got %d' % (_max_int, int_rep))
-        # Wrap negative numbers by adding n
-        return GaloisFieldNumber(int_rep % p, exponent, max_int=_max_int)
+    def encode(cls, scalar, gfp: GaloisFieldParams, exponent=FULL_PRECISION):
+        int_rep = round(scalar * cls.BASE ** -exponent)
+        return GaloisFieldNumber(gmpy2.mod(int_rep, gfp.p), exponent=exponent, gfp=gfp)
 
     def decode(self):
         """Decode plaintext and return the result.
@@ -39,15 +45,15 @@ class GaloisFieldNumber:
         Raises:
           OverflowError: if overflow is detected in the decrypted number.
         """
-        if self.encoding >= self._p:
+        if self.encoding >= self.gfp.p:
             # Should be mod n
             raise ValueError('Attempted to decode corrupted number')
-        elif self.encoding <= self._max_int:
+        elif self.encoding <= self.gfp.max_int:
             # Positive
-            mantissa = self.encoding
-        elif self.encoding >= self._p - self._max_int:
+            mantissa = int(self.encoding)
+        elif self.encoding >= self.gfp.p - self.gfp.max_int:
             # Negative
-            mantissa = self.encoding - self._p
+            mantissa = int(self.encoding - self.gfp.p)
         else:
             raise OverflowError('Overflow detected in decrypted number')
 
@@ -66,19 +72,22 @@ class GaloisFieldNumber:
         if new_exp > self.exponent:
             raise ValueError('New exponent %i should be more negative than'
                              'old exponent %i' % (new_exp, self.exponent))
-        if self.encoding > self._max_int:
-            return GaloisFieldNumber.encode(self.decode(), exponent=new_exp)
+        if self.encoding > self.gfp.max_int:
+            return GaloisFieldNumber.encode(self.decode(), exponent=new_exp, gfp=self.gfp)
         else:
             factor = pow(self.BASE, self.exponent - new_exp)
-            new_enc = int(self.encoding * factor) % self._p
-            return GaloisFieldNumber(encoding=new_enc, exponent=new_exp, max_int=self._max_int)
+            new_enc = int(self.encoding * factor) % self.gfp.p
+            return GaloisFieldNumber(encoding=new_enc, exponent=new_exp, gfp=self.gfp)
 
     def __add__(self, other):
         if type(other) in [int, float]:
-            return self + GaloisFieldNumber.encode(other)
+            return self + GaloisFieldNumber.encode(other, gfp=self.gfp)
         elif type(other) is GaloisFieldNumber:
             if self.exponent == other.exponent:
-                return GaloisFieldNumber(int(self.encoding + other.encoding) % self._p, self.exponent)
+                return GaloisFieldNumber(
+                    gmpy2.mod(gmpy2.add(self.encoding, other.encoding), self.gfp.p),
+                    exponent=self.exponent, gfp=self.gfp
+                )
             elif self.exponent > other.exponent:
                 return self.decrease_exponent_to(other.exponent) + other
             else:
@@ -91,7 +100,7 @@ class GaloisFieldNumber:
 
     def __sub__(self, other):
         if type(other) in [int, float]:
-            return self + GaloisFieldNumber.encode(-other)
+            return self + GaloisFieldNumber.encode(-other, gfp=self.gfp)
         elif type(other) is GaloisFieldNumber:
             return self + (-1) * other
         else:
@@ -99,7 +108,7 @@ class GaloisFieldNumber:
 
     def __rsub__(self, other):
         if type(other) in [int, float]:
-            return GaloisFieldNumber.encode(other) + (-1) * self
+            return GaloisFieldNumber.encode(other, gfp=self.gfp) + (-1) * self
         elif type(other) is GaloisFieldNumber:
             return other + (-1) * self
         else:
@@ -107,27 +116,29 @@ class GaloisFieldNumber:
 
     def __mul__(self, other):
         if type(other) in [int, float]:
-            return self * self.encode(other)
+            return self * self.encode(other, gfp=self.gfp)
         elif type(other) is GaloisFieldNumber:
-            if self.encoding < self._max_int and other.encoding < self._max_int:
-                return GaloisFieldNumber(int(self.encoding * other.encoding) % self._p, self.exponent + other.exponent)
-            elif self.encoding < self._max_int < other.encoding:
-                encoding = int(-self.encoding * (self._p - other.encoding)) % self._p
+            if self.encoding < self.gfp.max_int and other.encoding < self.gfp.max_int:
                 return GaloisFieldNumber(
-                    encoding=encoding,
-                    exponent=self.exponent + other.exponent
+                    int(self.encoding * other.encoding) % self.gfp.p, self.exponent + other.exponent,
+                    gfp=self.gfp
                 )
-            elif self.encoding > self._max_int > other.encoding:
-                encoding = int(-(self._p - self.encoding) * other.encoding) % self._p
+            elif self.encoding < self.gfp.max_int < other.encoding:
+                encoding = int(-self.encoding * (self.gfp.p - other.encoding)) % self.gfp.p
+                return GaloisFieldNumber(
+                    encoding=encoding, exponent=self.exponent + other.exponent, gfp=self.gfp
+                )
+            elif self.encoding > self.gfp.max_int > other.encoding:
+                encoding = int(-(self.gfp.p - self.encoding) * other.encoding) % self.gfp.p
                 return GaloisFieldNumber(
                     encoding=encoding,
-                    exponent=self.exponent + other.exponent
+                    exponent=self.exponent + other.exponent, gfp=self.gfp
                 )
             else:
-                encoding = int((self._p - self.encoding) * (self._p - other.encoding)) % self._p
+                encoding = int((self.gfp.p - self.encoding) * (self.gfp.p - other.encoding)) % self.gfp.p
                 return GaloisFieldNumber(
                     encoding=encoding,
-                    exponent=self.exponent + other.exponent
+                    exponent=self.exponent + other.exponent, gfp=self.gfp
                 )
         else:
             raise NotImplementedError
@@ -137,37 +148,40 @@ class GaloisFieldNumber:
 
     def __truediv__(self, other):
         if type(other) in [int, float]:
-            return self / GaloisFieldNumber.encode(other)
+            return self / GaloisFieldNumber.encode(other, gfp=self.gfp)
         elif type(other) is GaloisFieldNumber:
             if (self.exponent - other.exponent) > self.FULL_PRECISION:
                 return self.decrease_exponent_to(self.FULL_PRECISION + other.exponent) / other
             else:
-                if self.encoding < self._max_int and other.encoding < self._max_int:
-                    return GaloisFieldNumber(int(self.encoding / other.encoding) % self._p, self.exponent - other.exponent)
-                elif self.encoding < self._max_int < other.encoding:
-                    encoding = int(-self.encoding / (self._p - other.encoding)) % self._p
+                if self.encoding < self.gfp.max_int and other.encoding < self.gfp.max_int:
                     return GaloisFieldNumber(
-                        encoding=encoding,
-                        exponent=self.exponent - other.exponent
+                        int(self.encoding / other.encoding) % self.gfp.p, self.exponent - other.exponent,
+                        gfp=self.gfp
                     )
-                elif self.encoding > self._max_int > other.encoding:
-                    encoding = int(-(self._p - self.encoding) / other.encoding) % self._p
+                elif self.encoding < self.gfp.max_int < other.encoding:
+                    encoding = int(-self.encoding / (self.gfp.p - other.encoding)) % self.gfp.p
                     return GaloisFieldNumber(
                         encoding=encoding,
-                        exponent=self.exponent - other.exponent
+                        exponent=self.exponent - other.exponent, gfp=self.gfp
+                    )
+                elif self.encoding > self.gfp.max_int > other.encoding:
+                    encoding = int(-(self.gfp.p - self.encoding) / other.encoding) % self.gfp.p
+                    return GaloisFieldNumber(
+                        encoding=encoding,
+                        exponent=self.exponent - other.exponent, gfp=self.gfp
                     )
                 else:
-                    encoding = int((self._p - self.encoding) / (self._p - other.encoding)) % self._p
+                    encoding = int((self.gfp.p - self.encoding) / (self.gfp.p - other.encoding)) % self.gfp.p
                     return GaloisFieldNumber(
                         encoding=encoding,
-                        exponent=self.exponent - other.exponent
+                        exponent=self.exponent - other.exponent, gfp=self.gfp
                     )
         else:
             raise NotImplementedError
 
     def __rtruediv__(self, other):
         if type(other) in [int, float]:
-            return GaloisFieldNumber.encode(other) / self
+            return GaloisFieldNumber.encode(other, gfp=self.gfp) / self
         elif type(other) is GaloisFieldNumber:
             return other / self
         else:
