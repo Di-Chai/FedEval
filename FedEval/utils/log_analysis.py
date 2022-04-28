@@ -62,42 +62,48 @@ class LogAnalysis:
                     return True
             return False
 
-        self.key_templates = [
-            [key_chain for key_chain in self.parse_dict_keys(e) if not check_omit(key_chain)]
-            for e in self.configs
-        ]
+        if len(self.configs) > 0:
 
-        self.key_templates = max(self.key_templates, key=lambda x: len(x))
+            self.key_templates = [
+                [key_chain for key_chain in self.parse_dict_keys(e) if not check_omit(key_chain)]
+                for e in self.configs
+            ]
 
-        self.diff_keys = []
-        for key_chain in self.key_templates:
-            tmp_len = len(self.diff_keys)
-            for i in range(len(self.configs)):
-                for j in range(len(self.configs)):
-                    if i == j:
-                        continue
-                    else:
-                        if self.recursive_retrieve(self.configs[i], key_chain) != \
-                                self.recursive_retrieve(self.configs[j], key_chain):
-                            self.diff_keys.append(key_chain)
-                            break
-                if len(self.diff_keys) > tmp_len:
-                    break
+            self.key_templates = max(self.key_templates, key=lambda x: len(x))
 
-        self.csv_result_keys = [
-            ['central_train$$test_accuracy', lambda x: [x] if x is None else [float(x)]],
-            ['best_metric$$test_accuracy', lambda x: [float(x)]],
-            ['total_time', lambda x: [int(x.split(':')[0]) * 60 + int(x.split(':')[1]) + int(x.split(':')[2]) / 60]],
-            ['total_rounds', lambda x: [int(x)]],
-            ['server_send', lambda x: [float(x)]],
-            ['server_receive', lambda x: [float(x)]],
-            ['time_detail', lambda x: eval(x)],
-        ]
+            self.diff_keys = []
+            for key_chain in self.key_templates:
+                tmp_len = len(self.diff_keys)
+                for i in range(len(self.configs)):
+                    for j in range(len(self.configs)):
+                        if i == j:
+                            continue
+                        else:
+                            if self.recursive_retrieve(self.configs[i], key_chain) != \
+                                    self.recursive_retrieve(self.configs[j], key_chain):
+                                self.diff_keys.append(key_chain)
+                                break
+                    if len(self.diff_keys) > tmp_len:
+                        break
 
-        self.configs_diff = self.retrieve_diff_configs()
-        self.csv_results = self.parse_results()
+            self.csv_result_keys = [
+                ['central_train$$test_accuracy', lambda x: [x] if x is None else [float(x)]],
+                ['best_metric$$test_accuracy', lambda x: [float(x)]],
+                ['total_time', lambda x: [int(x.split(':')[0]) * 60 + int(x.split(':')[1]) + int(x.split(':')[2]) / 60]],
+                ['total_rounds', lambda x: [int(x)]],
+                ['server_send', lambda x: [float(x)]],
+                ['server_receive', lambda x: [float(x)]],
+                ['time_detail', lambda x: eval(x)],
+            ]
 
-        self.average_results = self.aggregate_csv_results()
+            self.configs_diff = self.retrieve_diff_configs()
+            self.csv_results = self.parse_results()
+
+            self.average_results = self.aggregate_csv_results()
+
+        else:
+
+            self.average_results = None
 
     def plot(self, join_keys=('data_config$$dataset',), label_keys=('model_config$$FedModel$$name',)):
 
@@ -281,9 +287,10 @@ class LogAnalysis:
         return results
 
     def to_csv(self, file_name='average_results.csv'):
-        with open(file_name, 'w') as f:
-            for e in self.average_results:
-                f.write(', '.join([str(e1) for e1 in e]) + '\n')
+        if self.average_results:
+            with open(file_name, 'w') as f:
+                for e in self.average_results:
+                    f.write(', '.join([str(e1) for e1 in e]) + '\n')
 
     @staticmethod
     def process_central_simulate_results(log_files):
