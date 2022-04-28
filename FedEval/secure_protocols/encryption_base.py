@@ -2,8 +2,6 @@ from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 
-# pycryptodome
-
 
 # Authenticated encryption on a string using AES GCM with both encryption and MAC
 def aes_gcm_encrypt(private_key, message, user_add='Default Additional Information'):

@@ -37,3 +37,7 @@ hickle
 # Plots and CV
 matplotlib
 opencv-python-headless
+
+# Secure Protocols
+pycryptodome
+gmpy2
