@@ -1,27 +1,36 @@
 import os
 import json
+import matplotlib.pyplot as plt
 
 from ..config import ConfigurationManager
 
 
 class LogAnalysis:
 
-    def __init__(self, log_dir=os.path.join('log', 'server')):
+    def __init__(self, log_dir):
         self.log_dir = log_dir
-        self.logs = [e for e in os.listdir(log_dir) if not e.startswith('.')]
+
+        self.logs = []
+        for ld in os.listdir(self.log_dir):
+            if ld.startswith('.'):
+                continue
+            target_ld = os.path.join(self.log_dir, ld)
+            if not os.path.isdir(target_ld):
+                continue
+            if 'Server' in os.listdir(target_ld):
+                self.logs.append(target_ld)
 
         self.configs = []
         self.results = []
         for log in self.logs:
             try:
-                c1, c2, c3 = ConfigurationManager.load_configs(os.path.join(log_dir, log))
-                with open(os.path.join(log_dir, log, 'results.json'), 'r') as f:
+                c1, c2, c3 = ConfigurationManager.load_configs(os.path.join(log, 'Server'))
+                with open(os.path.join(log, 'Server', 'results.json'), 'r') as f:
                     results = json.load(f)
                 self.results.append(results)
                 self.configs.append({'data_config': c1, 'model_config': c2, 'runtime_config': c3})
                 print('Get log', log)
-            except FileNotFoundError:
-                print('Config not found in', log, 'skip to next')
+            except:
                 continue
 
         self.omit_keys = [
