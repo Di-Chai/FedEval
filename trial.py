@@ -222,7 +222,10 @@ if args.tune == 'lr':
             model_config['FedModel']['B'] = 8192 * 2
 
     if args.dataset == 'shakespeare':
-        tune_params['lr'] = [1.5, 2, 2.5, 3]
+        tune_params['lr'] = [1.0, 1.5, 2, 2.5, 3]
+
+    if args.dataset == 'semantic140':
+        tune_params['lr'] = [1.0, 1.5, 2, 2.5, 3]
 
 ##################################################
 # Hardware Config
