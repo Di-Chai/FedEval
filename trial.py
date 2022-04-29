@@ -221,11 +221,15 @@ if args.tune == 'lr':
         elif args.dataset == 'shakespeare':
             model_config['FedModel']['B'] = 8192 * 2
 
-    if args.dataset == 'shakespeare':
-        tune_params['lr'] = [1.0, 1.5, 2, 2.5, 3]
-
-    if args.dataset == 'semantic140':
-        tune_params['lr'] = [1.0, 1.5, 2, 2.5, 3]
+    if args.strategy == 'FedSGD' or execution == 'simulate_central':
+        if args.dataset == 'shakespeare':
+            tune_params['lr'] = [1.0, 1.5, 2, 2.5, 3]
+        if args.dataset == 'semantic140':
+            tune_params['lr'] = [1.0, 1.5, 2, 2.5, 3]
+    
+    if args.strategy == 'FedAvg':
+        if args.dataset == 'semantic140':
+            tune_params['lr'] = [0.005, 0.01, 0.05, 0.1]
 
 ##################################################
 # Hardware Config
@@ -267,7 +271,7 @@ if host_name == "gpu01":
     runtime_config['docker']['num_gpu'] = 2
 
 if host_name == "gpu02":
-    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['enable_gpu'] = True
     runtime_config['docker']['num_containers'] = 20
     runtime_config['docker']['num_gpu'] = 2
 
