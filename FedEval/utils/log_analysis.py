@@ -1,27 +1,38 @@
 import os
 import json
+import pdb
 import numpy as np
 
 import matplotlib.pyplot as plt
 
+from dateutil.parser import parse as date_parse
 from ..config import ConfigurationManager
 
 
 class LogAnalysis:
 
     def __init__(self, log_dir):
-        self.log_dir = log_dir
+
+        # sort the log files
+        self.log_dirs = []
+        for ld in os.listdir(log_dir):
+            if not os.path.isdir(os.path.join(log_dir, ld)):
+                continue
+            try:
+                date_parse(ld[:16].replace('_', ''))
+                self.log_dirs.append(ld)
+            except Exception as e:
+                print(e)
+
+        self.log_dirs = sorted(self.log_dirs, key=lambda x: date_parse(x[:16].replace('_', '')))
 
         self.federated_log_dirs = []
         self.log_files_central_simulate = []
         self.log_files_local_simulate = []
         self.log_files_fedsgd_simulate = []
-        for ld in os.listdir(self.log_dir):
-            if ld.startswith('.'):
-                continue
-            target_ld = os.path.join(self.log_dir, ld)
-            if not os.path.isdir(target_ld):
-                continue
+
+        for ld in self.log_dirs:
+            target_ld = os.path.join(log_dir, ld)
             if 'Server' in os.listdir(target_ld):
                 self.federated_log_dirs.append(target_ld)
             else:
@@ -305,31 +316,41 @@ class LogAnalysis:
                 os.remove(log_file)
                 continue
 
-            duration = central_simulation[-3].strip('\n').split(' ')[-1]
-            val_acc = central_simulation[-2].strip('\n').split(', ')[-1]
-            test_acc = central_simulation[-1].strip('\n').split(', ')[-1]
-            num_rounds = central_simulation[-5].split(',')[0]
+            try:
+                duration = central_simulation[-3].strip('\n').split(' ')[-1]
+                val_acc = central_simulation[-2].strip('\n').split(', ')[-1]
+                test_acc = central_simulation[-1].strip('\n').split(', ')[-1]
+                num_rounds = central_simulation[-5].split(',')[0]
+            except IndexError:
+                continue
 
             result_dict[central_simulation[-4]] = result_dict.get(central_simulation[-4], []) + [[
                 int(num_rounds), float(duration), float(val_acc), float(test_acc)]]
 
-            print(central_simulation[-4].strip('\n'), val_acc, test_acc, 'max round',
-                  central_simulation[-5].split(',')[0])
+            print(
+                central_simulation[-4].strip('\n'), val_acc, test_acc, 'max round',
+                central_simulation[-5].split(',')[0]
+            )
 
         results = []
         for key in result_dict:
-            acc_mean = ', '.join(np.mean(result_dict[key], axis=0).astype(str).tolist())
-            acc_std = ', '.join(np.std(result_dict[key], axis=0).astype(str).tolist())
-            results.append(
-                str(len(result_dict[key])) + ', ' + key.strip('\n') + ', ' + acc_mean + ', ' + acc_std + '\n'
-            )
-            print('Repeat', key.strip('\n'), len(result_dict[key]))
+            dataset = key.strip('\n').split(',')[0]
+            for min_length in set([len(result_dict[e]) for e in result_dict if dataset in e]):
+                if min_length > len(result_dict[key]):
+                    continue
+                tmp_record = result_dict[key][:min_length]
+                acc_mean = ', '.join(np.mean(tmp_record, axis=0).astype(str).tolist())
+                acc_std = ', '.join(np.std(tmp_record, axis=0).astype(str).tolist())
+                results.append(
+                    str(len(tmp_record)) + ', ' + key.strip('\n') + ', ' + acc_mean + ', ' + acc_std + '\n'
+                )
+                print('Repeat', key.strip('\n'), len(tmp_record))
 
-        with open('simulate_central.csv', 'w') as f:
-            f.write('Repeat, Dataset, #Clients, LR, '
-                    'Round, Duration, ValAcc, TestAcc, '
-                    'RoundStd, DurationStd, ValStd, TestStd\n')
-            f.writelines(results)
+            with open('simulate_central.csv', 'w') as f:
+                f.write('Repeat, Dataset, #Clients, LR, '
+                        'Round, Duration, ValAcc, TestAcc, '
+                        'RoundStd, DurationStd, ValStd, TestStd\n')
+                f.writelines(results)
 
     @staticmethod
     def process_fedsgd_simulate_results(log_files):
