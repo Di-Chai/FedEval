@@ -231,6 +231,14 @@ if args.tune == 'lr':
         if args.dataset == 'semantic140':
             tune_params['lr'] = [0.005, 0.01, 0.05, 0.1]
 
+    if execution == 'simulate_local':
+        if args.dataset == 'shakespeare':
+            tune_params['lr'] = [1.5, 2, 2.5, 3]
+
+    if args.strategy == 'FedOpt':
+        if args.dataset == 'mnist':
+            tune_params['lr'] = [1.5, 2, 2.5, 3]
+
 ##################################################
 # Hardware Config
 
