@@ -2,7 +2,7 @@ import os
 import argparse
 import socket
 
-from FedEval.run_util import run_util
+from FedEval.run_util import run_util, ConfigurationManager
 from multiprocessing import Process
 
 args_parser = argparse.ArgumentParser()
@@ -269,12 +269,12 @@ if host_name == "gpu06":
     runtime_config['docker']['num_gpu'] = 8
 
 if host_name == "gpu05":
-    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['enable_gpu'] = True
     runtime_config['docker']['num_containers'] = 20
     runtime_config['docker']['num_gpu'] = 2
 
 if host_name == "gpu01":
-    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['enable_gpu'] = True
     runtime_config['docker']['num_containers'] = 20
     runtime_config['docker']['num_gpu'] = 2
 
