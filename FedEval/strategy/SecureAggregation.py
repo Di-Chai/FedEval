@@ -288,7 +288,6 @@ class SecureAggregation(FedStrategy):
             gfp = GaloisFieldParams(p=self._p)
             gfn_encode = np.vectorize(partial(GaloisFieldNumber.encode, gfp=gfp))
             local_weights = [gfn_encode(e.astype(np.float64)) for e in real_local_weights]
-            masked_local_weights = []
             self.logger.info('Start Apply Mask')
             for record in self._peer_dh_pk:
                 cid = record['client_id']
@@ -311,12 +310,12 @@ class SecureAggregation(FedStrategy):
                                 gfp=gfp
                             )
                         )(real_local_weights[i])
-                    masked_local_weights[i] = local_weights[i] + tmp_random_mask
+                    local_weights[i] += tmp_random_mask
                     del tmp_random_mask
+            self.logger.info('End Apply Peer Mask')
             # Add individual mask
-            masked_local_weights_final = []
             random.seed(self._local_mask_seed)
-            for i in range(len(masked_local_weights)):
+            for i in range(len(local_weights)):
                 tmp_random_mask = np.vectorize(
                     lambda _: GaloisFieldNumber(
                         encoding=random.randint(0, self._p),
@@ -324,12 +323,11 @@ class SecureAggregation(FedStrategy):
                         gfp=gfp
                     )
                 )(real_local_weights[i])
-                masked_local_weights_final[i] = masked_local_weights[i] + tmp_random_mask
+                local_weights[i] += tmp_random_mask
                 del tmp_random_mask
-            del local_weights
-            del masked_local_weights
+            self.logger.info('End Apply Local Mask')
             del real_local_weights
-            return {'client_id': self.client_id, 'masked_weights': masked_local_weights_final}
+            return {'client_id': self.client_id, 'masked_weights': local_weights}
         elif self._client_status is SAStatus.RemoveMask:
             global_mask_shares = {}
             local_mask_shares = {}
