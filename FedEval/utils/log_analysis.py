@@ -268,7 +268,6 @@ class LogAnalysis:
         return results
 
     def aggregate_csv_results(self):
-        import numpy as np
         average_results = {}
         for i in range(len(self.configs_diff)):
             key = '$$'.join([str(e) for e in self.configs_diff[i]])
@@ -277,24 +276,30 @@ class LogAnalysis:
             average_results[key].append(self.csv_results[i])
         results = [['Repeat'] + [e.split('$$')[-1] for e in self.diff_keys if e not in self.omit_keys]
                    + [e[0] for e in self.csv_result_keys]]
-        for key in average_results:
-            average = []
-            std = []
-            for k in range(len(average_results[key][0])):
-                tmp = []
-                for j in range(len(average_results[key])):
-                    if average_results[key][j][k] is not None:
-                        tmp.append(average_results[key][j][k])
-                if len(tmp) > 0:
-                    average.append('%.5f' % np.mean(tmp))
-                    std.append('%.5f' % np.std(tmp))
-                else:
-                    average.append('NA')
-                    std.append('NA')
-            results.append(
-                [len(average_results[key])] + key.split('$$') +
-                ['%s(%s)' % (average[i], std[i]) for i in range(len(average))]
-            )
+
+        max_length = max([len(average_results[e]) for e in average_results])
+        for length in range(1, max_length + 1):
+            for key in average_results:
+                if len(average_results[key]) < length:
+                    continue
+                tmp_record = average_results[key][:length]
+                average = []
+                std = []
+                for k in range(len(tmp_record[0])):
+                    tmp = []
+                    for j in range(len(tmp_record)):
+                        if tmp_record[j][k] is not None:
+                            tmp.append(tmp_record[j][k])
+                    if len(tmp) > 0:
+                        average.append('%.5f' % np.mean(tmp))
+                        std.append('%.5f' % np.std(tmp))
+                    else:
+                        average.append('NA')
+                        std.append('NA')
+                results.append(
+                    [len(tmp_record)] + key.split('$$') +
+                    ['%s(%s)' % (average[i], std[i]) for i in range(len(average))]
+                )
         return results
 
     def to_csv(self, file_name='average_results.csv'):
@@ -359,6 +364,9 @@ class LogAnalysis:
 
             with open(log_file, 'r') as f:
                 fed_sgd_simulation = f.readlines()
+
+            if len(fed_sgd_simulation) == 0:
+                continue
 
             if not fed_sgd_simulation[-1].startswith('Best Metric'):
                 print('Incomplete log file, Skip')
@@ -426,4 +434,3 @@ class LogAnalysis:
         with open('simulate_local.csv', 'w') as f:
             f.write('Repeat, Dataset, #Clients, LR, TestAcc, TestStd\n')
             f.writelines(results)
-        
