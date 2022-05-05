@@ -374,12 +374,17 @@ class LogAnalysis:
 
         results = []
         for key in result_dict:
-            acc_mean = ', '.join(np.mean(result_dict[key], axis=0).astype(str).tolist())
-            acc_std = ', '.join(np.std(result_dict[key], axis=0).astype(str).tolist())
-            results.append(
-                str(len(result_dict[key])) + ', ' + key.strip('\n') + ', ' + acc_mean + ', ' + acc_std + '\n'
-            )
-            print('Repeat', key.strip('\n'), len(result_dict[key]))
+            dataset = key.strip('\n').split(',')[0]
+            for min_length in set([len(result_dict[e]) for e in result_dict if dataset in e]):
+                if min_length > len(result_dict[key]):
+                    continue
+                tmp_record = result_dict[key][:min_length]
+                acc_mean = ', '.join(np.mean(tmp_record, axis=0).astype(str).tolist())
+                acc_std = ', '.join(np.std(tmp_record, axis=0).astype(str).tolist())
+                results.append(
+                    str(len(tmp_record)) + ', ' + key.strip('\n') + ', ' + acc_mean + ', ' + acc_std + '\n'
+                )
+                print('Repeat', key.strip('\n'), len(tmp_record))
 
         with open('simulate_fed_sgd.csv', 'w') as f:
             f.write('Repeat, Dataset, #Clients, LR, Round, TestAcc, RoundStd, TestStd\n')
@@ -406,13 +411,19 @@ class LogAnalysis:
 
         results = []
         for key in result_dict:
-            acc_mean = ', '.join(np.mean(result_dict[key], axis=0).astype(str).tolist())
-            acc_std = ', '.join(np.std(result_dict[key], axis=0).astype(str).tolist())
-            results.append(
-                str(len(result_dict[key])) + ', ' + key.strip('\n') + ', ' + acc_mean + ', ' + acc_std + '\n'
-            )
-            print('Repeat', key.strip('\n'), len(result_dict[key]))
+            dataset = key.strip('\n').split(',')[0]
+            for min_length in set([len(result_dict[e]) for e in result_dict if dataset in e]):
+                if min_length > len(result_dict[key]):
+                    continue
+                tmp_record = result_dict[key][:min_length]
+                acc_mean = ', '.join(np.mean(tmp_record, axis=0).astype(str).tolist())
+                acc_std = ', '.join(np.std(tmp_record, axis=0).astype(str).tolist())
+                results.append(
+                    str(len(tmp_record)) + ', ' + key.strip('\n') + ', ' + acc_mean + ', ' + acc_std + '\n'
+                )
+                print('Repeat', key.strip('\n'), len(tmp_record))
 
         with open('simulate_local.csv', 'w') as f:
             f.write('Repeat, Dataset, #Clients, LR, TestAcc, TestStd\n')
             f.writelines(results)
+        
