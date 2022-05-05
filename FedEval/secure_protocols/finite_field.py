@@ -95,6 +95,13 @@ class GaloisFieldNumber:
         else:
             raise NotImplementedError
 
+    def __iadd__(self, other):
+        if type(other) is GaloisFieldNumber and self.exponent == other.exponent:
+            self.encoding = gmpy2.mod(gmpy2.add(self.encoding, other.encoding), self.gfp.p)
+            return self
+        else:
+            return self + other
+
     def __radd__(self, other):
         return self + other
 
