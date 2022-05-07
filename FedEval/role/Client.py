@@ -1,5 +1,6 @@
 import os
 import time
+import copy
 from typing import Any, Mapping
 
 from ..communicaiton import ModelWeightsHandler, get_client_communicator
@@ -91,7 +92,8 @@ class Client(Node):
                         if rt_cfg.comm_fast_mode:
                             if shared_parameter is None:
                                 shared_parameter = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
-                            client_ctx.strategy.set_host_params_to_local(shared_parameter, current_round=current_round)
+                            client_ctx.strategy.set_host_params_to_local(
+                                copy.deepcopy(shared_parameter), current_round=current_round)
                         else:
                             weights = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
                             client_ctx.strategy.set_host_params_to_local(weights, current_round=current_round)
@@ -153,7 +155,8 @@ class Client(Node):
                     if rt_cfg.comm_fast_mode:
                         if shared_parameter is None:
                             shared_parameter = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
-                        client_ctx.strategy.set_host_params_to_local(shared_parameter, current_round=current_round)
+                        client_ctx.strategy.set_host_params_to_local(
+                            copy.deepcopy(shared_parameter), current_round=current_round)
                     else:
                         weights = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
                         client_ctx.strategy.set_host_params_to_local(weights, current_round=current_round)
