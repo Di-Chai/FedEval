@@ -233,11 +233,11 @@ if args.tune == 'lr':
 
     if execution == 'simulate_local':
         if args.dataset == 'shakespeare':
-            tune_params['lr'] = [1.5, 2, 2.5, 3]
+            tune_params['lr'] = [3.5, 4, 4.5, 5, 5.5, 6]
 
     if args.strategy == 'FedOpt':
         if args.dataset == 'mnist':
-            tune_params['lr'] = [1.5, 2, 2.5, 3]
+            tune_params['lr'] = [1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
 
 ##################################################
 # Hardware Config
