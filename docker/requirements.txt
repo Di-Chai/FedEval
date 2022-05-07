@@ -41,3 +41,4 @@ opencv-python-headless
 # Secure Protocols
 pycryptodome
 gmpy2
+phe
