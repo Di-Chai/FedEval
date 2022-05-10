@@ -255,7 +255,7 @@ class Server(Node):
             sum([e.get('max_train', 0), e.get('train_agg', 0), e.get('max_eval', 0), e.get('eval_agg', 0)]
                 ) for e in self._time_record_federated
         ])
-        h_fed, m_fed, s_fed = seconds_to_hms(total_time_in_seconds_federated)
+        h_fed, m_fed, s_fed = seconds_to_hms(int(total_time_in_seconds_federated))
         keys = ['update_send', 'update_run', 'update_receive', 'agg_server',
                 'eval_send', 'eval_run', 'eval_receive', 'server_eval']
         avg_time_records = [np.mean([e.get(key, 0) for e in self._time_record_real_world]) for key in keys]
