@@ -18,7 +18,7 @@ import yaml
 
 from .config.configuration import *
 from FedEval.run import generate_data, run
-from FedEval.utils import ParamParser, LogAnalysis
+from FedEval.utils import ParamParser, LogAnalysis, History
 from multiprocessing import Pool
 
 sudo = ""
@@ -266,11 +266,10 @@ def run_util(execution, mode, config, overwrite_config=False, skip_if_exit=True,
             server_stop()
 
     if skip_if_exit and os.path.isfile(os.path.join(cfg_mgr.history_record_path, 'history.json')):
-        with open(os.path.join(cfg_mgr.history_record_path, 'history.json'), 'r') as f:
-            history = json.load(f)
-        if config_unique_id in history and history[config_unique_id].get('finished', False) is True:
+        history = History(cfg_mgr.history_record_path)
+        if history.check_exist(config_unique_id):
             print('#' * 40)
-            print(f"Found existing log in {history[config_unique_id].get('log_path')}")
+            print(f"Found existing log in history {history.query(config_unique_id)}")
             print('Skipping this run...')
             print('#' * 40)
             execution = None

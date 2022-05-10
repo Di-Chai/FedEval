@@ -1268,7 +1268,7 @@ class ConfigurationManager(Singleton,
         """the path of the base of log directory."""
         return os.path.join(
             self._rt_cfg.inner[_RT_LOG_KEY][_RT_L_DIR_PATH_KEY],
-            self._job_time + '_' + self.config_unique_id[:8]
+            self._job_time + '_' + self.config_unique_id
         )
 
     @property

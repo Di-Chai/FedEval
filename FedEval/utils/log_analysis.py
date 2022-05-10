@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 import pdb
@@ -9,9 +10,54 @@ from dateutil.parser import parse as date_parse
 from ..config import ConfigurationManager
 
 
+class History:
+
+    def __init__(self, path):
+        self._history_path = path
+        if os.path.isfile(os.path.join(self._history_path, 'history.json')):
+            with open(os.path.join(self._history_path, 'history.json'), 'r') as f:
+                self._history = json.load(f)
+        else:
+            self._history = {}
+
+    def _real_config_id(self, config_id):
+        for key in self._history:
+            if config_id.startswith(key) or key.startswith(config_id):
+                return key
+        return None
+
+    def check_exist(self, config_id) -> bool:
+        return self._real_config_id(config_id) is not None
+
+    def update(self, config_id, log_path):
+        if not self.check_exist(config_id):
+            self._history[config_id] = {'finished': True, 'log_path': log_path}
+            self.flush()
+
+    def flush(self):
+        with open(os.path.join(self._history_path, 'history.json'), 'w') as f:
+            json.dump(self._history, f)
+
+    def delete(self, config_id):
+        if self.check_exist(config_id):
+            for key in self._history:
+                if key == config_id or key.startswith(config_id):
+                    self._history.pop(config_id)
+                    self.flush()
+        else:
+            logging.warning(f'{config_id} not exist in history')
+
+    def query(self, config_id):
+        if self.check_exist(config_id):
+            return self._history[self._real_config_id(config_id)]
+
+
 class LogAnalysis:
 
     def __init__(self, log_dir):
+
+        # load the history json
+        self.history = History(log_dir)
 
         # sort the log files
         self.log_dirs = []
@@ -57,9 +103,10 @@ class LogAnalysis:
                     results = json.load(f)
                 self.results.append(results)
                 self.configs.append({'data_config': c1, 'model_config': c2, 'runtime_config': c3})
-                print('Get log', log)
+                print('Get FL Training log', log)
+                self.history.update(config_id=log.split('_')[-1], log_path=log)
             except:
-                continue
+                pass
 
         self.omit_keys = [
             'runtime_config$$machines',
@@ -100,7 +147,8 @@ class LogAnalysis:
             self.csv_result_keys = [
                 ['central_train$$test_accuracy', lambda x: [x] if x is None else [float(x)]],
                 ['best_metric$$test_accuracy', lambda x: [float(x)]],
-                ['total_time', lambda x: [int(x.split(':')[0]) * 60 + int(x.split(':')[1]) + int(x.split(':')[2]) / 60]],
+                ['total_time',
+                 lambda x: [int(x.split(':')[0]) * 60 + int(x.split(':')[1]) + int(x.split(':')[2]) / 60]],
                 ['total_rounds', lambda x: [int(x)]],
                 ['server_send', lambda x: [float(x)]],
                 ['server_receive', lambda x: [float(x)]],
@@ -308,8 +356,7 @@ class LogAnalysis:
                 for e in self.average_results:
                     f.write(', '.join([str(e1) for e1 in e]) + '\n')
 
-    @staticmethod
-    def process_central_simulate_results(log_files):
+    def process_central_simulate_results(self, log_files):
         result_dict = {}
         for log_file in log_files:
 
@@ -328,6 +375,8 @@ class LogAnalysis:
                 num_rounds = central_simulation[-5].split(',')[0]
             except IndexError:
                 continue
+
+            self.history.update(config_id=os.path.dirname(log_file).split('_')[-1], log_path=log_file)
 
             result_dict[central_simulation[-4]] = result_dict.get(central_simulation[-4], []) + [[
                 int(num_rounds), float(duration), float(val_acc), float(test_acc)]]
@@ -357,8 +406,7 @@ class LogAnalysis:
                         'RoundStd, DurationStd, ValStd, TestStd\n')
                 f.writelines(results)
 
-    @staticmethod
-    def process_fedsgd_simulate_results(log_files):
+    def process_fedsgd_simulate_results(self, log_files):
         result_dict = {}
         for log_file in log_files:
 
@@ -372,6 +420,8 @@ class LogAnalysis:
                 print('Incomplete log file, Skip')
                 os.remove(log_file)
                 continue
+
+            self.history.update(config_id=os.path.dirname(log_file).split('_')[-1], log_path=log_file)
 
             test_acc = fed_sgd_simulation[-1].strip('\n').split(', ')[-1]
 
@@ -398,8 +448,7 @@ class LogAnalysis:
             f.write('Repeat, Dataset, #Clients, LR, Round, TestAcc, RoundStd, TestStd\n')
             f.writelines(results)
 
-    @staticmethod
-    def process_local_simulate_results(log_files):
+    def process_local_simulate_results(self, log_files):
         result_dict = {}
         for log_file in log_files:
 
@@ -410,6 +459,8 @@ class LogAnalysis:
                 print('Incomplete log file, Skip')
                 os.remove(log_file)
                 continue
+
+            self.history.update(config_id=os.path.dirname(log_file).split('_')[-1], log_path=log_file)
 
             test_acc = local_simulation[-1].strip('\n').split(', ')[-1]
 

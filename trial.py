@@ -21,48 +21,53 @@ args = args_parser.parse_args()
 
 fine_tuned_params = {
     'mnist': {
-        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.07},
-        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.3},
-        'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.7},
+        'Local': {'B': 8192, 'C': None, 'E': None, 'lr': 0.005},
+        'Central': {'B': 8192, 'C': None, 'E': None, 'lr': 0.5},
+        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.5},
+        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},
+        'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.5},
-        'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.5},
-        'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': 0.01},
+        'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 3},
         'model': 'MLP'
     },
     'femnist': {
-        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.009},  # re
-        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.005},  # re
-        'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.3},
-        'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.3},
-        'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.3},
-        'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': 0.1},
+        'Local': {'B': 8192, 'C': None, 'E': None, 'lr': 0.1},
+        'Central': {'B': 8192, 'C': None, 'E': None, 'lr': 0.05},
+        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.1},
+        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},
+        'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
+        'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
+        'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'model': 'LeNet'
     },
     'celeba': {
-        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.03},  # re
-        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},  # re
-        'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.3},
+        'Local': {'B': 8192, 'C': None, 'E': None, 'lr': 0.05},
+        'Central': {'B': 8192, 'C': None, 'E': None, 'lr': 0.05},
+        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.01},
+        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},
+        'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
-        'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.5},
-        'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': 0.01},
+        'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'model': 'LeNet'
     },
     "semantic140": {
-        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.009},  # re
-        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.007},  # re
-        'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.05},
-        'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.03},
+        'Local': {'B': 8192, 'C': None, 'E': None, 'lr': 0.1},
+        'Central': {'B': 8192, 'C': None, 'E': None, 'lr': 2.5},
+        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.01},
+        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},
+        'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.005},
+        'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.05},
         'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
-        'LocalCentral': {'B': 8192, 'C': None, 'E': None, 'lr': 0.01},
         'model': 'StackedLSTM'
     },
     "shakespeare": {
-        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.1},  # re
+        'Local': {'B': 8192 * 2, 'C': None, 'E': None, 'lr': 3},
+        'Central': {'B': 8192 * 2, 'C': None, 'E': None, 'lr': 2},
+        'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 2},  # re
         'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},  # re
-        'FedAvg': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
+        'FedAvg': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': 0.05},
         'FedProx': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
         'FedOpt': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
-        'LocalCentral': {'B': 8192 * 2, 'C': None, 'E': None, 'lr': None},
         'model': 'StackedLSTM'
     }
 }
@@ -70,19 +75,16 @@ fine_tuned_params = {
 # Inherit
 parsed_strategy = {
     'MFedSGD': 'FedSGD',
-    'FedSTC': 'FedSGD',
     'MFedAvg': 'FedAvg',
-    'FedProx': 'FedAvg',
-    'FedOpt': 'FedAvg',
-    'FedSCA': 'FedAvg',
 }
 
 try:
     if args.strategy in parsed_strategy:
-        p = fine_tuned_params[args.dataset][parsed_strategy[args.strategy]]
+        p: dict = fine_tuned_params[args.dataset][parsed_strategy[args.strategy]]
     else:
-        p = fine_tuned_params[args.dataset][args.strategy]
+        p: dict = fine_tuned_params[args.dataset][args.strategy]
 except KeyError:
+    p = {}
     print('No params found')
     exit(1)
 
@@ -186,7 +188,7 @@ if args.strategy == 'FedOpt':
 if args.strategy == 'FedSTC':
     model_config['FedModel']['sparsity'] = 0.01
 
-if args.strategy == 'LocalCentral':
+if args.strategy == 'Central' or args.strategy == 'Local':
     model_config['FedModel']['C'] = None
     model_config['FedModel']['E'] = None
     if execution == 'simulate_central':
@@ -234,6 +236,8 @@ if args.tune == 'lr':
     if execution == 'simulate_local':
         if args.dataset == 'shakespeare':
             tune_params['lr'] = [3.5, 4, 4.5, 5, 5.5, 6]
+        if args.dataset == 'semantic140':
+            tune_params['lr'] = [5e-2, 1e-1, 5e-1, 1.0]
 
     if args.strategy == 'FedOpt':
         if args.dataset == 'mnist':
@@ -304,16 +308,17 @@ if __name__ == '__main__':
     for seed in range(repeat):
         params['data_config']['random_seed'] = seed
         if args.tune is None:
-            p = Process(target=run_util, args=(execution, mode, config), kwargs=params)
-            p.start()
-            p.join()
+            pro = Process(target=run_util, args=(execution, mode, config), kwargs=params)
+            pro.start()
+            pro.join()
         else:
             print('Tuning', args.tune)
             if args.tune == 'lr':
                 for lr in tune_params['lr']:
                     params['model_config']['MLModel']['optimizer']['lr'] = lr
-                    p = Process(target=run_util, args=(execution, mode, config), kwargs=params)
-                    p.start()
-                    p.join()
+                    pro = Process(target=run_util, args=(execution, mode, config), kwargs=params)
+                    pro.start()
+                    pro.join()
             else:
                 raise ValueError('Unknown tuning params', args.tune)
+    
