@@ -129,8 +129,7 @@ runtime_config = {
         'bandwidth_upload': '100Mbit',
         'bandwidth_download': '100Mbit',
         'latency': '50ms',
-        # TODO: Clear the true
-        'fast_mode': True
+        'fast_mode': False
         }
 }
 
@@ -205,6 +204,7 @@ if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
 ##################################################
 # Limit the max_epoch to 100 if doing LR tuning
 if args.tune == 'lr':
+    runtime_config['communication']['fast_mode'] = True
     runtime_config['communication']['limit_network_resource'] = False
     if args.strategy == 'FedSGD':
         # Simulation
