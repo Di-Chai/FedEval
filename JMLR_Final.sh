@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 export FED_EVAL_REPEAT=10
-export FED_EVAL_LOG_DIR=log/JMLRSummary
+export FED_EVAL_LOG_DIR=log/JMLR
 
 # FedSGD
 docker run -it --rm --gpus '"device=0"' -v $(pwd):/fml -w /fml fedeval:v1 python trial.py -s FedSGD -c configs/quickstart -m local -i true -r $FED_EVAL_REPEAT -l $FED_EVAL_LOG_DIR -e simulate_fedsgd -d femnist
