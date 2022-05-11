@@ -1240,12 +1240,16 @@ class ConfigurationManager(Singleton,
 
     @property
     def config_unique_id(self):
+        return self.generate_unique_id(self._d_cfg.inner, self._mdl_cfg.inner, self._rt_cfg.inner)
+
+    @classmethod
+    def generate_unique_id(cls, data_config: dict, model_config: dict, runtime_config: dict):
         unique_configs = [
-            json.dumps(self._d_cfg.inner, sort_keys=True),
-            json.dumps(self._mdl_cfg.inner, sort_keys=True),
-            json.dumps(self._rt_cfg.inner, sort_keys=True)
+            json.dumps(data_config, sort_keys=True),
+            json.dumps(model_config, sort_keys=True),
+            json.dumps(runtime_config, sort_keys=True)
         ]
-        return self._get_md5(','.join(unique_configs))
+        return cls._get_md5(','.join(unique_configs))
 
     @staticmethod
     def _get_md5(config_string):
