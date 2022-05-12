@@ -23,6 +23,8 @@ if __name__ == '__main__':
     params['runtime_config']['server']['listen'] = "127.0.0.1"
     params['runtime_config']['server']['port'] = 8010
     params['runtime_config']['log']['console_log_level'] = 'ERROR'
+    
+    params['runtime_config']['docker']['num_containers'] = 10
 
     for seed in range(repeat):
         params['data_config']['random_seed'] = seed
