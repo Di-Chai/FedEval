@@ -447,6 +447,7 @@ class FedStrategy(FedStrategyInterface):
             x=self.train_data['x'], y=self.train_data['y'],
             epochs=mdl_cfg.E,
             batch_size=mdl_cfg.B,
+            verbose=0,
         )
         train_loss = train_log.history['loss'][-1]
         self.local_params_cur = self.ml_model.get_weights()
@@ -464,9 +465,9 @@ class FedStrategy(FedStrategyInterface):
     def local_evaluate(self) -> Mapping[str, Union[int, float]]:
         # val and test
         val_result = self.ml_model.evaluate(
-            x=self.val_data['x'], y=self.val_data['y'], batch_size=4096)
+            x=self.val_data['x'], y=self.val_data['y'], batch_size=4096, verbose=0)
         test_result = self.ml_model.evaluate(
-            x=self.test_data['x'], y=self.test_data['y'], batch_size=4096)
+            x=self.test_data['x'], y=self.test_data['y'], batch_size=4096, verbose=0)
         metrics_names = self.ml_model.metrics_names
         # Reformat
         evaluate = {

@@ -290,14 +290,13 @@ def run_util(execution, mode, config, overwrite_config=False, skip_if_exit=True,
 
         if mode == 'without-docker':
             generate_data(save_file=True)
-            p = Pool(rt_cfg.container_num + 1)
-            p.apply_async(run, args=(
+            process_pool = Pool(rt_cfg.container_num + 1)
+            process_pool.apply_async(run, args=(
                 'server', new_config_dir_path, UNIFIED_JOB_TIME), error_callback=_handle_errors)
             for i in range(rt_cfg.container_num):
-                p.apply_async(run, args=(
+                process_pool.apply_async(run, args=(
                     'client', new_config_dir_path, UNIFIED_JOB_TIME, str(i)), error_callback=_handle_errors)
-            p.close()
-            p.join()
+            process_pool.close()
 
         if mode == 'local':
             current_path = os.path.abspath('./')
@@ -419,6 +418,9 @@ def run_util(execution, mode, config, overwrite_config=False, skip_if_exit=True,
 
         if mode == 'remote':
             server_stop()
+
+        if mode == 'without-docker':
+            process_pool.terminate()
 
         _write_history()
 
