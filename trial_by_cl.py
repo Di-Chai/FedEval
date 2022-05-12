@@ -21,13 +21,27 @@ if __name__ == '__main__':
 
     params['runtime_config']['server']['host'] = "127.0.0.1"
     params['runtime_config']['server']['listen'] = "127.0.0.1"
-    params['runtime_config']['server']['port'] = 8010
     params['runtime_config']['log']['console_log_level'] = 'ERROR'
 
     params['runtime_config']['docker']['num_containers'] = 10
     params['runtime_config']['docker']['enable_gpu'] = True
     params['runtime_config']['docker']['num_gpu'] = 1
-    
+
+    if args.dataset == 'mnist':
+        params['runtime_config']['server']['port'] = 8010
+
+    if args.dataset == 'femnist':
+        params['runtime_config']['server']['port'] = 8011
+
+    if args.dataset == 'celeba':
+        params['runtime_config']['server']['port'] = 8012
+
+    if args.dataset == 'semantic140':
+        params['runtime_config']['server']['port'] = 8013
+
+    if args.dataset == 'shakespeare':
+        params['runtime_config']['server']['port'] = 8014
+
     for seed in range(repeat):
         params['data_config']['random_seed'] = seed
         if args.tune is None:
