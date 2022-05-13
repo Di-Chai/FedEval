@@ -8,7 +8,9 @@ from .FedDataBase import FedData, shuffle
 
 class mnist(FedData):
     def load_data(self):
-        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+        )
         x = np.concatenate((x_train, x_test), axis=0)
         y = np.concatenate((y_train, y_test), axis=0)
         x = np.expand_dims(x, axis=-1)
@@ -22,7 +24,9 @@ class mnist(FedData):
 
 class cifar10(FedData):
     def load_data(self):
-        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+        )
         x = np.concatenate((x_train, x_test), axis=0)
         y = np.concatenate((y_train, y_test), axis=0)
         if len(y.shape) == 1 or y.shape[-1] == 1:
@@ -35,7 +39,9 @@ class cifar10(FedData):
 
 class cifar100(FedData):
     def load_data(self):
-        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar100.load_data()
+        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar100.load_data(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+        )
         x = np.concatenate((x_train, x_test), axis=0)
         y = np.concatenate((y_train, y_test), axis=0)
         if len(y.shape) == 1 or y.shape[-1] == 1:
