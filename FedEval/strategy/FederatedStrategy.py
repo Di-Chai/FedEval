@@ -232,14 +232,9 @@ class FedStrategyPeerInterface(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def load_data_with(self, client_id) -> None:
+    def load_data(self) -> None:
         """load data with respect to the id of this client.
-
         TODO(fgh): move this duty into data related modules.
-
-        Args:
-            client_id: the id of this client.
-
         Raises:
             NotImplementedError: raised when called but not implemented.
         """
@@ -295,12 +290,14 @@ class FedStrategyInterface(FedStrategyHostInterface, FedStrategyPeerInterface):
 class FedStrategy(FedStrategyInterface):
     """the basic class of federated strategies."""
 
-    def __init__(self, param_parser_type: type = ParamParser, logger=None):
+    def __init__(self, client_id=None, param_parser_type: type = ParamParser, logger=None):
         self._param_parser: ParamParserInterface = param_parser_type()
         if not isinstance(self._param_parser, ParamParserInterface):
             raise ValueError(f"param_parser_class({type(param_parser_type)})"
                              + f"should implement {type(ParamParserInterface)}")
+        self._client_id = client_id
         self._init_states()
+        self._init_data()
         self._init_model()
         self._config_callback()
         self.logger = logger
@@ -315,6 +312,13 @@ class FedStrategy(FedStrategyInterface):
     def _init_model(self):
         self.ml_model = self.param_parser.parse_model(client_id=self.client_id)
 
+    def _init_data(self) -> None:
+        if ConfigurationManager().role != Role.Client:
+            raise TypeError(
+                f"This {self.__class__.__name__}'s role is not a {Role.Client.value}.")
+        self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(
+            self.client_id)
+
     def _init_states(self):
         self.current_round: Optional[int] = None
         cfg_mgr = ConfigurationManager()
@@ -327,6 +331,7 @@ class FedStrategy(FedStrategyInterface):
             self.train_selected_clients = None
             self.eval_selected_clients = None
         elif role == Role.Client:
+
             self._client_params = None
             self.local_params_pre = None
             self.local_params_cur = None
@@ -390,14 +395,6 @@ class FedStrategy(FedStrategyInterface):
     @eval_selected_clients.setter
     def eval_selected_clients(self, value):
         self._eval_selected_clients = value
-
-    def load_data_with(self, client_id) -> None:
-        if ConfigurationManager().role != Role.Client:
-            raise TypeError(
-                f"This {self.__class__.__name__}'s role is not a {Role.Client.value}.")
-        self._client_id = client_id
-        self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(
-            self.client_id)
     
     def retrieve_host_download_info(self) -> ModelWeights:
         # By default, the host params will be downloaded

@@ -22,7 +22,7 @@ class Client(Node):
         cfg_mgr.role = Role.Client
         super().__init__()
         container_id = int(os.environ.get('CONTAINER_ID', 0))
-        self._init_logger(container_id)
+        self._init_logger(container_id, )
         self._ctx_mgr = ClientContextManager(container_id, self._hyper_logger._log_dir_path)
         self._ctx_mgr.set_logger(self.logger)
         # self._communicator = ClientFlaskCommunicator()
@@ -35,7 +35,7 @@ class Client(Node):
         self._register_handles()
         self.start()
 
-    def _init_logger(self, container_id):
+    def _init_logger(self, container_id, **kwargs):
         self._hyper_logger = HyperLogger('container', f'Container{container_id}')
         self.logger = self._hyper_logger.get()
 

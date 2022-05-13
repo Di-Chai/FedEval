@@ -9,15 +9,14 @@ from ..utils.utils import obj_to_pickle_string, pickle_string_to_obj
 
 ContainerId = int   # to identify container
 
-class ClientContext:
-    def __init__(self, id: ClientId, fed_strategy: type, temp_dir_path: str) -> None:
-        self._strategy: Optional[FedStrategyInterface] = fed_strategy()
-        self._strategy.load_data_with(id)
 
+class ClientContext:
+    def __init__(self, client_id: ClientId, fed_strategy: type, temp_dir_path: str) -> None:
+        self._strategy: Optional[FedStrategyInterface] = fed_strategy(client_id=client_id)
         self._local_train_round: int = 0
         self._host_params_round: int = -1
-        self._id: ClientId = id
-        self._sleep_files_base_path = os.path.join(temp_dir_path, f'client_{id}_fed_model')
+        self._id: ClientId = client_id
+        self._sleep_files_base_path = os.path.join(temp_dir_path, f'client_{client_id}_fed_model')
         self.__ml_model_tmp: Optional[Any] = None
 
     @property
