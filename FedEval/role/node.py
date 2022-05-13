@@ -70,4 +70,4 @@ class Node(metaclass=ABCMeta):
                     # Memory growth must be set before GPUs have been initialized
                     print(e)  # TODO(fgh) expose this exception
         else:
-            os.environ['CUDA_VISIBLE_DEVICES'] = -1
+            os.environ['CUDA_VISIBLE_DEVICES'] = "-1"

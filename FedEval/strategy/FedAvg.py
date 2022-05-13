@@ -13,15 +13,6 @@ class FedAvg(FedStrategy):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    # Testing Function, which is not used by any strategy
-    def compute_gradients(self, x, y):
-        with tf.GradientTape() as tape:
-            y_hat = self.ml_model(x)
-            loss_op = tf.keras.losses.get(ConfigurationManager().model_config.loss_calc_method)
-            loss = loss_op(y, y_hat)
-            gradients = tape.gradient(loss, self.ml_model.trainable_variables)
-        return gradients
-
     def host_select_train_clients(self, ready_clients):
         cfg = ConfigurationManager()
         if self.eval_selected_clients is not None and \
@@ -49,4 +40,44 @@ class FedAvg(FedStrategy):
 
 
 class FedSGD(FedAvg):
-    pass
+
+    # Testing Function, which is not used by any strategy
+    def compute_gradients(self, x, y):
+        with tf.GradientTape() as tape:
+            y_hat = self.ml_model(x)
+            loss_op = tf.keras.losses.get(ConfigurationManager().model_config.loss_calc_method)
+            loss = loss_op(y, y_hat)
+            gradients = tape.gradient(loss, self.ml_model.trainable_variables)
+        for i in range(len(gradients)):
+            try:
+                gradients[i] = gradients[i].numpy()
+            except AttributeError:
+                gradients[i] = tf.convert_to_tensor(gradients[0]).numpy()
+        try:
+            loss = loss.numpy()
+        except AttributeError:
+            loss = tf.convert_to_tensor(loss).numpy()
+        return loss, gradients
+
+    def fit_on_local_data(self):
+        batched_gradients = []
+        batched_loss = []
+        actual_size = []
+        x_train = self.train_data['x']
+        y_train = self.train_data['y']
+        parallel_size = 1024
+        for i in range(0, len(x_train), parallel_size):
+            actual_size.append(min(parallel_size, len(x_train) - i))
+            tmp_loss, tmp_gradients = self.compute_gradients(
+                x_train[i:i + parallel_size], y_train[i:i + parallel_size])
+            batched_gradients.append([e / float(actual_size[-1]) for e in tmp_gradients])
+            batched_loss.append(np.mean(tmp_loss))
+        actual_size = np.array(actual_size) / np.sum(actual_size)
+        aggregated_gradients = []
+        for i in range(len(batched_gradients[0])):
+            aggregated_gradients.append(np.average([e[i] for e in batched_gradients], axis=0, weights=actual_size))
+        batched_loss = np.average(batched_loss, weights=actual_size)
+        self.local_params_pre = self.ml_model.get_weights()
+        self.ml_model.optimizer.apply_gradients(zip(aggregated_gradients, self.ml_model.trainable_variables))
+        self.local_params_cur = self.ml_model.get_weights()
+        return batched_loss, len(x_train)

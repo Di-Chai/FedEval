@@ -8,6 +8,7 @@ from scipy.sparse import lil_matrix
 from ..aggregater import aggregate_weighted_average
 from ..config import ConfigurationManager, Role
 from .FederatedStrategy import FedStrategy
+from .FedAvg import FedSGD
 
 
 def sparse_mask(value_list, p=0.01):
@@ -49,7 +50,7 @@ def sparse_mask(value_list, p=0.01):
     return mask
 
 
-class FedSTC(FedStrategy):
+class FedSTC(FedSGD):
 
     def __init__(self, **kwargs):
         super(FedSTC, self).__init__(**kwargs)
