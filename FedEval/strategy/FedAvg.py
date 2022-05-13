@@ -26,7 +26,6 @@ class FedAvg(FedStrategy):
             self.train_selected_clients = np.random.choice(
                 list(ready_clients), cfg.num_of_train_clients_contacted_per_round, replace=False
             )
-        print('self.train_selected_clients', self.train_selected_clients)
         return self.train_selected_clients.tolist()
 
     def host_select_evaluate_clients(self, ready_clients):
@@ -58,6 +57,14 @@ class FedSGD(FedAvg):
         except AttributeError:
             loss = tf.convert_to_tensor(loss).numpy()
         return loss, gradients
+
+    def host_select_train_clients(self, ready_clients):
+        self.train_selected_clients = ready_clients
+        return self.train_selected_clients
+
+    def host_select_evaluate_clients(self, ready_clients):
+        self.eval_selected_clients = ready_clients
+        return self.eval_selected_clients
 
     def fit_on_local_data(self):
         batched_gradients = []
