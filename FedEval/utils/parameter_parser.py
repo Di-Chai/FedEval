@@ -67,13 +67,13 @@ class ParamParser(ParamParserInterface):
                     # Currently, memory growth needs to be the same across GPUs
                     for gpu in gpus:
                         tf.config.experimental.set_memory_growth(gpu, True)
-                    if len(gpus) > 1:
-                        CUDA_VISIBLE_DEVICES = [e.name.split(':')[-1] for e in gpus]
+                    if len(os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',')) > 1:
+                        CUDA_VISIBLE_DEVICES = os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',')
                         if client_id is not None:
                             selected_gpu = int(client_id) % len(gpus)
-                            os.environ['CUDA_VISIBLE_DEVICES'] = int(CUDA_VISIBLE_DEVICES[selected_gpu])
+                            os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES[selected_gpu]
                         else:
-                            os.environ['CUDA_VISIBLE_DEVICES'] = int(CUDA_VISIBLE_DEVICES[0])
+                            os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES[0]
                     logical_gpus = tf.config.list_logical_devices('GPU')
                     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
                 except RuntimeError as e:
