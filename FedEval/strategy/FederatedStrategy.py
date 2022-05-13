@@ -231,14 +231,14 @@ class FedStrategyPeerInterface(metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def load_data(self) -> None:
-        """load data with respect to the id of this client.
-        TODO(fgh): move this duty into data related modules.
-        Raises:
-            NotImplementedError: raised when called but not implemented.
-        """
-        raise NotImplementedError
+    # @abstractmethod
+    # def _load_data(self) -> None:
+    #     """load data with respect to the id of this client.
+    #     TODO(fgh): move this duty into data related modules.
+    #     Raises:
+    #         NotImplementedError: raised when called but not implemented.
+    #     """
+    #     raise NotImplementedError
 
 
 class FedStrategyInterface(FedStrategyHostInterface, FedStrategyPeerInterface):
