@@ -59,29 +59,6 @@ class ParamParser(ParamParserInterface):
     def parse_model(client_id=None):
         x_size, y_size = get_data_shape(ConfigurationManager().data_config.dataset_name)
         cfg_mgr = ConfigurationManager()
-        # (0) Test, Config the GPU
-        if cfg_mgr.runtime_config.gpu_enabled:
-            gpus = tf.config.list_physical_devices('GPU')
-            if gpus:
-                try:
-                    # Currently, memory growth needs to be the same across GPUs
-                    for gpu in gpus:
-                        tf.config.experimental.set_memory_growth(gpu, True)
-                    if len(os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',')) > 1:
-                        CUDA_VISIBLE_DEVICES = os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',')
-                        if client_id is not None:
-                            selected_gpu = int(client_id) % len(gpus)
-                            os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES[selected_gpu]
-                        else:
-                            os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES[0]
-                    logical_gpus = tf.config.list_logical_devices('GPU')
-                    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-                except RuntimeError as e:
-                    # Memory growth must be set before GPUs have been initialized
-                    print(e)  # TODO(fgh) expose this exception
-        else:
-            os.environ['CUDA_VISIBLE_DEVICES'] = -1
-
         mdl_cfg = cfg_mgr.model_config
         mdl_cfg_inner = mdl_cfg.inner['MLModel']
         optimizer = tf.keras.optimizers.get(mdl_cfg.optimizer_name)
@@ -107,7 +84,7 @@ class ParamParser(ParamParserInterface):
     @staticmethod
     def parse_data(client_id) -> Tuple[XYData, XYData, XYData]:
         data_path = os.path.join(ConfigurationManager().data_dir_name, f'client_{client_id}.pkl')
-        data = hickle.load(data_path)
+        data: dict = hickle.load(data_path)
         train_data = {'x': data.get('x_train', []), 'y': data.get('y_train', [])}
         val_data = {'x': data.get('x_val', []), 'y': data.get('y_val', [])}
         test_data = {'x': data.get('x_test', []), 'y': data.get('y_test', [])}

@@ -32,6 +32,7 @@ class Server(Node):
         self._construct_fed_model()
         self._init_logger()
         self._init_states()
+        self._config_gpu()
 
         # self._communicator = ServerFlaskCommunicator()
         self._communicator = get_server_communicator()

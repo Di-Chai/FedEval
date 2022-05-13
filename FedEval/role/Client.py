@@ -23,6 +23,7 @@ class Client(Node):
         super().__init__()
         container_id = int(os.environ.get('CONTAINER_ID', 0))
         self._init_logger(container_id, )
+        self._config_gpu(container_id)
         self._ctx_mgr = ClientContextManager(container_id, self._hyper_logger._log_dir_path)
         self._ctx_mgr.set_logger(self.logger)
         # self._communicator = ClientFlaskCommunicator()

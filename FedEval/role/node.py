@@ -43,3 +43,29 @@ class Node(metaclass=ABCMeta):
         self.logger.addHandler(fh)
         self.logger.addHandler(ch)
         # self.fed_model.set_logger(self.logger)
+
+    @staticmethod
+    def _config_gpu(container_id=None):
+        import tensorflow as tf
+        cfg_mgr = ConfigurationManager()
+        if cfg_mgr.runtime_config.gpu_enabled:
+            gpus = tf.config.list_physical_devices('GPU')
+            if gpus:
+                try:
+                    # Currently, memory growth needs to be the same across GPUs
+                    for gpu in gpus:
+                        tf.config.experimental.set_memory_growth(gpu, True)
+                    if len(os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',')) > 1:
+                        CUDA_VISIBLE_DEVICES = os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',')
+                        if container_id is not None:
+                            selected_gpu = int(container_id) % len(gpus)
+                            os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES[selected_gpu]
+                        else:
+                            os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES[0]
+                    logical_gpus = tf.config.list_logical_devices('GPU')
+                    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+                except RuntimeError as e:
+                    # Memory growth must be set before GPUs have been initialized
+                    print(e)  # TODO(fgh) expose this exception
+        else:
+            os.environ['CUDA_VISIBLE_DEVICES'] = -1
