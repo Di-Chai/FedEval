@@ -12,7 +12,8 @@ from ..dataset import get_data_shape
 from ..model import *
 
 Data = Any
-XYData = Mapping[str, Data] # {'x': Data, 'y': Data}
+XYData = Mapping[str, Data]  # {'x': Data, 'y': Data}
+
 
 class ParamParserInterface(metaclass=ABCMeta):
     """ Abstract class of ParamParser, containing basic params parse functions.
@@ -23,7 +24,7 @@ class ParamParserInterface(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def parse_model() -> tf.keras.Model:
+    def parse_model(client_id: int = None) -> tf.keras.Model:
         """construct a tensorflow model according to the model configuration.
 
         Raises:
@@ -55,7 +56,7 @@ class ParamParser(ParamParserInterface):
     """an implentation of ParamParserInterface."""
 
     @staticmethod
-    def parse_model():
+    def parse_model(client_id=None):
         x_size, y_size = get_data_shape(ConfigurationManager().data_config.dataset_name)
         cfg_mgr = ConfigurationManager()
         # (0) Test, Config the GPU
@@ -66,11 +67,20 @@ class ParamParser(ParamParserInterface):
                     # Currently, memory growth needs to be the same across GPUs
                     for gpu in gpus:
                         tf.config.experimental.set_memory_growth(gpu, True)
+                    if len(gpus) > 1:
+                        CUDA_VISIBLE_DEVICES = [e.name.split(':')[-1] for e in gpus]
+                        if client_id is not None:
+                            selected_gpu = int(client_id) % len(gpus)
+                            os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES[selected_gpu]
+                        else:
+                            os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES[0]
                     logical_gpus = tf.config.list_logical_devices('GPU')
                     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
                 except RuntimeError as e:
                     # Memory growth must be set before GPUs have been initialized
-                    print(e) # TODO(fgh) expose this exception
+                    print(e)  # TODO(fgh) expose this exception
+        else:
+            os.environ['CUDA_VISIBLE_DEVICES'] = -1
 
         mdl_cfg = cfg_mgr.model_config
         mdl_cfg_inner = mdl_cfg.inner['MLModel']

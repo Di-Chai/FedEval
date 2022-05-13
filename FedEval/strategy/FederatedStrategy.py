@@ -313,7 +313,7 @@ class FedStrategy(FedStrategyInterface):
         self.logger = logger
 
     def _init_model(self):
-        self.ml_model = self.param_parser.parse_model()
+        self.ml_model = self.param_parser.parse_model(client_id=self.client_id)
 
     def _init_states(self):
         self.current_round: Optional[int] = None

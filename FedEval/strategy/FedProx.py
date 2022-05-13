@@ -45,8 +45,9 @@ class FedProxOptimizer(tf.keras.optimizers.Optimizer):
 
 
 class FedProxParamsParser(ParamParser):
-    def parse_model(self):
-        ml_model = super(FedProxParamsParser, self).parse_model()
+    @staticmethod
+    def parse_model(client_id=None):
+        ml_model = super(FedProxParamsParser).parse_model(client_id=client_id)
         mdl_cfg = ConfigurationManager().model_config
         optimizer = FedProxOptimizer(
             lr=mdl_cfg.learning_rate, mu=mdl_cfg.prox_mu)
