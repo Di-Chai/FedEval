@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     if args.dataset == 'shakespeare':
         params['runtime_config']['server']['port'] = 8014
-        params['runtime_config']['docker']['num_containers'] = 5
+        params['runtime_config']['docker']['num_containers'] = 9
 
     for seed in range(repeat):
         params['data_config']['random_seed'] = seed
