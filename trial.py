@@ -243,6 +243,9 @@ if args.tune == 'lr':
         if args.dataset == 'mnist':
             tune_params['lr'] = [1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
 
+    if args.strategy == 'FedSTC':
+        tune_params['lr'] = [1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0]
+
 ##################################################
 # Hardware Config
 
