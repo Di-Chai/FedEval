@@ -18,8 +18,8 @@ from .FedAvg import FedAvg
 
 class FetchSGD(FedAvg):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         self.param_shapes = [e.shape for e in self.ml_model.get_weights()]
         self.sketch_dim = np.sum([np.prod(e) for e in self.param_shapes])

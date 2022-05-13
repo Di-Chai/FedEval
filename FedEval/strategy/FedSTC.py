@@ -51,8 +51,8 @@ def sparse_mask(value_list, p=0.01):
 
 class FedSTC(FedStrategy):
 
-    def __init__(self, *args, **kwargs):
-        super(FedSTC, self).__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        super(FedSTC, self).__init__(**kwargs)
         if ConfigurationManager().role == Role.Client:
             self.client_residual = self.init_residual()
         else:

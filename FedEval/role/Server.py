@@ -29,10 +29,10 @@ class Server(Node):
     def __init__(self):
         ConfigurationManager().role = Role.Server
         super().__init__()
+        self._config_gpu()
         self._construct_fed_model()
         self._init_logger()
         self._init_states()
-        self._config_gpu()
 
         # self._communicator = ServerFlaskCommunicator()
         self._communicator = get_server_communicator()

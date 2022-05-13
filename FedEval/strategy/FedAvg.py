@@ -10,8 +10,8 @@ from .FederatedStrategy import FedStrategy
 
 class FedAvg(FedStrategy):
 
-    def __init__(self, param_parser=ParamParser):
-        super().__init__(param_parser)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     # Testing Function, which is not used by any strategy
     def compute_gradients(self, x, y):

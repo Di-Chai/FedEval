@@ -22,6 +22,8 @@ class HyperLogger:
         config_manager = ConfigurationManager()
         rt_cfg = config_manager.runtime_config
 
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
         logger = logging.getLogger(name)
         lvl = eval(HyperLogger._LOG_LEVEL_EVAL_PATTERN.format(rt_cfg.base_log_level))
         logger.setLevel(lvl)

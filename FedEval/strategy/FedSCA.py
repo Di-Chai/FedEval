@@ -52,9 +52,10 @@ class FedSCAParser(ParamParser):
 
 class FedSCA(FedAvg):
 
-    def __init__(self, param_parser=ParamParser, logger=None):
-        super().__init__(param_parser=param_parser)
-        self.set_logger(logger)
+    def __init__(self, **kwargs):
+        if 'param_parser' in kwargs:
+            kwargs.pop('param_parser')
+        super().__init__(param_parser=FedSCAParser, **kwargs)
 
         param_shapes = [e.shape for e in self.ml_model.get_weights()]
 

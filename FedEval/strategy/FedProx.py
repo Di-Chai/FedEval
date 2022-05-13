@@ -58,9 +58,10 @@ class FedProxParamsParser(ParamParser):
 
 class FedProx(FedAvg):
 
-    def __init__(self, param_parser=FedProxParamsParser, logger=None):
-        super().__init__(param_parser=param_parser)
-        self.set_logger(logger)
+    def __init__(self, **kwargs):
+        if 'param_parser' in kwargs:
+            kwargs.pop('param_parser')
+        super().__init__(param_parser=FedProxParamsParser, **kwargs)
 
     def fit_on_local_data(self):
         cur_params = self._retrieve_local_params()

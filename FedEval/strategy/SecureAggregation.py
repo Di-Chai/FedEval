@@ -34,8 +34,8 @@ class SAStatus(enum.Enum):
 
 class SecureAggregation(FedStrategy):
 
-    def __init__(self, param_parser=ParamParser):
-        super().__init__(param_parser)
+    def __init__(self, param_parser=ParamParser, **kwargs):
+        super().__init__(param_parser, **kwargs)
 
         config_manager = ConfigurationManager()
         if config_manager.role == Role.Server:

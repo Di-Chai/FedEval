@@ -314,8 +314,10 @@ class FedStrategy(FedStrategyInterface):
 
     def _init_data(self) -> None:
         if ConfigurationManager().role != Role.Client:
-            raise TypeError(
-                f"This {self.__class__.__name__}'s role is not a {Role.Client.value}.")
+            # raise TypeError(
+            #     f"This {self.__class__.__name__}'s role is not a {Role.Client.value}.")
+            print(f"This {self.__class__.__name__}'s role is not a {Role.Client.value}.")
+            return None
         self.train_data, self.val_data, self.test_data = self.param_parser.parse_data(
             self.client_id)
 

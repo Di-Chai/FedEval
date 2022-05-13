@@ -49,21 +49,23 @@ class Node(metaclass=ABCMeta):
         import tensorflow as tf
         cfg_mgr = ConfigurationManager()
         if cfg_mgr.runtime_config.gpu_enabled:
+            # Please set CUDA_VISIBLE_DEVICES if not using docker
+            CUDA_VISIBLE_DEVICES = os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',')
+            if len(CUDA_VISIBLE_DEVICES) > 1:
+                if container_id is not None:
+                    selected_gpu = int(container_id) % len(CUDA_VISIBLE_DEVICES)
+                    os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES[selected_gpu]
+                else:
+                    os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES[0]
             gpus = tf.config.list_physical_devices('GPU')
             if gpus:
                 try:
-                    # Currently, memory growth needs to be the same across GPUs
                     for gpu in gpus:
                         tf.config.experimental.set_memory_growth(gpu, True)
-                    if len(os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',')) > 1:
-                        CUDA_VISIBLE_DEVICES = os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',')
-                        if container_id is not None:
-                            selected_gpu = int(container_id) % len(gpus)
-                            os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES[selected_gpu]
-                        else:
-                            os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES[0]
-                    logical_gpus = tf.config.list_logical_devices('GPU')
-                    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+                    logical_devices = tf.config.list_logical_devices('GPU')
+                    print(
+                        cfg_mgr.role, len(gpus), "Physical GPUs,", len(logical_devices), "Logical GPUs"
+                    )
                 except RuntimeError as e:
                     # Memory growth must be set before GPUs have been initialized
                     print(e)  # TODO(fgh) expose this exception

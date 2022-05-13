@@ -8,8 +8,8 @@ from .FedAvg import FedAvg
 
 class MFedAvg(FedAvg):
 
-    def __init__(self, **kwags):
-        super().__init__(**kwags)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         if ConfigurationManager().role == Role.Server:
             self.v = None
