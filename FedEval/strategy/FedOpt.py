@@ -7,8 +7,8 @@ from .FedAvg import FedAvg
 
 class FedOpt(FedAvg):
 
-    def __init__(self, **kwags):
-        super().__init__(**kwags)
+    def __init__(self, *args, **kwags):
+        super().__init__(*args, **kwags)
         cfg_mgr = ConfigurationManager()
         role, mdl_cfg = cfg_mgr.role, cfg_mgr.model_config
         if role == Role.Server:

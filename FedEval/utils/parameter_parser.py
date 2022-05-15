@@ -24,7 +24,7 @@ class ParamParserInterface(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def parse_model(client_id: int = None) -> tf.keras.Model:
+    def parse_model() -> tf.keras.Model:
         """construct a tensorflow model according to the model configuration.
 
         Raises:
@@ -56,7 +56,7 @@ class ParamParser(ParamParserInterface):
     """an implentation of ParamParserInterface."""
 
     @staticmethod
-    def parse_model(client_id=None):
+    def parse_model():
         x_size, y_size = get_data_shape(ConfigurationManager().data_config.dataset_name)
         cfg_mgr = ConfigurationManager()
         mdl_cfg = cfg_mgr.model_config

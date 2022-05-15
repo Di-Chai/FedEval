@@ -46,8 +46,8 @@ class FedProxOptimizer(tf.keras.optimizers.Optimizer):
 
 class FedProxParamsParser(ParamParser):
     @staticmethod
-    def parse_model(client_id=None):
-        ml_model = super(FedProxParamsParser).parse_model(client_id=client_id)
+    def parse_model():
+        ml_model = ParamParser.parse_model()
         mdl_cfg = ConfigurationManager().model_config
         optimizer = FedProxOptimizer(
             lr=mdl_cfg.learning_rate, mu=mdl_cfg.prox_mu)
@@ -58,10 +58,10 @@ class FedProxParamsParser(ParamParser):
 
 class FedProx(FedAvg):
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         if 'param_parser' in kwargs:
             kwargs.pop('param_parser')
-        super().__init__(param_parser=FedProxParamsParser, **kwargs)
+        super().__init__(param_parser=FedProxParamsParser, *args, **kwargs)
 
     def fit_on_local_data(self):
         cur_params = self._retrieve_local_params()

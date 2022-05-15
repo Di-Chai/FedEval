@@ -290,10 +290,10 @@ class FedStrategyInterface(FedStrategyHostInterface, FedStrategyPeerInterface):
 class FedStrategy(FedStrategyInterface):
     """the basic class of federated strategies."""
 
-    def __init__(self, client_id=None, param_parser_type: type = ParamParser, logger=None):
-        self._param_parser: ParamParserInterface = param_parser_type()
+    def __init__(self, client_id=None, param_parser: type = ParamParser, logger=None):
+        self._param_parser: ParamParserInterface = param_parser()
         if not isinstance(self._param_parser, ParamParserInterface):
-            raise ValueError(f"param_parser_class({type(param_parser_type)})"
+            raise ValueError(f"param_parser_class({type(param_parser)})"
                              + f"should implement {type(ParamParserInterface)}")
         self._client_id = client_id
         self._init_states()
@@ -310,7 +310,7 @@ class FedStrategy(FedStrategyInterface):
         self.logger = logger
 
     def _init_model(self):
-        self.ml_model = self.param_parser.parse_model(client_id=self.client_id)
+        self.ml_model = self.param_parser.parse_model()
 
     def _init_data(self) -> None:
         if ConfigurationManager().role != Role.Client:

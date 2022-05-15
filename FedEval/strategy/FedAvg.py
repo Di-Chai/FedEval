@@ -10,8 +10,8 @@ from .FederatedStrategy import FedStrategy
 
 class FedAvg(FedStrategy):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def host_select_train_clients(self, ready_clients):
         cfg = ConfigurationManager()

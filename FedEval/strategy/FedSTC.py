@@ -62,9 +62,13 @@ class FedSTC(FedSGD):
 
     @staticmethod
     def stc(input_tensor, sparsity=0.01):
-        mask = sparse_mask(input_tensor, p=sparsity)
-        masked_input = mask * input_tensor
-        mu = np.sum(np.abs(masked_input)) / np.sum(mask)
+        ori_shape = input_tensor.shape
+        masked_input = np.reshape(input_tensor, [-1, ])
+        length = int(len(masked_input) * (1 - sparsity))
+        ind = np.argpartition(masked_input, length)[:length]
+        masked_input[ind] = 0
+        mu = np.sum(np.abs(masked_input)) / (len(masked_input) - length)
+        masked_input = np.reshape(masked_input, ori_shape)
         output_tensor = mu * np.sign(masked_input)
         return output_tensor
 

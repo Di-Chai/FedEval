@@ -42,7 +42,7 @@ class FedSCAOptimizer(tf.keras.optimizers.Optimizer):
 class FedSCAParser(ParamParser):
     @staticmethod
     def parse_model(client_id=None):
-        ml_model = super(FedSCAParser).parse_model(client_id=client_id)
+        ml_model = super(FedSCAParser).parse_model()
         # Customize the model optimizer
         optimizer = FedSCAOptimizer(lr=ConfigurationManager().model_config.learning_rate)
         optimizer.create_slots(ml_model.variables)
