@@ -276,15 +276,15 @@ def run_util(execution, mode, config, overwrite_config=False, skip_if_exit=True,
 
     if execution == 'simulate_fedsgd':
         fed_sgd_simulator(UNIFIED_JOB_TIME)
-        _write_history()
+        write_history()
 
     if execution == 'simulate_central':
         central_simulator(UNIFIED_JOB_TIME)
-        _write_history()
+        write_history()
 
     if execution == 'simulate_local':
         local_simulator(UNIFIED_JOB_TIME)
-        _write_history()
+        write_history()
 
     if execution == 'run':
 
@@ -422,13 +422,13 @@ def run_util(execution, mode, config, overwrite_config=False, skip_if_exit=True,
         if mode == 'without-docker':
             process_pool.terminate()
 
-        _write_history()
+        write_history()
 
     if not overwrite_config:
         shutil.rmtree(new_config_dir_path)
 
 
-def _write_history():
+def write_history():
     cfg_mgr = ConfigurationManager()
     if os.path.isfile(os.path.join(cfg_mgr.history_record_path, 'history.json')):
         with open(os.path.join(cfg_mgr.history_record_path, 'history.json'), 'r') as f:
@@ -440,7 +440,7 @@ def _write_history():
         json.dump(history, f)
 
 
-def _compute_gradients(model, x, y):
+def compute_gradients(model, x, y):
     with tf.GradientTape() as tape:
         y_hat = model(x)
         loss_op = tf.keras.losses.get(ConfigurationManager().model_config.loss_calc_method)
@@ -450,7 +450,7 @@ def _compute_gradients(model, x, y):
         try:
             gradients[i] = gradients[i].numpy()
         except AttributeError:
-            gradients[i] = tf.convert_to_tensor(gradients[0]).numpy()
+            gradients[i] = tf.convert_to_tensor(gradients[i]).numpy()
     return gradients
 
 
@@ -497,7 +497,7 @@ def fed_sgd_simulator(UNIFIED_JOB_TIME):
             actual_size.append(min(batch_size, len(x_train) - i))
             batched_gradients.append(
                 [e / float(actual_size[-1]) for e in
-                 _compute_gradients(ml_model, x_train[i:i + batch_size], y_train[i:i + batch_size])]
+                 compute_gradients(ml_model, x_train[i:i + batch_size], y_train[i:i + batch_size])]
             )
         actual_size = np.array(actual_size) / np.sum(actual_size)
         aggregated_gradients = []
@@ -537,7 +537,7 @@ def fed_sgd_simulator(UNIFIED_JOB_TIME):
         for e in test_metric_each_round:
             f.write(', '.join([str(e1) for e1 in e]) + '\n')
         f.write(f'Best Metric, {best_test_metric[0]}, {best_test_metric[1]}')
-    _write_history()
+    write_history()
 
 
 def central_simulator(UNIFIED_JOB_TIME):
@@ -595,7 +595,7 @@ def central_simulator(UNIFIED_JOB_TIME):
         f.write(f'Central Train Finished, Duration {time.time() - start_train_time}\n')
         f.write(f'Best VAL Metric, {val_loss}, {val_acc}\n')
         f.write(f'Best TEST Metric, {test_loss}, {test_acc}\n')
-    _write_history()
+    write_history()
 
 
 def local_simulator(UNIFIED_JOB_TIME):
@@ -656,7 +656,7 @@ def local_simulator(UNIFIED_JOB_TIME):
             [str(e) for e in [data_config.dataset_name, runtime_config.client_num, model_config.learning_rate]]
         ) + '\n')
         f.write(f'Average Best Test Metric, {np.mean(average_test_acc)}')
-    _write_history()
+    write_history()
 
 
 if __name__ == '__main__':

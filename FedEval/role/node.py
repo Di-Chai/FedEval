@@ -45,7 +45,7 @@ class Node(metaclass=ABCMeta):
         # self.fed_model.set_logger(self.logger)
 
     @staticmethod
-    def _config_gpu(container_id=None):
+    def config_gpu(container_id=None):
         import tensorflow as tf
         cfg_mgr = ConfigurationManager()
         if cfg_mgr.runtime_config.gpu_enabled:

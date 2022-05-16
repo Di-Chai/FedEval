@@ -1422,7 +1422,7 @@ class ConfigurationManager(Singleton,
         runtime_config_filename: str = DEFAULT_RT_CFG_FILENAME_YAML,
         serializer: Union[str, _CfgSerializer] = _CfgSerializer.YAML,
         encoding=_DEFAULT_ENCODING
-    ) -> ConfigurationManagerInterface:
+    ):
         d_cfg, m_cfg, r_cfg = ConfigurationManager.load_configs(
             src_path=src_path, encoding=encoding, serializer=serializer,
             data_config_filename=data_config_filename,
