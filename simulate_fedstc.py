@@ -2,6 +2,7 @@ import os
 import pdb
 import time
 import hickle
+import multiprocessing
 
 import numpy as np
 import tensorflow as tf
@@ -12,6 +13,8 @@ from FedEval.utils import ParamParser
 from FedEval.strategy import FedSTC
 from FedEval.aggregater import aggregate_weighted_average
 from functools import reduce
+from multiprocessing import Pool
+from functools import partial
 
 
 # config_manager = ConfigurationManager()
@@ -86,30 +89,27 @@ def stc(input_tensor, sparsity):
 for epoch in range(model_config.max_round_num):
     st = time.time()
     pointer = 0
-    client_gradients = []
     actual_size = []
     for i in range(config_manager.runtime_config.client_num):
         actual_size.append(client_data_size[i])
-        client_gradients.append(
-            np.concatenate([
-                (- config_manager.model_config.learning_rate * e / float(actual_size[-1])).flatten()
-                for e in compute_gradients(
-                    ml_model, x_train[pointer:pointer + actual_size[-1]],
-                    y_train[pointer:pointer + actual_size[-1]])])
+        client_residual[i] += np.concatenate([
+            (-config_manager.model_config.learning_rate * e / float(actual_size[-1])).flatten()
+            for e in compute_gradients(
+                ml_model, x_train[pointer:pointer + actual_size[-1]],
+                y_train[pointer:pointer + actual_size[-1]])]
         )
         pointer += actual_size[-1]
     print(f'Per-client gradients cost {time.time() - st}')
 
     st = time.time()
+    # stc_sparse = partial(stc, sparsity=config_manager.model_config.stc_sparsity)
+    # with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+    #     w_delta = p.map(stc_sparse, client_residual)
     w_delta = []
     for i in range(config_manager.runtime_config.client_num):
-        client_grad_plus_residual_i = client_gradients[i] + client_residual[i]
-        w_delta.append(stc(client_grad_plus_residual_i, config_manager.model_config.stc_sparsity))
-        client_residual[i] = client_grad_plus_residual_i - w_delta[-1]
-        del client_grad_plus_residual_i
+        w_delta.append(stc(client_residual[i], config_manager.model_config.stc_sparsity))
+        client_residual[i] -= w_delta[-1]
     print(f'Client STC cost {time.time() - st}')
-
-    del client_gradients
 
     st = time.time()
     receive_delta_w = np.average(w_delta, axis=0, weights=client_data_size / client_data_size.sum())
