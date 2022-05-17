@@ -55,25 +55,40 @@ class FedSTC(FedSGD):
     def __init__(self, **kwargs):
         super(FedSTC, self).__init__(**kwargs)
         if ConfigurationManager().role == Role.Client:
-            self.client_residual = self.init_residual()
+            self.client_residual = self._init_residual()
         else:
-            self.server_residual = self.init_residual()
+            self.server_residual = self._init_residual()
             self._delta_W_plus_r = None
 
     @staticmethod
     def stc(input_tensor, sparsity=0.01):
-        ori_shape = input_tensor.shape
-        masked_input = np.reshape(input_tensor, [-1, ])
-        length = int(len(masked_input) * (1 - sparsity))
-        ind = np.argpartition(masked_input, length)[:length]
-        masked_input[ind] = 0
-        mu = np.sum(np.abs(masked_input)) / (len(masked_input) - length)
-        masked_input = np.reshape(masked_input, ori_shape)
-        output_tensor = mu * np.sign(masked_input)
-        return output_tensor
+        results = np.zeros(input_tensor.shape)
+        sparse_size = int(len(input_tensor) * sparsity)
+        index = np.argpartition(np.abs(input_tensor), -sparse_size)[-sparse_size:]
+        results[index] = input_tensor[index]
+        mu = np.mean(results[index])
+        results[index] = mu * np.sign(results[index])
+        return results
 
-    def init_residual(self):
-        return [np.zeros(e.shape) for e in self.ml_model.get_weights()]
+    def _init_residual(self):
+        self._param_shape = [e.shape for e in self.ml_model.get_weights()]
+        self._param_size = int(sum([np.prod(e) for e in self._param_shape]))
+        return np.zeros([self._param_size])
+
+    def _tensor_to_vector(self, input_tensor):
+        results = np.concatenate([e.flatten() for e in input_tensor])
+        assert len(results) == self._param_size
+        return results
+
+    def _vector_to_tensor(self, input_vector):
+        results = []
+        pointer = 0
+        for i in range(len(self._param_shape)):
+            tmp_size = np.prod(self._param_shape[i])
+            results.append(np.reshape(
+                input_vector[pointer:pointer+tmp_size], self._param_shape[i]))
+            pointer += tmp_size
+        return results
 
     @staticmethod
     def compress(input_tensor):
@@ -87,24 +102,18 @@ class FedSTC(FedSGD):
             self.local_params_cur[i] - self.local_params_pre[i]
             for i in range(len(self.local_params_cur))
         ]
-        # 2 Compress the upload tensor and update the local residual
-        # stc(delta_w + R), which will be sent to server
-        delta_w_plus_r = [
-            self.stc(delta_params[i] + self.client_residual[i],
-                     sparsity=ConfigurationManager().model_config.stc_sparsity)
-            for i in range(len(delta_params))
-        ]
+        delta_params = self._tensor_to_vector(delta_params)
+
+        self.client_residual += delta_params
+        delta_w_plus_r = self.stc(self.client_residual)
         # update the local residual
-        self.client_residual = [
-            self.client_residual[i] + delta_params[i] - delta_w_plus_r[i]
-            for i in range(len(self.client_residual))
-        ]
+        self.client_residual -= delta_w_plus_r
         # Compress the stc(delta_w + R) and return
-        result = [self.compress(e.reshape([-1, ])) for e in delta_w_plus_r]
+        results = self.compress(delta_w_plus_r)
         del delta_params
         del delta_w_plus_r
         gc.collect()
-        return result
+        return results
 
     def set_host_params_to_local(self, host_params, current_round):
         self.current_round = current_round
@@ -112,32 +121,23 @@ class FedSTC(FedSGD):
             # Receive the init params from the server
             self.ml_model.set_weights(host_params)
         else:
-            new_local_params = [
-                host_params[i].toarray().reshape(self.local_params_pre[i].shape) + self.local_params_pre[i]
-                for i in range(len(host_params))
-            ]
+            new_local_params = self._vector_to_tensor(host_params.toarray()[0])
             self.ml_model.set_weights(new_local_params)
 
     def update_host_params(self, client_params, aggregate_weights):
-        param_shapes = [e.shape for e in self.server_residual]
-        delta_W = aggregate_weighted_average(client_params, aggregate_weights)
-        del client_params
-        delta_W = [delta_W[i].toarray().reshape(param_shapes[i]) for i in range(len(param_shapes))]
-        self._delta_W_plus_r = [
-            self.stc(delta_W[i].copy() + self.server_residual[i].copy(),
-                     sparsity=ConfigurationManager().model_config.stc_sparsity)
-            for i in range(len(delta_W))
-        ]
+        client_params_dense = [e.toarray()[0] for e in client_params]
+        delta_W = np.average(client_params_dense, weights=aggregate_weights, axis=0)
+        self.server_residual += delta_W
+        del client_params, client_params_dense, delta_W
+        self._delta_W_plus_r = self.stc(self.server_residual)
         # update the residual
-        self.server_residual = [
-            self.server_residual[i].copy() + delta_W[i].copy() - self._delta_W_plus_r[i].copy()
-            for i in range(len(param_shapes))
-        ]
-        self.host_params = [self.host_params[e] + self._delta_W_plus_r[e] for e in range(len(self.host_params))]
+        self.server_residual -= self._delta_W_plus_r
+        model_updates = self._vector_to_tensor(self._delta_W_plus_r)
+        self.host_params = [self.host_params[e] + model_updates[e] for e in range(len(self.host_params))]
         self.ml_model.set_weights(self.host_params)
 
     def retrieve_host_download_info(self):
         if self._delta_W_plus_r is None:
             return super(FedSTC, self).retrieve_host_download_info()
         else:
-            return [self.compress(e.reshape([-1, ])) for e in self._delta_W_plus_r]
+            return self.compress(self._delta_W_plus_r)
