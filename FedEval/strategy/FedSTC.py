@@ -1,4 +1,5 @@
 import gc
+import time
 
 gc.set_threshold(700, 10, 5)
 
@@ -125,6 +126,7 @@ class FedSTC(FedSGD):
             self.ml_model.set_weights(new_local_params)
 
     def update_host_params(self, client_params, aggregate_weights):
+        st = time.time()
         client_params_dense = [e.toarray()[0] for e in client_params]
         delta_W = np.average(client_params_dense, weights=aggregate_weights, axis=0)
         self.server_residual += delta_W
@@ -135,6 +137,7 @@ class FedSTC(FedSGD):
         model_updates = self._vector_to_tensor(self._delta_W_plus_r)
         self.host_params = [self.host_params[e] + model_updates[e] for e in range(len(self.host_params))]
         self.ml_model.set_weights(self.host_params)
+        print(f'Server update params cost {time.time() - st}')
 
     def retrieve_host_download_info(self):
         if self._delta_W_plus_r is None:
