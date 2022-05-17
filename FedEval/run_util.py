@@ -19,6 +19,7 @@ import yaml
 from .config.configuration import *
 from FedEval.run import generate_data, run
 from FedEval.utils import ParamParser, LogAnalysis, History
+from FedEval.role import Node
 from multiprocessing import Pool
 
 sudo = ""
@@ -482,7 +483,8 @@ def fed_sgd_simulator(UNIFIED_JOB_TIME):
     x_test = np.concatenate([e['x_test'] for e in client_data], axis=0)
     y_test = np.concatenate([e['y_test'] for e in client_data], axis=0)
     del client_data
-    
+
+    Node.config_gpu()
     parameter_parser = ParamParser()
     ml_model = parameter_parser.parse_model()
     early_stopping_metric = np.inf
@@ -569,6 +571,7 @@ def central_simulator(UNIFIED_JOB_TIME):
     y_test = np.concatenate([e['y_test'] for e in client_data], axis=0)
     del client_data
 
+    Node.config_gpu()
     start_train_time = time.time()
     parameter_parser = ParamParser()
     ml_model = parameter_parser.parse_model()
@@ -620,6 +623,7 @@ def local_simulator(UNIFIED_JOB_TIME):
         with open(data_name, 'r') as f:
             client_data.append(hickle.load(f))
 
+    Node.config_gpu()
     parameter_parser = ParamParser()
     ml_model = parameter_parser.parse_model()
 

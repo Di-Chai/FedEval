@@ -64,7 +64,7 @@ class Node(metaclass=ABCMeta):
                         tf.config.experimental.set_memory_growth(gpu, True)
                     logical_devices = tf.config.list_logical_devices('GPU')
                     print(
-                        cfg_mgr.role, len(gpus), "Physical GPUs,", len(logical_devices), "Logical GPUs"
+                        len(gpus), "Physical GPUs,", len(logical_devices), "Logical GPUs"
                     )
                 except RuntimeError as e:
                     # Memory growth must be set before GPUs have been initialized
