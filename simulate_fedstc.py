@@ -101,31 +101,15 @@ for epoch in range(model_config.max_round_num):
     print(f'Per-client gradients cost {time.time() - st}')
 
     st = time.time()
-    # client_gradients = np.array(client_gradients, dtype=np.float64)
-    # client_grad_plus_residual = client_gradients + client_residual
     w_delta = []
     for i in range(config_manager.runtime_config.client_num):
         client_grad_plus_residual_i = client_gradients[i] + client_residual[i]
         w_delta.append(stc(client_grad_plus_residual_i, config_manager.model_config.stc_sparsity))
         client_residual[i] = client_grad_plus_residual_i - w_delta[-1]
+        del client_grad_plus_residual_i
     print(f'Client STC cost {time.time() - st}')
 
-    # st = time.time()
-    # client_gradients = -1 * np.array(client_gradients, dtype=np.float64) * config_manager.model_config.learning_rate
-    # client_grad_plus_residual = client_gradients + client_residual
-    # w_delta = np.zeros(client_grad_plus_residual.shape)
-    # length = int(params_shape_flatten * config_manager.model_config.stc_sparsity)
-    # ind = np.argpartition(np.abs(client_grad_plus_residual), -length)[:, -length:]
-    # ind = (
-    #     np.array(reduce(
-    #         lambda x, y: x+y, [[e] * length for e in range(config_manager.runtime_config.client_num)])),
-    #     ind.flatten()
-    # )
-    # w_delta[ind] = client_grad_plus_residual[ind]
-    # mu = np.mean(w_delta[ind])
-    # w_delta[ind] = mu * np.sign(w_delta[ind])
-    # client_residual = client_grad_plus_residual - w_delta
-    # print(f'Client STC cost {time.time() - st}')
+    del client_gradients
 
     st = time.time()
     receive_delta_w = np.average(w_delta, axis=0, weights=client_data_size / client_data_size.sum())
@@ -134,11 +118,15 @@ for epoch in range(model_config.max_round_num):
     server_residual = server_grad_plus_residual - server_delta_w
     print(f'Server STC cost {time.time() - st}')
 
+    del w_delta, server_grad_plus_residual
+
     cur_weights = ml_model.get_weights()
     pointer = 0
     for i in range(len(cur_weights)):
         cur_weights[i] += np.reshape(
             server_delta_w[pointer:pointer+np.prod(cur_weights[i].shape)], cur_weights[i].shape)
+
+    del server_delta_w
 
     ml_model.set_weights(cur_weights)
 
@@ -159,7 +147,6 @@ for epoch in range(model_config.max_round_num):
         print('Train Finished')
         print(f'Best Test Metric {test_log}')
         break
-    del client_gradients
     del actual_size
     test_metric_each_round.append([epoch] + test_log)
 
