@@ -262,6 +262,7 @@ class Server(Node):
         avg_time_records = [np.mean([e.get(key, 0) for e in self._time_record_real_world]) for key in keys]
 
         return {
+            'finished': True if self._training_stop_time is not None else False,
             'best_metric': self._best_test_metric,
             'best_metric_full': self._best_test_metric_full,
             'total_time': f'{h_real}:{m_real}:{s_real}',
