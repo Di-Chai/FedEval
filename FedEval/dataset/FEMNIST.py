@@ -45,8 +45,8 @@ class femnist(FedData):
                 x.append(tmp_x)
                 y.append(tmp_y)
                 identity.append(len(xy['x']))
-        x = np.concatenate(x, axis=0).astype(np.float32).reshape([-1, 28, 28, 1])
-        y = np.concatenate(y, axis=0).astype(np.int32)
+        x = np.concatenate(x, axis=0).astype(np.float64).reshape([-1, 28, 28, 1])
+        y = np.concatenate(y, axis=0).astype(np.int64)
         self.identity = identity
 
         if len(y.shape) == 1 or y.shape[-1] == 1:

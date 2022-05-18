@@ -186,7 +186,7 @@ class semantic140(FedData):
                 self.identity.append(1)
 
         # Get the label
-        y = np.array([e[0] for e in all_data], dtype=np.int32)
+        y = np.array([e[0] for e in all_data], dtype=np.int64)
         y = np.expand_dims(y, axis=-1)
 
         # Load the glove vector
@@ -209,7 +209,7 @@ class semantic140(FedData):
             elif len(tmp_vector) > 25:
                 tmp_vector = tmp_vector[-25:]
             text_vectors.append(tmp_vector)
-        x = np.array(text_vectors, dtype=np.float32)
+        x = np.array(text_vectors, dtype=np.float64)
 
         print('#' * 40)
         print(f'# Data info, total samples {total_num_samples}, selected clients {self.num_clients}, '

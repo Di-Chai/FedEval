@@ -47,8 +47,8 @@ class celeba(FedData):
                 y.append(y_dict[img])
             self.identity.append(len(local_images))
 
-        x = np.asarray(x, dtype=np.float32)
-        y = np.asarray(y, dtype=np.int32)
+        x = np.asarray(x, dtype=np.float64)
+        y = np.asarray(y, dtype=np.int64)
 
         if len(y.shape) == 1 or y.shape[-1] == 1:
             self.num_class = np.max(y) + 1

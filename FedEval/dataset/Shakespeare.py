@@ -45,8 +45,8 @@ class shakespeare(FedData):
             y += process_sentences(data['user_data'][data['users'][i]]['y'])
             self.identity.append(data['num_samples'][i])
 
-        x = np.array(x, dtype=np.float32)
-        y = np.array(y, dtype=np.int32)
+        x = np.array(x, dtype=np.float64)
+        y = np.array(y, dtype=np.int64)
 
         # Fix num class
         self.num_class = 80

@@ -21,13 +21,11 @@ class mnist(FedData):
             y = tf.keras.utils.to_categorical(y, self.num_class)
         else:
             self.num_class = y.shape[-1]
-        return x, y
+        return x.astype(np.float64), y.astype(np.int64)
 
 
 class cifar10(FedData):
     def load_data(self):
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
         x = np.concatenate((x_train, x_test), axis=0)
         y = np.concatenate((y_train, y_test), axis=0)
@@ -36,7 +34,7 @@ class cifar10(FedData):
             y = tf.keras.utils.to_categorical(y, self.num_class)
         else:
             self.num_class = y.shape[-1]
-        return x, y
+        return x.astype(np.float64), y.astype(np.int64)
 
 
 class cifar100(FedData):
@@ -49,4 +47,4 @@ class cifar100(FedData):
             y = tf.keras.utils.to_categorical(y, self.num_class)
         else:
             self.num_class = y.shape[-1]
-        return x, y
+        return x.astype(np.float64), y.astype(np.int64)

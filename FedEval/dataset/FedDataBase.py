@@ -193,8 +193,8 @@ class FedData(metaclass=ABCMeta):
             if self.num_class > 1:
                 xy = list(zip(self.x[:len(train_index)], self.y[:len(train_index)]))
                 xy = sorted(xy, key=lambda x: np.argmax(x[1]), reverse=False)
-                self.x[:len(train_index)] = np.array([e[0] for e in xy], dtype=np.float32)
-                self.y[:len(train_index)] = np.array([e[1] for e in xy], dtype=np.float32)
+                self.x[:len(train_index)] = np.array([e[0] for e in xy], dtype=np.float64)
+                self.y[:len(train_index)] = np.array([e[1] for e in xy], dtype=np.float64)
                 del xy
 
             if self.num_class > 1:
