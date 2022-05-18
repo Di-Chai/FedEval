@@ -67,7 +67,7 @@ class FedSTC(FedSGD):
         sparse_size = int(len(input_tensor) * sparsity)
         index = np.argpartition(np.abs(input_tensor), -sparse_size)[-sparse_size:]
         sliced_input = input_tensor[index]
-        mu = np.mean(sliced_input)
+        mu = np.mean(np.abs(sliced_input))
         results[index] = mu * np.sign(sliced_input)
         del sliced_input
         return results
@@ -124,7 +124,8 @@ class FedSTC(FedSGD):
             self.ml_model.set_weights(host_params)
         else:
             new_local_params = self._vector_to_tensor(host_params.toarray()[0])
-            self.ml_model.set_weights(new_local_params)
+            cur_weights = self.ml_model.get_weights()
+            self.ml_model.set_weights([cur_weights[e] + new_local_params[e] for e in range(len(cur_weights))])
 
     def update_host_params(self, client_params, aggregate_weights):
         client_params_dense = [e.toarray()[0] for e in client_params]
