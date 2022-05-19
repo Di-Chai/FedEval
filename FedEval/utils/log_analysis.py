@@ -77,6 +77,7 @@ class LogAnalysis:
         self.log_files_local_simulate = []
         self.log_files_fedsgd_simulate = []
 
+        self.config_uid = {}
         for ld in self.log_dirs:
             target_ld = os.path.join(log_dir, ld)
             if 'Server' in os.listdir(target_ld):
@@ -96,6 +97,7 @@ class LogAnalysis:
 
         self.configs = []
         self.results = []
+
         for log in self.federated_log_dirs:
             try:
                 c1, c2, c3 = ConfigurationManager.load_configs(os.path.join(log, 'Server'))
@@ -103,10 +105,20 @@ class LogAnalysis:
                     results = json.load(f)
                 self.results.append(results)
                 self.configs.append({'data_config': c1, 'model_config': c2, 'runtime_config': c3})
-                print('Get FL Training log', log)
+                print('Get FL Training log', c1['dataset'], c1['random_seed'], log)
                 self.history.update(config_id=log.split('_')[-1], log_path=log)
+                # TODO: remove the debug code
+                config_uid = log.split('_')[-1][:8]
+                self.config_uid[config_uid] = self.config_uid.get(config_uid, []) + [log]
+                results['finished'] = True
+                with open(os.path.join(log, 'Server', 'results.json'), 'w') as f:
+                    json.dump(results, f)
             except:
                 pass
+
+        for config_uid in self.config_uid:
+            if len(self.config_uid[config_uid]) > 1:
+                print('Repeated UID', self.config_uid[config_uid])
 
         self.omit_keys = [
             'runtime_config$$machines',
@@ -325,8 +337,8 @@ class LogAnalysis:
         results = [['Repeat'] + [e.split('$$')[-1] for e in self.diff_keys if e not in self.omit_keys]
                    + [e[0] for e in self.csv_result_keys]]
 
-        max_length = max([len(average_results[e]) for e in average_results])
-        for length in range(1, max_length + 1):
+        max_length = set([len(average_results[e]) for e in average_results])
+        for length in max_length:
             for key in average_results:
                 if len(average_results[key]) < length:
                     continue
@@ -367,6 +379,10 @@ class LogAnalysis:
                 print('Incomplete log file, Skip')
                 os.remove(log_file)
                 continue
+
+            log = os.path.dirname(log_file)
+            config_uid = log.split('_')[-1][:8]
+            self.config_uid[config_uid] = self.config_uid.get(config_uid, []) + [log]
 
             try:
                 duration = central_simulation[-3].strip('\n').split(' ')[-1]
@@ -421,6 +437,10 @@ class LogAnalysis:
                 os.remove(log_file)
                 continue
 
+            log = os.path.dirname(log_file)
+            config_uid = log.split('_')[-1][:8]
+            self.config_uid[config_uid] = self.config_uid.get(config_uid, []) + [log]
+
             self.history.update(config_id=os.path.dirname(log_file).split('_')[-1], log_path=log_file)
 
             test_acc = fed_sgd_simulation[-1].strip('\n').split(', ')[-1]
@@ -459,6 +479,10 @@ class LogAnalysis:
                 print('Incomplete log file, Skip')
                 os.remove(log_file)
                 continue
+
+            log = os.path.dirname(log_file)
+            config_uid = log.split('_')[-1][:8]
+            self.config_uid[config_uid] = self.config_uid.get(config_uid, []) + [log]
 
             self.history.update(config_id=os.path.dirname(log_file).split('_')[-1], log_path=log_file)
 
