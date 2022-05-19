@@ -539,6 +539,8 @@ def fed_sgd_simulator(UNIFIED_JOB_TIME):
         for e in test_metric_each_round:
             f.write(', '.join([str(e1) for e1 in e]) + '\n')
         f.write(f'Best Metric, {best_test_metric[0]}, {best_test_metric[1]}')
+    # save the config
+    config_manager.to_files(output_dir)
     write_history()
 
 
@@ -598,6 +600,8 @@ def central_simulator(UNIFIED_JOB_TIME):
         f.write(f'Central Train Finished, Duration {time.time() - start_train_time}\n')
         f.write(f'Best VAL Metric, {val_loss}, {val_acc}\n')
         f.write(f'Best TEST Metric, {test_loss}, {test_acc}\n')
+    # save the config
+    config_manager.to_files(output_dir)
     write_history()
 
 
@@ -660,6 +664,8 @@ def local_simulator(UNIFIED_JOB_TIME):
             [str(e) for e in [data_config.dataset_name, runtime_config.client_num, model_config.learning_rate]]
         ) + '\n')
         f.write(f'Average Best Test Metric, {np.mean(average_test_acc)}')
+    # save the config
+    config_manager.to_files(output_dir)
     write_history()
 
 
