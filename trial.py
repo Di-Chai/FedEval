@@ -206,17 +206,6 @@ if args.strategy == 'FedSGD':
         runtime_config['docker']['enable_gpu'] = True
         runtime_config['docker']['num_gpu'] = 1
         model_config['FedModel']['max_rounds'] = 10000
-
-##################################################
-# Limit the max_epoch to 100 if doing LR tuning
-if args.tune == 'lr':
-    runtime_config['communication']['fast_mode'] = True
-    runtime_config['communication']['limit_network_resource'] = False
-    if args.strategy == 'FedSGD':
-        # Simulation
-        model_config['FedModel']['max_rounds'] = 10000
-        runtime_config['docker']['enable_gpu'] = True
-        runtime_config['docker']['num_gpu'] = 1
         # Change the batch size
         if args.dataset == 'mnist':
             model_config['FedModel']['B'] = 8192 * 4
@@ -228,6 +217,12 @@ if args.tune == 'lr':
             model_config['FedModel']['B'] = 8192 * 2
         elif args.dataset == 'shakespeare':
             model_config['FedModel']['B'] = 8192 * 2
+
+##################################################
+# Limit the max_epoch to 100 if doing LR tuning
+if args.tune == 'lr':
+    runtime_config['communication']['fast_mode'] = True
+    runtime_config['communication']['limit_network_resource'] = False
 
     if args.strategy == 'FedSGD' or execution == 'simulate_central':
         if args.dataset == 'shakespeare':
