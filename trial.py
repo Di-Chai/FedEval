@@ -201,6 +201,12 @@ if args.strategy == 'Central' or args.strategy == 'Local':
 if fine_tuned_params[args.dataset]['model'] == 'StackedLSTM':
     model_config['MLModel']['hidden_units'] = 64
 
+if args.strategy == 'FedSGD':
+    if execution == 'simulate_fedsgd':
+        runtime_config['docker']['enable_gpu'] = True
+        runtime_config['docker']['num_gpu'] = 1
+        model_config['FedModel']['max_rounds'] = 10000
+
 ##################################################
 # Limit the max_epoch to 100 if doing LR tuning
 if args.tune == 'lr':
