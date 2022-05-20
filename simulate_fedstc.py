@@ -85,41 +85,41 @@ def stc(input_tensor, sparsity):
     return results
 
 
-def compute_gradients(args):
-    x, y = args
-    x = tf.expand_dims(x, 0)
-    y = tf.expand_dims(y, 0)
-    with tf.GradientTape() as tape:
-        y_hat = ml_model(x)
-        loss_op = tf.keras.losses.get(ConfigurationManager().model_config.loss_calc_method)
-        loss = loss_op(y, y_hat)
-        gradients = tape.gradient(loss, ml_model.trainable_variables)
-    # for i in range(len(gradients)):
-    #     try:
-    #         gradients[i] = gradients[i].numpy()
-    #     except AttributeError:
-    #         gradients[i] = tf.convert_to_tensor(gradients[i]).numpy()
-    return gradients
+# def compute_gradients(args):
+#     x, y = args
+#     x = tf.expand_dims(x, 0)
+#     y = tf.expand_dims(y, 0)
+#     with tf.GradientTape() as tape:
+#         y_hat = ml_model(x)
+#         loss_op = tf.keras.losses.get(ConfigurationManager().model_config.loss_calc_method)
+#         loss = loss_op(y, y_hat)
+#         gradients = tape.gradient(loss, ml_model.trainable_variables)
+#     # for i in range(len(gradients)):
+#     #     try:
+#     #         gradients[i] = gradients[i].numpy()
+#     #     except AttributeError:
+#     #         gradients[i] = tf.convert_to_tensor(gradients[i]).numpy()
+#     return gradients
 
 
 for epoch in range(model_config.max_round_num):
 
-    st = time.time()
-    results = []
-    actual_size = []
-    pointer = 0
-    for i in range(0, len(x_train), batch_size):
-        actual_size.append(min(batch_size, len(x_train) - pointer))
-        tmp_gradients = tf.vectorized_map(
-            compute_gradients,
-            (x_train[pointer:pointer + actual_size[-1]], y_train[pointer:pointer + actual_size[-1]])
-        )
-        del tmp_gradients
-        pointer += actual_size[-1]
-        print(i)
-    print(f'Per-client gradients cost {time.time() - st}')
-
-    pdb.set_trace()
+    # st = time.time()
+    # results = []
+    # actual_size = []
+    # pointer = 0
+    # for i in range(0, len(x_train), batch_size):
+    #     actual_size.append(min(batch_size, len(x_train) - pointer))
+    #     tmp_gradients = tf.vectorized_map(
+    #         compute_gradients,
+    #         (x_train[pointer:pointer + actual_size[-1]], y_train[pointer:pointer + actual_size[-1]])
+    #     )
+    #     del tmp_gradients
+    #     pointer += actual_size[-1]
+    #     print(i)
+    # print(f'Per-client gradients cost {time.time() - st}')
+    #
+    # pdb.set_trace()
 
     # st = time.time()
     # pointer = 0
@@ -143,7 +143,10 @@ for epoch in range(model_config.max_round_num):
     for i in range(config_manager.runtime_config.client_num):
         w_delta.append(stc(client_residual[i], config_manager.model_config.stc_sparsity))
         client_residual[i] -= w_delta[-1]
+        print(i)
     print(f'Client STC cost {time.time() - st}')
+
+    pdb.set_trace()
 
     st = time.time()
     receive_delta_w = np.average(w_delta, axis=0, weights=client_data_size / client_data_size.sum())
