@@ -24,7 +24,7 @@ fine_tuned_params = {
         'Local': {'B': 8192, 'C': None, 'E': None, 'lr': 0.005},
         'Central': {'B': 8192, 'C': None, 'E': None, 'lr': 0.5},
         'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.5},
-        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},
+        'FedSTC': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.01},  # Debug
         'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 3},
@@ -34,7 +34,7 @@ fine_tuned_params = {
         'Local': {'B': 8192, 'C': None, 'E': None, 'lr': 0.1},
         'Central': {'B': 8192, 'C': None, 'E': None, 'lr': 0.05},
         'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.1},
-        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},
+        'FedSTC': {'B': 128, 'C': 0.1, 'E': 10, 'lr': None},
         'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
@@ -44,7 +44,7 @@ fine_tuned_params = {
         'Local': {'B': 8192, 'C': None, 'E': None, 'lr': 0.05},
         'Central': {'B': 8192, 'C': None, 'E': None, 'lr': 0.05},
         'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.01},
-        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},
+        'FedSTC': {'B': 128, 'C': 0.1, 'E': 10, 'lr': None},
         'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
@@ -54,7 +54,7 @@ fine_tuned_params = {
         'Local': {'B': 8192, 'C': None, 'E': None, 'lr': 0.1},
         'Central': {'B': 8192, 'C': None, 'E': None, 'lr': 2.5},
         'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.01},
-        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},
+        'FedSTC': {'B': 128, 'C': 0.1, 'E': 10, 'lr': None},
         'FedAvg': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.005},
         'FedProx': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.05},
         'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
@@ -64,7 +64,7 @@ fine_tuned_params = {
         'Local': {'B': 8192 * 2, 'C': None, 'E': None, 'lr': 3},
         'Central': {'B': 8192 * 2, 'C': None, 'E': None, 'lr': 2},
         'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 2},  # re
-        'FedSTC': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': None},  # re
+        'FedSTC': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},  # re
         'FedAvg': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': 0.05},
         'FedProx': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
         'FedOpt': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
@@ -185,7 +185,7 @@ if args.strategy == 'FedOpt':
     model_config['FedModel']['opt_name'] = 'fedadam'
 
 if args.strategy == 'FedSTC':
-    model_config['FedModel']['sparsity'] = 0.01
+    model_config['FedModel']['sparsity'] = 0.01  # TODO: change
 
 if args.strategy == 'Central' or args.strategy == 'Local':
     model_config['FedModel']['C'] = None
