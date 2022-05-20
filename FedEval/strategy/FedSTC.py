@@ -6,52 +6,12 @@ gc.set_threshold(700, 10, 5)
 import numpy as np
 from scipy.sparse import csc_matrix
 
-from ..aggregater import aggregate_weighted_average
 from ..config import ConfigurationManager, Role
-from .FederatedStrategy import FedStrategy
-from .FedAvg import FedSGD
+from .FedAvg import FedAvg
+from .FederatedStrategy import HostParamsType
 
 
-def sparse_mask(value_list, p=0.01):
-
-    mask = np.zeros(value_list.shape)
-    target = np.abs(value_list.reshape([-1, ]))
-    target_len = max(int(len(target) * p), 1)
-
-    max_v = np.max(target)
-    min_v = np.min(target)
-    cut_v = np.median(target)
-
-    pre_cut_v = cut_v
-    while True:
-        cut_result = np.sum(target > cut_v)
-        if cut_result == target_len:
-            mask[np.where(np.abs(value_list) > cut_v)] = 1.0
-            break
-        else:
-            if cut_result > target_len:
-                target = np.compress(target > cut_v, target)
-                min_v = cut_v
-            else:
-                max_v = cut_v
-            cut_v = (max_v + min_v) / 2
-            if pre_cut_v == cut_v:
-                mask[np.where(np.abs(value_list) > cut_v)] = 1.0
-                if cut_result < target_len:
-                    c1 = min_v <= np.abs(value_list)
-                    c2 = np.abs(value_list) <= max_v
-                    mask[[e[:target_len - cut_result] for e in np.where(c1 & c2)]] = 1
-                if cut_result > target_len:
-                    c1 = min_v <= np.abs(value_list)
-                    c2 = np.abs(value_list) <= max_v
-                    mask[[e[:cut_result - target_len] for e in np.where(c1 & c2)]] = 0
-                break
-            else:
-                pre_cut_v = cut_v
-    return mask
-
-
-class FedSTC(FedSGD):
+class FedSTC(FedAvg):
 
     def __init__(self, **kwargs):
         super(FedSTC, self).__init__(**kwargs)
@@ -60,6 +20,9 @@ class FedSTC(FedSGD):
         else:
             self.server_residual = self._init_residual()
             self._delta_W_plus_r = None
+            self._host_params_type = HostParamsType.Personalized
+            self._client_rounds = {}
+            self._sparse_update_list = []
 
     @staticmethod
     def stc(input_tensor, sparsity=0.01):
@@ -136,11 +99,19 @@ class FedSTC(FedSGD):
         # update the residual
         self.server_residual -= self._delta_W_plus_r
         model_updates = self._vector_to_tensor(self._delta_W_plus_r)
+        if self.host_params is None:
+            self.host_params = self.ml_model.get_weights()
         self.host_params = [self.host_params[e] + model_updates[e] for e in range(len(self.host_params))]
         self.ml_model.set_weights(self.host_params)
 
     def retrieve_host_download_info(self):
-        if self._delta_W_plus_r is None:
-            return super(FedSTC, self).retrieve_host_download_info()
-        else:
-            return self.compress(self._delta_W_plus_r)
+        if self._delta_W_plus_r is not None:
+            self._sparse_update_list.append(self.compress(self._delta_W_plus_r))
+        sparse_update = {}
+        for cid in self.train_selected_clients:
+            if self._delta_W_plus_r is None or cid not in self._client_rounds:
+                sparse_update[cid] = self.ml_model.get_weights()
+            else:
+                sparse_update[cid] = sum(self._sparse_update_list[self._client_rounds[cid]:])
+            self._client_rounds[cid] = len(self._sparse_update_list)
+        return sparse_update
