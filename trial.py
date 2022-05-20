@@ -185,7 +185,7 @@ if args.strategy == 'FedOpt':
     model_config['FedModel']['opt_name'] = 'fedadam'
 
 if args.strategy == 'FedSTC':
-    model_config['FedModel']['sparsity'] = 0.01  # TODO: change
+    model_config['FedModel']['sparsity'] = 0.01
 
 if args.strategy == 'Central' or args.strategy == 'Local':
     model_config['FedModel']['C'] = None
