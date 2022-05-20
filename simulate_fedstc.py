@@ -17,7 +17,6 @@ from multiprocessing import Pool
 from functools import partial
 
 
-# config_manager = ConfigurationManager()
 config_manager: ConfigurationManager = ConfigurationManager.from_files('configs/debug')
 data_config = config_manager.data_config
 model_config = config_manager.model_config
@@ -67,7 +66,7 @@ early_stopping_metric = np.inf
 best_test_metric = None
 test_metric_each_round = []
 patience = 0
-batch_size = 1024
+batch_size = 512
 
 params_shape = [e.shape for e in ml_model.get_weights()]
 params_shape_flatten = np.sum([np.prod(e) for e in params_shape])
@@ -86,20 +85,55 @@ def stc(input_tensor, sparsity):
     return results
 
 
+def compute_gradients(args):
+    x, y = args
+    x = tf.expand_dims(x, 0)
+    y = tf.expand_dims(y, 0)
+    with tf.GradientTape() as tape:
+        y_hat = ml_model(x)
+        loss_op = tf.keras.losses.get(ConfigurationManager().model_config.loss_calc_method)
+        loss = loss_op(y, y_hat)
+        gradients = tape.gradient(loss, ml_model.trainable_variables)
+    # for i in range(len(gradients)):
+    #     try:
+    #         gradients[i] = gradients[i].numpy()
+    #     except AttributeError:
+    #         gradients[i] = tf.convert_to_tensor(gradients[i]).numpy()
+    return gradients
+
+
 for epoch in range(model_config.max_round_num):
+
     st = time.time()
-    pointer = 0
+    results = []
     actual_size = []
-    for i in range(config_manager.runtime_config.client_num):
-        actual_size.append(client_data_size[i])
-        client_residual[i] += np.concatenate([
-            (-config_manager.model_config.learning_rate * e / float(actual_size[-1])).flatten()
-            for e in compute_gradients(
-                ml_model, x_train[pointer:pointer + actual_size[-1]],
-                y_train[pointer:pointer + actual_size[-1]])]
+    pointer = 0
+    for i in range(0, len(x_train), batch_size):
+        actual_size.append(min(batch_size, len(x_train) - pointer))
+        tmp_gradients = tf.vectorized_map(
+            compute_gradients,
+            (x_train[pointer:pointer + actual_size[-1]], y_train[pointer:pointer + actual_size[-1]])
         )
+        del tmp_gradients
         pointer += actual_size[-1]
+        print(i)
     print(f'Per-client gradients cost {time.time() - st}')
+
+    pdb.set_trace()
+
+    # st = time.time()
+    # pointer = 0
+    # actual_size = []
+    # for i in range(config_manager.runtime_config.client_num):
+    #     actual_size.append(client_data_size[i])
+    #     client_residual[i] += np.concatenate([
+    #         (-config_manager.model_config.learning_rate * e / float(actual_size[-1])).flatten()
+    #         for e in compute_gradients(
+    #             ml_model, x_train[pointer:pointer + actual_size[-1]],
+    #             y_train[pointer:pointer + actual_size[-1]])]
+    #     )
+    #     pointer += actual_size[-1]
+    # print(f'Per-client gradients cost {time.time() - st}')
 
     st = time.time()
     # stc_sparse = partial(stc, sparsity=config_manager.model_config.stc_sparsity)
