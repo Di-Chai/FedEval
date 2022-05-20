@@ -138,6 +138,7 @@ FedEval/data
 log
 *.jpg
 *.json
+*.csv
 develop
 docker_pre_downloaded
 trials/
