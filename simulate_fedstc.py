@@ -17,7 +17,7 @@ from multiprocessing import Pool
 from functools import partial
 
 
-config_manager: ConfigurationManager = ConfigurationManager.from_files('configs/debug')
+config_manager: ConfigurationManager = ConfigurationManager.from_files('configs/STC')
 data_config = config_manager.data_config
 model_config = config_manager.model_config
 runtime_config = config_manager.runtime_config

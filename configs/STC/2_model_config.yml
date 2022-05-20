@@ -1,0 +1,36 @@
+FedModel:
+  name: FedSTC
+  # Shared params
+  B: 100000
+  C: 1.0
+  E: 8
+  distributed_evaluate: false
+  evaluate_ratio: 1.0
+  max_rounds: 12000
+  num_tolerance: 100
+  rounds_between_val: 1
+  # FedSTC
+  sparsity: 0.01
+  # FedProx
+  mu: 0.01
+  # FedOpt
+  tau: 0.0001
+  beta1: 0.9
+  beta2: 0.99
+  opt_name: 'fedyogi'
+  # Server LR, used by FedOpt and FedSCA
+  eta: 1.0
+MLModel:
+  name: MLP
+  activation: relu
+  dropout: 0.2
+  units:
+    - 512
+    - 512
+  optimizer:
+    name: sgd
+    lr: 0.01
+    momentum: 0
+  loss: categorical_crossentropy
+  metrics:
+    - accuracy
