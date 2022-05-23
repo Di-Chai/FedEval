@@ -67,7 +67,7 @@ fine_tuned_params = {
         'FedSTC': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},  # re
         'FedAvg': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': 0.05},
         'FedProx': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
-        'FedOpt': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
+        'FedOpt': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'model': 'StackedLSTM'
     }
 }

@@ -108,11 +108,11 @@ class LogAnalysis:
                 print('Get FL Training log', c1['dataset'], c1['random_seed'], log)
                 self.history.update(config_id=log.split('_')[-1], log_path=log)
                 # TODO: remove the debug code
-                config_uid = log.split('_')[-1][:8]
-                self.config_uid[config_uid] = self.config_uid.get(config_uid, []) + [log]
-                results['finished'] = True
-                with open(os.path.join(log, 'Server', 'results.json'), 'w') as f:
-                    json.dump(results, f)
+                # config_uid = log.split('_')[-1][:8]
+                # self.config_uid[config_uid] = self.config_uid.get(config_uid, []) + [log]
+                # results['finished'] = True
+                # with open(os.path.join(log, 'Server', 'results.json'), 'w') as f:
+                #     json.dump(results, f)
             except:
                 pass
 

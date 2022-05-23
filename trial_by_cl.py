@@ -27,6 +27,11 @@ if __name__ == '__main__':
     params['runtime_config']['docker']['enable_gpu'] = True
     params['runtime_config']['docker']['num_gpu'] = 1
 
+    if host_name == "ministation":
+        runtime_config['docker']['enable_gpu'] = True
+        runtime_config['docker']['num_containers'] = 10
+        runtime_config['docker']['num_gpu'] = 1
+
     if args.dataset == 'mnist':
         params['runtime_config']['server']['port'] = 8010
 
