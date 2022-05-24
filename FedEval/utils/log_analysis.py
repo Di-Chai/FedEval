@@ -103,16 +103,16 @@ class LogAnalysis:
                 c1, c2, c3 = ConfigurationManager.load_configs(os.path.join(log, 'Server'))
                 with open(os.path.join(log, 'Server', 'results.json'), 'r') as f:
                     results = json.load(f)
+                if not results.get('finished'):
+                    print('Not Finished!', log)
+                    continue
                 self.results.append(results)
                 self.configs.append({'data_config': c1, 'model_config': c2, 'runtime_config': c3})
                 print('Get FL Training log', c1['dataset'], c1['random_seed'], log)
                 self.history.update(config_id=log.split('_')[-1], log_path=log)
                 # TODO: remove the debug code
-                # config_uid = log.split('_')[-1][:8]
-                # self.config_uid[config_uid] = self.config_uid.get(config_uid, []) + [log]
-                # results['finished'] = True
-                # with open(os.path.join(log, 'Server', 'results.json'), 'w') as f:
-                #     json.dump(results, f)
+                config_uid = log.split('_')[-1][:8]
+                self.config_uid[config_uid] = self.config_uid.get(config_uid, []) + [log]
             except:
                 pass
 
@@ -443,12 +443,25 @@ class LogAnalysis:
 
             self.history.update(config_id=os.path.dirname(log_file).split('_')[-1], log_path=log_file)
 
+            try:
+                c1, c2, c3 = ConfigurationManager.load_configs(os.path.dirname(log_file))
+                data_non_iid = c1.get('non-iid')
+                data_non_iid_class = c1.get('non-iid-class')
+                data_non_iid_strategy = c1.get('non-iid-strategy')
+            except FileNotFoundError:
+                data_non_iid = None
+                data_non_iid_class = None
+                data_non_iid_strategy = None
+
             test_acc = fed_sgd_simulation[-1].strip('\n').split(', ')[-1]
 
-            result_dict[fed_sgd_simulation[0]] = result_dict.get(fed_sgd_simulation[0], []) + [[
+            result_key = fed_sgd_simulation[0].strip('\n') + ', ' + \
+                         ', '.join([str(data_non_iid), str(data_non_iid_class), str(data_non_iid_strategy)])
+
+            result_dict[result_key] = result_dict.get(result_key, []) + [[
                 int(fed_sgd_simulation[-2].split(',')[0]), float(test_acc)]]
 
-            print(fed_sgd_simulation[0].strip('\n'), test_acc, 'max round', fed_sgd_simulation[-2].split(',')[0])
+            print(result_key, test_acc, 'max round', fed_sgd_simulation[-2].split(',')[0])
 
         results = []
         for key in result_dict:
@@ -465,7 +478,7 @@ class LogAnalysis:
                 print('Repeat', key.strip('\n'), len(tmp_record))
 
         with open('simulate_fed_sgd.csv', 'w') as f:
-            f.write('Repeat, Dataset, #Clients, LR, Round, TestAcc, RoundStd, TestStd\n')
+            f.write('Repeat, Dataset, #Clients, LR, NonIID, NIClass, NIStrategy, Round, TestAcc, RoundStd, TestStd\n')
             f.writelines(results)
 
     def process_local_simulate_results(self, log_files):
