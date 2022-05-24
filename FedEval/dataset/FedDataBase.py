@@ -176,6 +176,9 @@ class FedData(metaclass=ABCMeta):
 
         else:
 
+            if self.identity is not None:
+                raise AttributeError('Selected dataset has identity, Please set Non-IID strategy to "natural" !')
+
             # TODO(fgh) shared_data = d_cfg.xxx
             sample_size = d_cfg.sample_size
             sample_size = min(sample_size, int(len(self.x) / self.num_clients))
