@@ -64,9 +64,9 @@ fine_tuned_params = {
         'Local': {'B': 8192 * 2, 'C': None, 'E': None, 'lr': 3},
         'Central': {'B': 8192 * 2, 'C': None, 'E': None, 'lr': 2},
         'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 2},  # re
-        'FedSTC': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},  # re
+        'FedSTC': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': 0.05},  # re
         'FedAvg': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': 0.05},
-        'FedProx': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': 0.05},
+        'FedProx': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': None},
         'FedOpt': {'B': 1024, 'C': 0.1, 'E': 10, 'lr': 0.5},
         'model': 'StackedLSTM'
     }
