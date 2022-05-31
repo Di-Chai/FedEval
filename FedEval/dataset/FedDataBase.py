@@ -1,6 +1,7 @@
 import copy
 import logging
 import os
+import pdb
 import pickle
 import hickle
 import psutil
@@ -199,12 +200,12 @@ class FedData(metaclass=ABCMeta):
                 self.x[:len(train_index)] = np.array([e[0] for e in xy], dtype=np.float64)
                 self.y[:len(train_index)] = np.array([e[1] for e in xy], dtype=np.float64)
                 del xy
-
-            if self.num_class > 1:
                 # sorted by the label
                 train_index = sorted(train_index, key=lambda x: np.argmax(self.y[x]))
+                num_of_each_class = self.y[train_index].sum(0)
+            else:
+                num_of_each_class = [len(self.y[train_index])]
 
-            num_of_each_class = self.y[train_index].sum(0)
             class_pointer = np.array([int(np.sum(num_of_each_class[0:i])) for i in range(self.num_class)])
 
             # manual set test set

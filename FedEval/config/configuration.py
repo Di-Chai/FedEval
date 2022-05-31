@@ -15,7 +15,7 @@ from .filename_checker import check_filename
 from .role import Role
 from .singleton import Singleton
 
-RawConfigurationDict = Mapping[str, Any]
+RawConfigurationDict = Dict[str, Any]
 
 DEFAULT_D_CFG_FILENAME_YAML = '1_data_config.yml'
 DEFAULT_MDL_CFG_FILENAME_YAML = '2_model_config.yml'
@@ -402,7 +402,8 @@ class _ModelConfig(_Configuraiton):
         _ModelConfig.__check_raw_config(model_config)
         super().__init__(model_config)
         self._strategy_cfg = model_config[_STRATEGY_KEY]
-        self._ml_cfg = model_config[_ML_KEY]
+        # The model config could be empty, e.g., in FedSVD
+        self._ml_cfg = model_config[_ML_KEY] or {}
 
     @staticmethod
     def _config_filter(config: RawConfigurationDict) -> RawConfigurationDict:
@@ -424,20 +425,21 @@ class _ModelConfig(_Configuraiton):
     @staticmethod
     def __check_raw_config(config: RawConfigurationDict) -> None:
         _ModelConfig.__check_runtime_config_shallow_structure(config)
-        _ModelConfig.__check_ML_model_params(config[_ML_KEY])
+        _ModelConfig.__check_ML_model_params(config.get(_ML_KEY))
 
     @staticmethod
     def __check_runtime_config_shallow_structure(config: RawConfigurationDict) -> None:
-        assert config.get(
-            _ML_KEY) != None, f'model_config should have `{_ML_KEY}`'
+        # assert config.get(
+        #     _ML_KEY) != None, f'model_config should have `{_ML_KEY}`'
         assert config.get(
             _STRATEGY_KEY) != None, f'model_config should have `{_STRATEGY_KEY}`'
 
     @staticmethod
     def __check_ML_model_params(ml_config: RawConfigurationDict) -> None:
-        dropout_ratio = ml_config.get(_ML_DROPOUT_RATIO_KEY)
-        if dropout_ratio:
-            assert dropout_ratio >= 0 and dropout_ratio <= 1, 'dropout ration out of range.'
+        if ml_config:
+            dropout_ratio = ml_config.get(_ML_DROPOUT_RATIO_KEY)
+            if dropout_ratio:
+                assert dropout_ratio >= 0 and dropout_ratio <= 1, 'dropout ration out of range.'
 
     @property
     def strategy_config(self) -> RawConfigurationDict:
@@ -480,7 +482,7 @@ class _ModelConfig(_Configuraiton):
         Returns:
             str: the classname/typename of the inner machine learning model.
         """
-        return self._ml_cfg[_ML_NAME_KEY]
+        return self._ml_cfg.get(_ML_NAME_KEY)
 
     @property
     def server_learning_rate(self) -> float:

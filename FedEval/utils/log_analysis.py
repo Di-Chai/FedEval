@@ -161,6 +161,8 @@ class LogAnalysis:
                 ['best_metric$$test_accuracy', lambda x: [float(x)]],
                 ['total_time',
                  lambda x: [int(x.split(':')[0]) * 60 + int(x.split(':')[1]) + int(x.split(':')[2]) / 60]],
+                ['total_time_federated',
+                 lambda x: [int(x.split(':')[0]) * 60 + int(x.split(':')[1]) + int(x.split(':')[2]) / 60]],
                 ['total_rounds', lambda x: [int(x)]],
                 ['server_send', lambda x: [float(x)]],
                 ['server_receive', lambda x: [float(x)]],

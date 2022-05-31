@@ -1006,7 +1006,7 @@ class FedSVD(FedStrategy):
 
         self._scheduler.remove_job('log_memory')
 
-        self.logger.info(f'Total Memory Usage: {np.max(self._total_memory_usage)} GB ')
+        self.logger.info(f'Max Memory Usage: {np.max(self._total_memory_usage)} GB ')
 
         result_json = host.snapshot_result(None)
         result_json.update({'memory_usage_sequence': self._total_memory_usage})
@@ -1057,7 +1057,7 @@ class FedSVD(FedStrategy):
 
             cfg_mgr = ConfigurationManager()
             client_num = cfg_mgr.runtime_config.client_num
-            data_dir = cfg_mgr.data_config.dir_name
+            data_dir = cfg_mgr.data_dir_name
 
             # Load clients' data for evaluation
             if self._memory_map:
@@ -1174,6 +1174,6 @@ class FedSVD(FedStrategy):
             self.logger.info(f'FedSVD Server Status: Results saved to {result_path}.')
 
         # Clear cached data
-        shutil.rmtree(ConfigurationManager().data_config.dir_name, ignore_errors=True)
+        shutil.rmtree(ConfigurationManager().data_dir_name, ignore_errors=True)
         # Clear disk files
         shutil.rmtree(self._tmp_dir, ignore_errors=True)

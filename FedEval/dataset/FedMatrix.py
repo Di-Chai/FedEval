@@ -113,7 +113,7 @@ def load_synthetic_large_scale(m, n, alpha):
     # num_feature: m
     # num_sample: n
     result_memmap = np.memmap(
-        filename=os.path.join(ConfigurationManager().data_config.dir_name, f'synthetic_large_scale_{m}_{n}.npy'),
+        filename=os.path.join(ConfigurationManager().data_dir_name, f'synthetic_large_scale_{m}_{n}.npy'),
         dtype=np.float64, shape=(m, n), mode='write'
     )
     k = min(m, n)
@@ -175,12 +175,12 @@ class synthetic_matrix_horizontal_memmap(FedData):
         local_dataset = []
         for i in range(len(local_dataset_index)):
             np.save(
-                os.path.join(ConfigurationManager().data_config.dir_name, f'client_{i}_train_x.npy'),
+                os.path.join(ConfigurationManager().data_dir_name, f'client_{i}_train_x.npy'),
                 self.x[local_dataset_index[i][0]]
             )
             local_dataset.append(
                 {
-                    'x_train': os.path.join(ConfigurationManager().data_config.dir_name, f"client_{i}_train_x.npy")
+                    'x_train': os.path.join(ConfigurationManager().data_dir_name, f"client_{i}_train_x.npy")
                 }
             )
         if save_file:
@@ -235,7 +235,7 @@ class vertical_linear_regression_memmap(FedVerticalMatrix):
         n_features = ConfigurationManager().data_config.feature_size * ConfigurationManager().runtime_config.client_num
         # Create the random X
         x = np.memmap(
-            filename=os.path.join(ConfigurationManager().data_config.dir_name, 'vlr_x.npy'),
+            filename=os.path.join(ConfigurationManager().data_dir_name, 'vlr_x.npy'),
             mode='write', dtype=np.float64, shape=(n_features + 1, n_samples)
         )
         n_informative = int(n_features * 0.9)
@@ -280,11 +280,11 @@ class vertical_linear_regression_memmap(FedVerticalMatrix):
         local_dataset = []
         for i in range(num_clients):
             np.save(
-                os.path.join(ConfigurationManager().data_config.dir_name, f'client_{i}_train_x.npy'),
+                os.path.join(ConfigurationManager().data_dir_name, f'client_{i}_train_x.npy'),
                 self.x[sum(local_num_features[:i]):sum(local_num_features[:i+1]), :train_size]
             )
             local_dataset.append(
-                {'x_train': os.path.join(ConfigurationManager().data_config.dir_name, f'client_{i}_train_x.npy')}
+                {'x_train': os.path.join(ConfigurationManager().data_dir_name, f'client_{i}_train_x.npy')}
             )
             if (i+1) == num_clients:
                 local_dataset[-1].update({
@@ -307,7 +307,7 @@ class ml25m_matrix_memmap(vertical_linear_regression_memmap):
         num_users = 162541
         num_movies = 62423
         x = np.memmap(
-            filename=os.path.join(ConfigurationManager().data_config.dir_name, 'vlr_x.npy'),
+            filename=os.path.join(ConfigurationManager().data_dir_name, 'vlr_x.npy'),
             mode='write', dtype=np.float64, shape=(num_movies, num_users)
         )
         for i in range(num_movies):

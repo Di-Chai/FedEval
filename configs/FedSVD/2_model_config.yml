@@ -3,6 +3,7 @@ FedModel:
   C: 1.0
   E: 1
   block_size: 1000
+  distributed_evaluate: true
   fedsvd_debug_evaluate: false
   fedsvd_lr_l2: 0
   fedsvd_mode: lr
@@ -13,17 +14,4 @@ FedModel:
   name: FedSVD
   num_tolerance: 300
   rounds_between_val: 1
-MLModel:
-  activation: relu
-  dropout: 0.2
-  loss: categorical_crossentropy
-  metrics:
-  - accuracy
-  name: LeNet
-  optimizer:
-    lr: 0.1
-    momentum: 0.9
-    name: sgd
-  units:
-  - 512
-  - 512
+MLModel: null
