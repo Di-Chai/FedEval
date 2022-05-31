@@ -83,6 +83,7 @@ class Server(Node):
     def _init_statistical_states(self):
         """initialize statistics."""
         # time & moments
+        self._client_wise_time: List[Dict[str, Any]] = []
         self._time_send_train: Optional[float] = None
         self._time_agg_train_start: Optional[float] = None
         self._time_agg_train_end: Optional[float] = None
@@ -270,6 +271,7 @@ class Server(Node):
             'total_time_federated': f'{h_fed}:{m_fed}:{s_fed}',
             'total_time_in_seconds_federated': total_time_in_seconds_federated,
             'time_detail': str(avg_time_records),
+            'client_wise_time': self._client_wise_time,
             'total_rounds': self._current_round,
             'server_send': self._server_send_bytes / (1 << 30),
             'server_receive': self._server_receive_bytes / (1 << 30),
@@ -355,6 +357,10 @@ class Server(Node):
         latest_time_record = self._time_record_real_world[-1]
         cur_round_info = self._info_each_round[self._current_round]
 
+        self._client_wise_time[-1]['train'] = [
+            receive_update_time.tolist(), finish_update_time.tolist(), update_receive_time.tolist()
+        ]
+
         latest_time_record['update_send'] = np.mean(receive_update_time)
         latest_time_record['update_run'] = np.mean(finish_update_time)
         latest_time_record['update_receive'] = np.mean(update_receive_time)
@@ -429,6 +435,11 @@ class Server(Node):
         receive_eval_time = np.array([e['time_receive_request'] - self._time_agg_train_end for e in self._c_eval])
         finish_eval_time = np.array([e['time_finish_evaluate'] - e['time_start_evaluate'] for e in self._c_eval])
         eval_receive_time = np.array([e['time_receive_evaluate'] - e['time_finish_evaluate'] for e in self._c_eval])
+
+        self._client_wise_time[-1]['eval_selected_clients'] = [e['cid'] for e in self._c_eval]
+        self._client_wise_time[-1]['eval'] = [
+            receive_eval_time.tolist(), finish_eval_time.tolist(), eval_receive_time.tolist()
+        ]
 
         self.logger.info(
             'Update Run min %s max %s mean %s'
@@ -570,6 +581,7 @@ class Server(Node):
         self._info_each_round[self._current_round] = {'timestamp': time.time()}
         self._time_record_real_world.append({'round': self._current_round})
         self._time_record_federated.append({'round': self._current_round})
+        self._client_wise_time.append({'round': self._current_round, 'train_selected_clients': selected_clients})
         # Record the time
         self._time_send_train = time.time()
 
