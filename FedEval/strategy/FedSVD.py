@@ -1081,6 +1081,7 @@ class FedSVD(FedStrategy):
                     y_train = data['y_train']
 
             if self._svd_mode == 'lr':
+                self.logger.info(f'Debug Data shape X {x_train.shape} Y {y_train.shape} Y sample {y_train[:10]}')
                 # SVD prediction and errors
                 y_hat_svd = x_train @ self._evaluate_parameters
                 svd_mse = mean_squared_error(y_true=y_train, y_pred=y_hat_svd)
@@ -1089,24 +1090,25 @@ class FedSVD(FedStrategy):
                 self.logger.info(f'SVD-LR evaluation done. MSE {svd_mse} MAPE {svd_mape} R2 {svd_r2}')
                 # Centralized SGD and errors
                 x_train = x_train[:, :-1]
-                learning_rate = 0.01
+                learning_rate = 0.0000001
                 tolerance = 10
-                batch_size = 1000000
-                max_epoch = 10000
+                batch_size = 512
+                max_epoch = 100000
                 l2 = ConfigurationManager().model_config.svd_lr_l2
                 linear_regression_model = tf.keras.Sequential()
                 linear_regression_model.add(tf.keras.layers.Dense(
                     1 if len(y_train.shape) == 1 else y_train.shape[-1],
                     kernel_regularizer=tf.keras.regularizers.l2(l2), use_bias=True
                 ))
-                optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate)
+                optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=0.9)
                 linear_regression_model.compile(optimizer=optimizer, loss=tf.keras.losses.mse)
                 es = tf.keras.callbacks.EarlyStopping(
                     monitor='loss', min_delta=0, patience=tolerance, verbose=0,
                     mode='auto', baseline=None, restore_best_weights=True
                 )
                 linear_regression_model.fit(
-                    x_train, y_train, batch_size=batch_size, epochs=max_epoch, verbose=1, callbacks=[es]
+                    x_train.astype(np.float64), y_train.astype(np.float64),
+                    batch_size=batch_size, epochs=max_epoch, verbose=1, callbacks=[es]
                 )
                 y_hat_sgd = linear_regression_model.predict(x_train)
                 sgd_mse = float(mean_squared_error(y_true=y_train, y_pred=y_hat_sgd))
