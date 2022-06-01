@@ -266,11 +266,6 @@ if args.tune == 'lr':
 
 host_name = socket.gethostname()
 
-if host_name == "workstation":
-    runtime_config['docker']['enable_gpu'] = True
-    runtime_config['docker']['num_containers'] = 8
-    runtime_config['docker']['num_gpu'] = 2
-
 if host_name == "gpu06":
     runtime_config['docker']['enable_gpu'] = True
     runtime_config['docker']['num_containers'] = 20
@@ -296,10 +291,42 @@ if host_name == "ministation":
     runtime_config['docker']['num_containers'] = 10
     runtime_config['docker']['num_gpu'] = 1
 
+if host_name == "Alienware":
+    runtime_config['docker']['enable_gpu'] = True
+    runtime_config['docker']['num_containers'] = 5
+    runtime_config['docker']['num_gpu'] = 1
+
 if host_name == "mac":
     runtime_config['docker']['enable_gpu'] = False
     runtime_config['docker']['num_containers'] = 8
     runtime_config['docker']['num_gpu'] = 0
+
+# Test the time
+if host_name == "workstation":
+    runtime_config['docker']['num_containers'] = 8
+    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['num_gpu'] = 0
+
+# Test the time
+if host_name == "Alienware":
+    runtime_config['docker']['num_containers'] = 20
+    runtime_config['docker']['enable_gpu'] = False
+    runtime_config['docker']['num_gpu'] = 0
+
+############################################################
+# Time testing
+time_testing = True
+if time_testing:
+    runtime_config['communication']['limit_network_resource'] = False
+    runtime_config['communication']['bandwidth_upload'] = '10000Mbit'
+    runtime_config['communication']['bandwidth_download'] = '10000Mbit'
+    runtime_config['communication']['fast_mode'] = False
+    model_config['FedModel']['distributed_evaluate'] = True
+    model_config['FedModel']['max_rounds'] = 5
+    model_config['FedModel']['C'] = 1.0
+    runtime_config['log']['log_dir'] = os.path.join(runtime_config['log']['log_dir'], host_name)
+
+############################################################
 
 params = {
     'data_config': data_config,
