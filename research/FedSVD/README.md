@@ -50,6 +50,8 @@ We perform the attack experiments using Matlab, and the code could be found here
 
 To reproduce the results, please execute the `main.m` file. 
 
+Before executing the code, please download the data from [Here](https://www.jianguoyun.com/p/Ddn8DkAQhdfRChjP9cMEIAA), including `ml100k.mat, mnist.mat, wine.mat`. And put them in the same folder with the code.
+
 ### 4) Baseline methods (SecureML)
 
 The code for reproducing the SecureML baseline results is presented here: [SecureML](baseline_secureml)
@@ -82,6 +84,7 @@ docker pull dichai/fate:guest
 docker network create --subnet=192.168.0.0/16 fate_network
 
 # Step 3, Download the Host/Guest data
+Please download the data [Here](https://www.jianguoyun.com/p/Ddn8DkAQhdfRChjP9cMEIAA), including the `fate_data_host.tar.gz` and `fate_data_guest.tar.gz`. Then unpack the data to a proper path, e.g., your home folder.
 
 # Step 4, Start the Host/Guest Containers
 # Note: 1) please change the FATE_HOST_PATH and FATE_GUEST_PATH value accordingly, 
@@ -98,8 +101,7 @@ docker run -it -v $FATE_GUEST_PATH:/data -w /data --name fate_guest --net fate_n
 # In both guest and host containers:
 bash start_service.sh  # or restart_service.sh if the containers are stopped and restarted
 
-# Step 6, Generate the synthetic data
-# In guest container:
+# Step 6, Generate the synthetic data# In guest container:
 cd /data/synthetic_data
 # You may change the value of sample_size & feature_size, 
 #   but we recommend that you change it later after the experiments success with the value we provided.
