@@ -64,7 +64,7 @@ To reproduce the results, please execute the `main.m` file.
 
 Before executing the code, please download the data from [Here](https://www.jianguoyun.com/p/Ddn8DkAQhdfRChjP9cMEIAA), including `ml100k.mat, mnist.mat, wine.mat`. And put them in the same folder with the code.
 
-### 4) Baseline methods (SecureML)
+### 4) Baseline methods (LR on SecureML)
 
 The code for reproducing the SecureML baseline results is presented here: [SecureML](baseline_secureml)
 
@@ -79,7 +79,7 @@ docker build . -t mpc:v1
 python trial.py
 ```
 
-### 5) Baseline methods (FATE)
+### 5) Baseline methods (LR on FATE)
 
 Preparing the environment for FATE is more complex than SecureML. 
 To simplify the reproduction process, we have uploaded the open-to-use environment to DockerHub. Specifically, the environment is prepared using this tutorial: [FATE official guideline for preparing the env](https://github.com/FederatedAI/FATE/blob/master/deploy/cluster-deploy/doc/fate_on_eggroll/fate-allinone_deployment_guide.md).
@@ -105,25 +105,27 @@ Note: 1) please change the FATE_HOST_PATH and FATE_GUEST_PATH value accordingly,
       2) do not change the fixed ip address of the containers,
       3) You may need to open two terminals to start the Host and Guest Containers separately.
 
-In terminal 1:
+In host terminal:
 ```bash
 export FATE_HOST_PATH = ~/fate_data/host
 docker run -it -v $FATE_HOST_PATH:/data -w /data --name fate_host --net fate_network --ip 192.168.0.3 --cap-add NET_ADMIN -p 8100:8080 dichai/fate:host bash
 ```
 
-In terminal 2:
+In guest terminal:
 ```bash
 export FATE_GUEST_PATH = ~/fate_data/guest
 docker run -it -v $FATE_GUEST_PATH:/data -w /data --name fate_guest --net fate_network --ip 192.168.0.4 --cap-add NET_ADMIN -p 8200:8080 dichai/fate:guest bash
 ```
 
 Step 5, Start the FATE services
-In both guest and host containers:
-```nashorn js
+In both guest and host terminal:
+```bash
 bash start_service.sh  # or restart_service.sh if the containers are stopped and restarted
 ```
 
-Step 6, Generate the synthetic data# In guest container:
+Step 6, Generate the synthetic data
+In guest terminal:
+
 ```bash
 cd /data/synthetic_data
 # You may change the value of sample_size & feature_size, 
@@ -136,21 +138,21 @@ sudo rm *host.csv
 ```
 
 Step 7, Upload the csv data to database
-In both guest and host containers:
+In both guest and host terminal:
 ```bash
 cd /data/experiments
 flow data upload -c upload_data_10000.json  # If you didn't change the sample_size & feature_size in Step 6, this json-config should work, otherwise you need to modify it accordingly.
 ```
 
 Step 8, Start the experiment using "flow"
-In guest container:
+In guest terminal:
 ```bash
 cd /data/experiments
 flow job submit -c simplified_conf.json -d simplified_dsl.json  # Again, if you didn't change the sample_size & feature_size in Step 6, this config & dsl should work, otherwise you need to modify it accordingly.
 ```
 
 Step 9, Reproduce the results in the paper
-In guest container:
+In guest terminal:
 ```bash
 cd /data/experiments
 python trial.py  # This will automatically run all the benchmark experiments which takes a long time, you may modify the scripts to run only part of them.
