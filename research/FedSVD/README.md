@@ -18,8 +18,10 @@ The detailed commends are listed bellow.
 
 ```bash
 cd research/FedSVD
+
 # SVD Precision (Lossless)
 python trial.py --mode svd --task precision
+
 # SVD Efficiency
 python trial.py --model svd --task latency
 python trial.py --mode svd --task bandwidth
@@ -27,14 +29,17 @@ python trial.py --mode svd --task very_clients
 python trial.py --mode svd --task small_scale
 python trial.py --mode svd --task large_scale
 python trial.py --mode svd --task block_size
+
 # SVD Application Precision (Lossless)
 python trial.py --mode lr --task precision
 python trial.py --mode pca --task precision
+
 # SVD Application Efficiency
 python trial.py --model lr --task latency
 python trial.py --mode lr --task bandwidth
 python trial.py --mode lr --task large_scale
 python trial.py --mode svd --task large_scale_recsys
+
 # Evaluate the Proposed Optimizations
 python trial.py --model svd --task block_size
 ```
@@ -55,6 +60,7 @@ Two steps are required to reproduce the results:
 # Step 1, build the docker image
 cd research/FedSVD/baseline_secureml
 docker build . -t mpc:v1
+
 # Step 2, run the experiments
 python trial.py
 ```
