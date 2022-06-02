@@ -16,32 +16,44 @@ We have provided a script for reproducing all the efficiency and lossless result
 
 The detailed commends are listed bellow.
 
+Please first change working dir to:
+
 ```bash
 cd research/FedSVD
+```
 
-# SVD Precision (Lossless)
+SVD Precision (Lossless):
+```bash
 python trial.py --mode svd --task precision
+```
 
-# SVD Efficiency
-python trial.py --model svd --task latency
+SVD Efficiency:
+```bash
+python trial.py --mode svd --task latency
 python trial.py --mode svd --task bandwidth
 python trial.py --mode svd --task very_clients
 python trial.py --mode svd --task small_scale
 python trial.py --mode svd --task large_scale
 python trial.py --mode svd --task block_size
+```
 
-# SVD Application Precision (Lossless)
+SVD Application Precision (Lossless):
+```bash
 python trial.py --mode lr --task precision
 python trial.py --mode pca --task precision
+```
 
-# SVD Application Efficiency
-python trial.py --model lr --task latency
+SVD Application Efficiency
+```bash
+python trial.py --mode lr --task latency
 python trial.py --mode lr --task bandwidth
 python trial.py --mode lr --task large_scale
 python trial.py --mode svd --task large_scale_recsys
+```
 
-# Evaluate the Proposed Optimizations
-python trial.py --model svd --task block_size
+Evaluate the Proposed Optimizations
+```bash
+python trial.py --mode svd --task block_size
 ```
 
 ### 3) Attack experiments
@@ -74,34 +86,45 @@ To simplify the reproduction process, we have uploaded the open-to-use environme
 
 To reproduce the FATE experiment results, please follow the following guideline:
 
+Step 1, pull the docker image
 ```bash
-# Step 1, pull the docker image
 docker pull dichai/fate:host
 docker pull dichai/fate:guest
-
-# Step 2, Create the docker network
-# Note: Please do not change the subnet since this subnet (192.168.0.0/16) is fixed in the image.
+```
+Step 2, Create the docker network
+Note: Please do not change the subnet since this subnet (192.168.0.0/16) is fixed in the image.
+```bash
 docker network create --subnet=192.168.0.0/16 fate_network
+```
 
-# Step 3, Download the Host/Guest data
+Step 3, Download the Host/Guest data
 Please download the data [Here](https://www.jianguoyun.com/p/Ddn8DkAQhdfRChjP9cMEIAA), including the `fate_data_host.tar.gz` and `fate_data_guest.tar.gz`. Then unpack the data to a proper path, e.g., your home folder.
 
-# Step 4, Start the Host/Guest Containers
-# Note: 1) please change the FATE_HOST_PATH and FATE_GUEST_PATH value accordingly, 
-#       2) do not change the fixed ip address of the containers,
-#       3) You may need to open two terminals to start the Host and Guest Containers separately.
-# In terminal 1:
+Step 4, Start the Host/Guest Containers
+Note: 1) please change the FATE_HOST_PATH and FATE_GUEST_PATH value accordingly, 
+      2) do not change the fixed ip address of the containers,
+      3) You may need to open two terminals to start the Host and Guest Containers separately.
+
+In terminal 1:
+```bash
 export FATE_HOST_PATH = ~/fate_data/host
 docker run -it -v $FATE_HOST_PATH:/data -w /data --name fate_host --net fate_network --ip 192.168.0.3 --cap-add NET_ADMIN -p 8100:8080 dichai/fate:host bash
-# In terminal 2:
+```
+
+In terminal 2:
+```bash
 export FATE_GUEST_PATH = ~/fate_data/guest
 docker run -it -v $FATE_GUEST_PATH:/data -w /data --name fate_guest --net fate_network --ip 192.168.0.4 --cap-add NET_ADMIN -p 8200:8080 dichai/fate:guest bash
+```
 
-# Step 5, Start the FATE services
-# In both guest and host containers:
+Step 5, Start the FATE services
+In both guest and host containers:
+```nashorn js
 bash start_service.sh  # or restart_service.sh if the containers are stopped and restarted
+```
 
-# Step 6, Generate the synthetic data# In guest container:
+Step 6, Generate the synthetic data# In guest container:
+```bash
 cd /data/synthetic_data
 # You may change the value of sample_size & feature_size, 
 #   but we recommend that you change it later after the experiments success with the value we provided.
@@ -110,24 +133,29 @@ python generate_data.py --sample_size 10000 --feature_size 1000
 scp synthetic_10000_1000_host.csv root@fate_host:/data/synthetic_data
 # (Optional) You may delete the host-data at guest by: 
 sudo rm *host.csv
+```
 
-# Step 7, Upload the csv data to database
-# In both guest and host containers:
+Step 7, Upload the csv data to database
+In both guest and host containers:
+```bash
 cd /data/experiments
 flow data upload -c upload_data_10000.json  # If you didn't change the sample_size & feature_size in Step 6, this json-config should work, otherwise you need to modify it accordingly.
+```
 
-# Step 8, Start the experiment using "flow"
-# In guest container:
+Step 8, Start the experiment using "flow"
+In guest container:
+```bash
 cd /data/experiments
 flow job submit -c simplified_conf.json -d simplified_dsl.json  # Again, if you didn't change the sample_size & feature_size in Step 6, this config & dsl should work, otherwise you need to modify it accordingly.
+```
 
-# Step 9, Reproduce the results in the paper
-# In guest container:
+Step 9, Reproduce the results in the paper
+In guest container:
+```bash
 cd /data/experiments
 python trial.py  # This will automatically run all the benchmark experiments which takes a long time, you may modify the scripts to run only part of them.
-
-# Step 10, Check the results
-# You may view the experiment status at: ip_of_your_machine:8200 (i.e., the Guest FATEBoard address),
-#   The login user and passwd are all "admin"
-# If you are running the trial.py, the time consumption of each job will be logged into trial.log
 ```
+
+Step 10, Check the results
+You may view the experiment status at: ip_of_your_machine:8200 (i.e., the Guest FATEBoard address), and the login user and passwd are all "admin"
+If you are running the trial.py, the time consumption of each job will be logged into `trial.log`.
