@@ -22,7 +22,7 @@ The iSpree evaluation model is the core of our benchmarking system. It defines s
 
 #### Introduction to FedEval
 
-![The framework of FedEval benchmarking system](https://di-chai.github.io/FedEval/_images/bm_system.png)
+![The framework of FedEval benchmarking system](https://di-chai.github.io/FedEval/images/bm_system.png)
 
 We propose a federated benchmarking system called FedEval shown in the above figure, which demonstrates the inputs, inner architecture, and outputs of the system. Our iSpree evaluation model is built inside the benchmarking system. Three key modules are designed in the system:
 
