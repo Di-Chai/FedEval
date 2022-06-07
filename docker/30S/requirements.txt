@@ -19,7 +19,7 @@ torch==1.10.2
 
 # NLP datasets
 nltk==3.6.7
-Pillow==8.4.0
+Pillow==9.0.1
 
 # SSH
 paramiko==2.10.4
