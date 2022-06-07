@@ -3,8 +3,11 @@ import tensorflow as tf
 
 class StackedLSTM(tf.keras.Model):
 
-    def __init__(self, target_shape, embedding_dim, hidden_units=256, **kwargs):
+    def __init__(self, target_shape, **kwargs):
         super().__init__()
+
+        embedding_dim = kwargs.get('embedding_dim', 8)
+        hidden_units = kwargs.get('hidden_units', 64)
 
         num_classes = target_shape[-1]
         if embedding_dim > 0:

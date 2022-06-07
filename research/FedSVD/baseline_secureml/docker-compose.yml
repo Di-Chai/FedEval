@@ -1,0 +1,34 @@
+networks:
+  secureml:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 171.20.0.0/24
+services:
+  c1:
+    cap_add:
+    - NET_ADMIN
+    command: 'sh -c "tc qdisc add dev eth0 handle 1: root htb default 11 && tc class
+      add dev eth0 parent 1: classid 1:1 htb rate 100000Mbit && tc class add dev eth0
+      parent 1:1 classid 1:11 htb rate 1000Mbit && tc qdisc add dev eth0 parent 1:11
+      handle 10: netem delay 25ms && ./bin/secure_ML_synthetic 1 8001 4000"'
+    container_name: secureml_c1
+    image: mpc:v1
+    networks:
+      secureml:
+        ipv4_address: 171.20.0.2
+    working_dir: /root/Secure-ML/build/
+  c2:
+    cap_add:
+    - NET_ADMIN
+    command: 'sh -c "tc qdisc add dev eth0 handle 1: root htb default 11 && tc class
+      add dev eth0 parent 1: classid 1:1 htb rate 100000Mbit && tc class add dev eth0
+      parent 1:1 classid 1:11 htb rate 1000Mbit && tc qdisc add dev eth0 parent 1:11
+      handle 10: netem delay 25ms && ./bin/secure_ML_synthetic 2 8001 4000 171.20.0.2"'
+    container_name: secureml_c2
+    image: mpc:v1
+    networks:
+      secureml:
+        ipv4_address: 171.20.0.3
+    working_dir: /root/Secure-ML/build/
+version: '2'

@@ -1,30 +1,44 @@
 # Communications
+# -- Web Service --
 Flask==1.1.2
+# -- SocketIO --
 Flask-SocketIO==4.3.1
 socketIO-client==0.7.2
 python-engineio==3.13.1
 python-socketio==4.6.0
+# -- gRPC --
+grpcio==1.46.0
+grpcio-tools==1.46.0
 
 # Computation
-numpy
-scipy
-pandas
-torch==1.8.0
+numpy==1.18.5
+scipy==1.5.4
+scikit-learn==0.24.2
+pandas==1.1.5
+torch==1.10.2
 
 # NLP datasets
-nltk
-pillow
+nltk==3.6.7
+Pillow==8.4.0
 
 # SSH
-paramiko
+paramiko==2.10.4
 
 # Monitor
-psutil
+psutil==5.9.0
+tzlocal<3.0
+apscheduler<4.0
 
 # Serializer
-PyYAML
-pympler
+PyYAML==6.0
+Pympler==1.0.1
+hickle==4.0.4
 
 # Plots and CV
-matplotlib
-opencv-python-headless
+matplotlib==3.3.4
+opencv-python-headless==4.5.5.64
+
+# Secure Protocols
+pycryptodome==3.14.1
+gmpy2==2.1.2
+phe==1.5.0

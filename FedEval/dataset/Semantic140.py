@@ -156,6 +156,9 @@ class semantic140(FedData):
             data = [[int(e[0]) // 4, e[4], e[5]] for e in data if e[0] != '2']
             return data
 
+        assert 0 < self.num_clients <= 50579, \
+            f"Sent140 has maximum 50579 clients, received parameter num_clients={self.num_clients}"
+
         train_data = process_data(train_data)
         test_data = process_data(test_data)
 
@@ -164,9 +167,13 @@ class semantic140(FedData):
         user_count = {}
         for user in all_users:
             user_count[user] = user_count.get(user, 0) + 1
-        all_data = [e for e in all_data if user_count[e[1]] > 100]
+        total_num_samples = sum([user_count[e] for e in user_count])
+        selected_user_set = set(
+            sorted([e for e in user_count], key=lambda e: user_count[e], reverse=True)[:self.num_clients]
+        )
+        all_data = [e for e in all_data if e[1] in selected_user_set]  # 100
         np.random.shuffle(all_data)
-        all_data = sorted(all_data, key=lambda x: x[1])
+        all_data = sorted(all_data, key=lambda e: e[1])
 
         # set the identity
         pre_id = all_data[0][1]
@@ -179,7 +186,7 @@ class semantic140(FedData):
                 self.identity.append(1)
 
         # Get the label
-        y = np.array([e[0] for e in all_data], dtype=np.int32)
+        y = np.array([e[0] for e in all_data], dtype=np.int64)
         y = np.expand_dims(y, axis=-1)
 
         # Load the glove vector
@@ -188,7 +195,7 @@ class semantic140(FedData):
             for l in f:
                 line = l.decode().split()
                 word = line[0]
-                word2vectors[word] = np.array(line[1:]).astype(np.float)
+                word2vectors[word] = np.array(line[1:]).astype(float)
 
         # Get x
         stemmer = PorterStemmer()
@@ -202,7 +209,12 @@ class semantic140(FedData):
             elif len(tmp_vector) > 25:
                 tmp_vector = tmp_vector[-25:]
             text_vectors.append(tmp_vector)
-        x = np.array(text_vectors, dtype=np.float32)
+        x = np.array(text_vectors, dtype=np.float64)
+
+        print('#' * 40)
+        print(f'# Data info, total samples {total_num_samples}, selected clients {self.num_clients}, '
+              f'selected samples {sum(self.identity)} Ratio {sum(self.identity) / total_num_samples}')
+        print('#' * 40)
 
         return x, y
 

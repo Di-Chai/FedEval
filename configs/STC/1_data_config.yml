@@ -1,0 +1,12 @@
+data_dir: data
+dataset: semantic140
+non-iid: false
+non-iid-class: 1 # Only work when non-iid = True
+non-iid-strategy: average # Only work when non-iid = True
+normalize: true
+sample_size: 700
+random_seed: 0
+train_val_test:
+  - 0.8
+  - 0.1
+  - 0.1

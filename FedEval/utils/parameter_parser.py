@@ -1,87 +1,91 @@
 import os
 import pickle
+import hickle
+from abc import ABCMeta, abstractmethod
+from typing import Any, Mapping, Tuple
+
 import numpy as np
 import tensorflow as tf
 
+from ..config.configuration import ConfigurationManager
 from ..dataset import get_data_shape
 from ..model import *
-from FedEval import model
+
+Data = Any
+XYData = Mapping[str, Data]  # {'x': Data, 'y': Data}
 
 
-class ParamParser:
-    def __init__(self, data_config, model_config, runtime_config):
+class ParamParserInterface(metaclass=ABCMeta):
+    """ Abstract class of ParamParser, containing basic params parse functions.
 
-        self.data_config = data_config
-        self.model_config = model_config
-        self.runtime_config = runtime_config
+    Raises:
+        NotImplementedError: raised when methods in this class was not implemented.
+    """
 
-        self.x_size, self.y_size = get_data_shape(dataset=self.data_config.get('dataset'))
+    @staticmethod
+    @abstractmethod
+    def parse_model() -> tf.keras.Model:
+        """construct a tensorflow model according to the model configuration.
 
-    # Basic parse functions
-    def parse_server_addr(self, role_name):
-        if role_name == 'server':
-            return self.runtime_config['server']['listen'], self.runtime_config['server']['port']
-        else:
-            return self.runtime_config['server']['host'], self.runtime_config['server']['port']
+        Raises:
+            NotImplementedError: raised when called but not overriden.
 
-    # Basic parse functions
-    def parse_model(self):
-        
-        # (0) Test, Config the GPU
-        if self.runtime_config['docker'].get('enable_gpu'):
-            gpus = tf.config.list_physical_devices('GPU')
-            if gpus:
-                try:
-                    # Currently, memory growth needs to be the same across GPUs
-                    for gpu in gpus:
-                        tf.config.experimental.set_memory_growth(gpu, True)
-                    logical_gpus = tf.config.list_logical_devices('GPU')
-                    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-                except RuntimeError as e:
-                    # Memory growth must be set before GPUs have been initialized
-                    print(e)
+        Returns:
+            tf.keras.Model: the model constructed.
+        """
+        raise NotImplementedError
 
-        ml_model_config = self.model_config['MLModel']
-        ml_model_name = ml_model_config.get('name')
+    @staticmethod
+    @abstractmethod
+    def parse_data(client_id) -> Tuple[XYData, XYData, XYData]:
+        """load data for train/test/validation purpose according to the data configuration.
 
-        optimizer_config = ml_model_config.get('optimizer')
-        optimizer = tf.keras.optimizers.get(optimizer_config.get('name'))
-        for key, value in optimizer_config.items():
+        Attributes:
+            client_id: the id of the client which issued this data parse procedure.
+
+        Raises:
+            NotImplementedError: raised when called but not overriden.
+
+        Returns:
+            Tuple[XYData, XYData, XYData]: [data for train, data for test, data for validation]
+        """
+        raise NotImplementedError
+
+
+class ParamParser(ParamParserInterface):
+    """an implentation of ParamParserInterface."""
+
+    @staticmethod
+    def parse_model():
+        x_size, y_size = get_data_shape(ConfigurationManager().data_config.dataset_name)
+        cfg_mgr = ConfigurationManager()
+        mdl_cfg = cfg_mgr.model_config
+        mdl_cfg_inner = mdl_cfg.inner['MLModel']
+        optimizer = tf.keras.optimizers.get(mdl_cfg.optimizer_name)
+        for key, value in mdl_cfg_inner.get('optimizer', {}).items():
             if key != 'name' and hasattr(optimizer, key):
                 setattr(optimizer, key, value)
                 print('Set attribute %s=%s in optimizer' % (key, value), optimizer)
 
-        loss = ml_model_config.get('loss')
-        metrics = ml_model_config.get('metrics')
+        ml_model: tf.keras.Model = eval(mdl_cfg.ml_method_name)(target_shape=y_size, **mdl_cfg_inner)
+        ml_model.compile(loss=mdl_cfg.loss_calc_method,
+                         metrics=mdl_cfg.metrics, optimizer=optimizer, run_eagerly=True)
 
-        ml_model = eval(ml_model_name)(target_shape=self.y_size, **ml_model_config)
-        ml_model.compile(loss=loss, metrics=metrics, optimizer=optimizer, run_eagerly=True)
-        if ml_model_name == 'MLP':
-            self.x_size = (None, int(np.prod(self.x_size[1:])))
-        ml_model.build(input_shape=self.x_size)
+        if mdl_cfg.ml_method_name == 'MLP':
+            x_size = (None, int(np.prod(x_size[1:])))
+        ml_model.build(input_shape=x_size)
 
         # Run predict output, such that the model could be saved.
         # And this should be a issue of TF
-        ml_model.compute_output_shape(self.x_size)
+        ml_model.compute_output_shape(x_size)
 
         return ml_model
 
-    # Basic parse functions
-    def parse_data(self, client_id):
-        with open(os.path.join(self.data_config['data_dir'], 'client_%s.pkl' % client_id), 'rb') as f:
-            data = pickle.load(f)
-        train_data = {'x': data['x_train'], 'y': data['y_train']}
-        val_data = {'x': data['x_val'], 'y': data['y_val']}
-        test_data = {'x': data['x_test'], 'y': data['y_test']}
-        return train_data, len(data['x_train']), val_data, len(data['x_val']), test_data, len(data['x_test'])
-
-    # Basic parse functions
-    def parse_run_config(self):
-        return {
-            'num_clients': self.runtime_config['server']['num_clients'],
-            'max_num_rounds': self.model_config['FedModel']['max_rounds'],
-            'num_tolerance': self.model_config['FedModel']['num_tolerance'],
-            'num_clients_contacted_per_round': int(self.runtime_config['server']['num_clients']
-                                                   * self.model_config['FedModel']['C']),
-            'rounds_between_val': self.model_config['FedModel']['rounds_between_val'],
-        }
+    @staticmethod
+    def parse_data(client_id) -> Tuple[XYData, XYData, XYData]:
+        data_path = os.path.join(ConfigurationManager().data_dir_name, f'client_{client_id}.pkl')
+        data: dict = hickle.load(data_path)
+        train_data = {'x': data.get('x_train', []), 'y': data.get('y_train', [])}
+        val_data = {'x': data.get('x_val', []), 'y': data.get('y_val', [])}
+        test_data = {'x': data.get('x_test', []), 'y': data.get('y_test', [])}
+        return train_data, val_data, test_data

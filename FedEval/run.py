@@ -1,90 +1,108 @@
-import os
-import copy
-import yaml
-import pickle
 import argparse
-import numpy as np
+import copy
+import os
+import multiprocessing
+from math import ceil
 
-from .model import *
+import yaml
+
+from .config import (DEFAULT_D_CFG_FILENAME_YAML, DEFAULT_MDL_CFG_FILENAME_YAML,
+                     DEFAULT_RT_CFG_FILENAME_YAML, ConfigurationManager)
 from .dataset import *
+from .model import *
 from .role import Client, Server
 
 
-def generate_data(data_config, model_config, runtime_config, save_file=True):
+UNIFIED_JOB_TIME = os.getenv('UNIFIED_JOB_TIME')
+
+
+def generate_data(save_file=True):
+    # TODO(fgh) move this function into dataset module
+    d_cfg = ConfigurationManager().data_config
     try:
-        data = eval(data_config['dataset'])(
-            output_dir=data_config['data_dir'],  # for saving
-            flatten=True if model_config['MLModel']['name'] == 'MLP' else False,
-            normalize=data_config['normalize'],
-            train_val_test=data_config['train_val_test'],
-            num_clients=runtime_config['server']['num_clients']
-        )
+        data = eval(d_cfg.dataset_name)()
     except ModuleNotFoundError:
-        print('Invalid dataset name', data_config['dataset'])
+        print('Invalid dataset name', d_cfg.dataset_name)
         return None
 
-    if not data_config['non-iid']:
+    if save_file and not data.need_regenerate:
+        return None
+
+    if d_cfg.iid:
         print('Generating IID data')
-        clients_data = data.iid_data(sample_size=data_config['sample_size'], save_file=save_file)
+        clients_data = data.iid_data(save_file=save_file)
     else:
         print('Generating Non-IID data')
-        clients_data = data.non_iid_data(
-            non_iid_class=data_config['non-iid-class'],
-            strategy=data_config['non-iid-strategy'],
-            shared_data=data_config['shared_data'], sample_size=data_config['sample_size'],
-            save_file=save_file
-        )
+        # TODO&Q (fgh) what does the "shared_data" stands for?
+        # Di: In some FL mechanisms, the clients jointly create a shared datasets to do something, e.g., solving
+        #     the non-iid issue, or the server may need a centralized and trustful datasets to detect model poisoning.
+        # Di: temporally remove the shared data, could be added in the future if it's still needed
+        # clients_data = data.non_iid_data(
+        #     shared_data=data_config['shared_data'], save_file=save_file)
+        clients_data = data.non_iid_data(save_file=save_file)
     return clients_data
 
 
-# def start_clients(params):
-#     cid, c1, c2, c3 = params
-#     Client(data_config=c1, model_config=c2, runtime_config=c3,)
-
-
-def run(role, data_config, model_config, runtime_config):
+def run(role: str, config_path=None, unified_job_time=None, container_id=None):
+    if config_path:
+        # init configs (when running without docker)
+        ConfigurationManager.from_files(config_path)
+    if unified_job_time:
+        os.environ['UNIFIED_JOB_TIME'] = unified_job_time
     if role == 'client':
-        Client(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
-        # from multiprocessing import Pool
-        # n_jobs = 20
-        # with Pool(processes=n_jobs) as pool:
-        #     pool.map(start_clients, [[str(e), data_config, model_config, runtime_config] for e in range(n_jobs)])
-        # p = Pool()
-        # for i in range(1, 3):
-        #     p.apply_async(start_clients, args=(data_config, model_config, runtime_config, str(i)))
-        # print('Waiting for all subprocesses done...')
-        # p.close()
-        # p.join()
-
-    if role == 'server':
-        # 3 Init the server
-        server = Server(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
+        if container_id:
+            os.environ['CONTAINER_ID'] = container_id
+        Client()
+    elif role == 'server':
+        server = Server()
         server.start()
+    else:
+        raise NotImplementedError
 
 
-def generate_docker_compose_server(runtime_config, path):
+def generate_docker_compose_server(path):
     project_path = os.path.abspath('./')
+    rt_cfg = ConfigurationManager().runtime_config
 
-    server_template = { 
-        'image': runtime_config['docker']['image'],
-        'ports': ['{0}:{0}'.format(runtime_config['server']['port'])],
+    server_template = {
+        'image': rt_cfg.image_label,
+        'ports': ['{0}:{0}'.format(rt_cfg.central_server_port)],
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
-        'command': 'sh -c "python3 -W ignore -m FedEval.run -f run -r server -c {}"'.format(path),
-        'container_name': 'server'
+        'command': None,
+        'container_name': 'server',
+        'environment': [f'machine_id={rt_cfg.server_machine.addr}:{rt_cfg.server_machine.port}']
     }
+
+    if rt_cfg.limit_network_resource:
+        server_template['command'] = 'sh -c "' \
+                                     'tc qdisc add dev eth0 handle 1: root htb default 11' \
+                                     '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 100000Mbps' \
+                                     '&& tc class add dev eth0 parent 1:1 classid 1:11 htb rate {}' \
+                                     '&& tc qdisc add dev eth0 parent 1:11 handle 10: netem delay {}' \
+                                     '&& python3 -W ignore -m FedEval.run -f run -r server -c {}' \
+                                     '"'.format(rt_cfg.bandwidth_download, rt_cfg.latency, path)
+    else:
+        server_template['command'] = 'sh -c "python3 -W ignore -m FedEval.run -f run -r server -c {}"'.format(path)
 
     client_template = {
-        'image': runtime_config['docker']['image'],
+        'image': rt_cfg.image_label,
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
-        'environment': []
+        'environment': [],
+        'deploy': {'resources': {'limits': {'cpus': max(1, int(multiprocessing.cpu_count() / rt_cfg.container_num))}}}
     }
 
-    if runtime_config['docker']['enable_gpu']:
+    if UNIFIED_JOB_TIME is not None:
+        server_template['environment'].append(f"UNIFIED_JOB_TIME={UNIFIED_JOB_TIME}")
+        client_template['environment'].append(f"UNIFIED_JOB_TIME={UNIFIED_JOB_TIME}")
+
+    if rt_cfg.gpu_enabled:
         client_template['runtime'] = 'nvidia'
+        server_template['runtime'] = 'nvidia'
+        server_template['environment'].append('NVIDIA_VISIBLE_DEVICES=0')
 
     with open('docker-compose-server.yml', 'w') as f:
         no_alias_dumper = yaml.dumper.SafeDumper
@@ -94,69 +112,95 @@ def generate_docker_compose_server(runtime_config, path):
             'services': {'server': server_template}
         }, f, default_flow_style=False, Dumper=no_alias_dumper)
 
-    machines = runtime_config['machines']
-    machines.pop('server')
-    assert sum([v['capacity'] for _, v in machines.items()]) >= runtime_config['docker']['num_containers']
-
+    client_machines = rt_cfg.client_machines
     # Distribute the containers to different machines
-    machine_capacity_sum = sum(np.array([v['capacity'] for _, v in machines.items()]))
+    machine_capacity_sum = sum([m.capacity for m in client_machines.values()])
+    assert machine_capacity_sum >= rt_cfg.container_num
 
-    remain_clients = runtime_config['server']['num_clients']
+    remain_clients = rt_cfg.client_num
     counter = 0
-    for m_k in machines:
+    for m_name, client_machine in client_machines.items():
         dc = {'services': {}, 'version': '2'}
-        num_container_curr_machine = int(np.ceil(
-            (machines[m_k]['capacity'] / machine_capacity_sum) * runtime_config['docker']['num_containers']
-        ))
-        for i in range(min(remain_clients, num_container_curr_machine)):
+        num_container_cur_machine = ceil(client_machine.capacity / machine_capacity_sum * rt_cfg.container_num)
+        num_container_cur_machine = min(
+            remain_clients, num_container_cur_machine)
+        for i in range(num_container_cur_machine):
             container_id = counter + i
             tmp = copy.deepcopy(client_template)
             tmp['container_name'] = 'container%s' % container_id
-            tmp['command'] = 'sh -c ' \
-                             '"export CONTAINER_ID={} ' \
-                             '&& tc qdisc add dev eth0 root tbf rate {} latency 10ms burst 60000kb ' \
-                             '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
-                container_id, runtime_config['clients']['bandwidth'], path)
-            if runtime_config['docker']['enable_gpu']:
-                tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=%s' % (container_id % runtime_config['docker']['num_gpu']))
+            if rt_cfg.limit_network_resource:
+                tmp['command'] = 'sh -c ' \
+                                 '"export CONTAINER_ID={} ' \
+                                 '&& tc qdisc add dev eth0 handle 1: root htb default 11 ' \
+                                 '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 100000Mbps ' \
+                                 '&& tc class add dev eth0 parent 1:1 classid 1:11 htb rate {} ' \
+                                 '&& tc qdisc add dev eth0 parent 1:11 handle 10: netem delay {} ' \
+                                 '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
+                    container_id, rt_cfg.bandwidth_upload, rt_cfg.latency, path)
             else:
-                tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=-1')
-            dc['services']['container_%s' % container_id] = tmp
+                tmp['command'] = 'sh -c ' \
+                                 '"export CONTAINER_ID={} ' \
+                                 '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
+                    container_id, path)
+            nvidia_device_env = (container_id % rt_cfg.gpu_num) if rt_cfg.gpu_enabled else -1
+            tmp['environment'].append(f'NVIDIA_VISIBLE_DEVICES={nvidia_device_env}')
+            tmp['environment'].append(f'machine_id={client_machine.addr}:{client_machine.port}')
+            dc['services'][f'container_{container_id}'] = tmp
 
-        counter += min(remain_clients, num_container_curr_machine)
-        remain_clients -= min(remain_clients, num_container_curr_machine)
+        counter += num_container_cur_machine
+        remain_clients -= num_container_cur_machine
 
-        with open("docker-compose-%s.yml" % m_k, 'w') as f:
+        with open(f"docker-compose-{m_name}.yml", 'w') as f:
             no_alias_dumper = yaml.dumper.SafeDumper
             no_alias_dumper.ignore_aliases = lambda self, data: True
             yaml.dump(dc, f, default_flow_style=False, Dumper=no_alias_dumper)
 
 
-def generate_docker_compose_local(runtime_config, path):
+def generate_docker_compose_local(path):
     project_path = os.path.abspath('./')
+    rt_cfg = ConfigurationManager().runtime_config
 
     server_template = {
-        'image': runtime_config['docker']['image'],
-        'ports': ['{0}:{0}'.format(runtime_config['server']['port'])],
+        'image': rt_cfg.image_label,
+        'ports': ['{0}:{0}'.format(rt_cfg.central_server_port)],
         'volumes': ['%s:/FML' % project_path],
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
-        'command': 'sh -c "python3 -W ignore -m FedEval.run -f run -r server -c {}"'.format(path),
+        'command': None,
         'container_name': 'server',
-        'networks': ['server-clients']
-    }
-
-    client_template = {
-        'image': runtime_config['docker']['image'],
-        'volumes': ['%s:/FML' % project_path],
-        'working_dir': '/FML',
-        'cap_add': ['NET_ADMIN'],
         'networks': ['server-clients'],
         'environment': []
     }
 
-    if runtime_config['docker']['enable_gpu']:
+    if rt_cfg.limit_network_resource:
+        server_template['command'] = 'sh -c "' \
+                                     'tc qdisc add dev eth0 handle 1: root htb default 11' \
+                                     '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 100000Mbps' \
+                                     '&& tc class add dev eth0 parent 1:1 classid 1:11 htb rate {}' \
+                                     '&& tc qdisc add dev eth0 parent 1:11 handle 10: netem delay {}' \
+                                     '&& python3 -W ignore -m FedEval.run -f run -r server -c {}' \
+                                     '"'.format(rt_cfg.bandwidth_download, rt_cfg.latency, path)
+    else:
+        server_template['command'] = 'sh -c "python3 -W ignore -m FedEval.run -f run -r server -c {}"'.format(path)
+
+    client_template = {
+        'image': rt_cfg.image_label,
+        'volumes': ['%s:/FML' % project_path],
+        'working_dir': '/FML',
+        'cap_add': ['NET_ADMIN'],
+        'networks': ['server-clients'],
+        'environment': [],
+        'deploy': {'resources': {'limits': {'cpus': max(1, int(multiprocessing.cpu_count() / rt_cfg.container_num))}}}
+    }
+
+    if UNIFIED_JOB_TIME is not None:
+        server_template['environment'].append(f"UNIFIED_JOB_TIME={UNIFIED_JOB_TIME}")
+        client_template['environment'].append(f"UNIFIED_JOB_TIME={UNIFIED_JOB_TIME}")
+
+    if rt_cfg.gpu_enabled:
         client_template['runtime'] = 'nvidia'
+        server_template['runtime'] = 'nvidia'
+        server_template['environment'].append('NVIDIA_VISIBLE_DEVICES=0')
 
     dc = {
         'version': "2",
@@ -164,22 +208,30 @@ def generate_docker_compose_local(runtime_config, path):
         'services': {'server': server_template}
     }
 
-    for container_id in range(runtime_config['docker']['num_containers']):
+    for container_id in range(rt_cfg.container_num):
         tmp = copy.deepcopy(client_template)
         tmp['container_name'] = 'container%s' % container_id
-        tmp['command'] = 'sh -c ' \
-                         '"export CONTAINER_ID={0} ' \
-                         '&& tc qdisc add dev eth0 root tbf rate {1} latency 50ms burst 15kb ' \
-                         '&& python3 -W ignore -m FedEval.run -f run -r client -c {2}"'.format(
-            container_id,
-            runtime_config['clients']['bandwidth'],
-            path)
-        if runtime_config['docker']['enable_gpu']:
-            tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=%s' % (container_id % runtime_config['docker']['num_gpu']))
+        if rt_cfg.limit_network_resource:
+            tmp['command'] = 'sh -c ' \
+                             '"export CONTAINER_ID={} ' \
+                             '&& tc qdisc add dev eth0 handle 1: root htb default 11 ' \
+                             '&& tc class add dev eth0 parent 1: classid 1:1 htb rate 100000Mbps ' \
+                             '&& tc class add dev eth0 parent 1:1 classid 1:11 htb rate {} ' \
+                             '&& tc qdisc add dev eth0 parent 1:11 handle 10: netem delay {} ' \
+                             '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
+                container_id, rt_cfg.bandwidth_upload, rt_cfg.latency, path)
+        else:
+            tmp['command'] = 'sh -c ' \
+                             '"export CONTAINER_ID={} ' \
+                             '&& python3 -W ignore -m FedEval.run -f run -r client -c {}"'.format(
+                container_id, path)
+        if rt_cfg.gpu_enabled:
+            tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=%s' % (container_id % rt_cfg.gpu_num))
         else:
             tmp['environment'].append('NVIDIA_VISIBLE_DEVICES=-1')
+        tmp['depends_on'] = ['server']
         dc['services']['container_%s' % container_id] = tmp
-    
+
     with open("docker-compose.yml", 'w') as f:
         no_alias_dumper = yaml.dumper.SafeDumper
         no_alias_dumper.ignore_aliases = lambda self, data: True
@@ -198,24 +250,16 @@ if __name__ == '__main__':
 
     args = args_parser.parse_args()
 
-    # 1 Load the configs
-    with open(os.path.join(args.config, '1_data_config.yml'), 'r') as f:
-        data_config = yaml.load(f)
-
-    with open(os.path.join(args.config, '2_model_config.yml'), 'r') as f:
-        model_config = yaml.load(f)
-
-    with open(os.path.join(args.config, '3_runtime_config.yml'), 'r') as f:
-        runtime_config = yaml.load(f)
+    # init configurations
+    ConfigurationManager.from_files(args.config)
 
     if args.function == 'data':
-        generate_data(data_config=data_config, model_config=model_config, runtime_config=runtime_config)
-
-    if args.function == 'run':
-        run(role=args.role, data_config=data_config, model_config=model_config, runtime_config=runtime_config)
-
-    if args.function == 'compose-local':
-        generate_docker_compose_local(runtime_config, args.config)
-
-    if args.function == 'compose-server':
-        generate_docker_compose_server(runtime_config, args.config)
+        generate_data()
+    elif args.function == 'run':
+        run(args.role)
+    elif args.function == 'compose-local':
+        generate_docker_compose_local(args.config)
+    elif args.function == 'compose-server':
+        generate_docker_compose_server(args.config)
+    else:
+        print("unknown function(--function, -f) arg.")

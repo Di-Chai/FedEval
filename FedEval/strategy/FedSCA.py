@@ -1,9 +1,11 @@
 import numpy as np
 import tensorflow as tf
-from .FedAvg import FedAvg
 from tensorflow.python.training import gen_training_ops
-from .utils import aggregate_weighted_average
+
+from ..aggregater import aggregate_weighted_average
+from ..config.configuration import ConfigurationManager
 from ..utils import ParamParser
+from .FedAvg import FedAvg
 
 
 class FedSCAOptimizer(tf.keras.optimizers.Optimizer):
@@ -38,10 +40,11 @@ class FedSCAOptimizer(tf.keras.optimizers.Optimizer):
 
 
 class FedSCAParser(ParamParser):
-    def parse_model(self):
-        ml_model = super(FedSCAParser, self).parse_model()
+    @staticmethod
+    def parse_model(client_id=None):
+        ml_model = super(FedSCAParser).parse_model()
         # Customize the model optimizer
-        optimizer = FedSCAOptimizer(lr=self.model_config['MLModel']['optimizer']['lr'])
+        optimizer = FedSCAOptimizer(lr=ConfigurationManager().model_config.learning_rate)
         optimizer.create_slots(ml_model.variables)
         ml_model.optimizer = optimizer
         return ml_model
@@ -49,17 +52,19 @@ class FedSCAParser(ParamParser):
 
 class FedSCA(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config, param_parser=ParamParser, logger=None):
-        super().__init__(role, data_config, model_config, runtime_config, param_parser=param_parser, logger=logger)
+    def __init__(self, **kwargs):
+        if 'param_parser' in kwargs:
+            kwargs.pop('param_parser')
+        super().__init__(param_parser=FedSCAParser, **kwargs)
 
         param_shapes = [e.shape for e in self.ml_model.get_weights()]
 
         self.server_c = [np.zeros(e) for e in param_shapes]
         self.client_c = [np.zeros(e) for e in param_shapes]
 
-    def host_get_init_params(self):
-        self.params = self.ml_model.get_weights()
-        return self.params, self.server_c
+    def retrieve_host_download_info(self):
+        self.host_params = self.ml_model.get_weights()
+        return self.host_params, self.server_c
 
     def set_host_params_to_local(self, host_params, current_round):
         server_params, self.server_c = host_params
@@ -68,10 +73,11 @@ class FedSCA(FedAvg):
     def update_host_params(self, client_params, aggregate_weights):
         delta_x = aggregate_weighted_average([e[0] for e in client_params], aggregate_weights)
         delta_c = aggregate_weighted_average([e[1] for e in client_params], aggregate_weights)
-        for i in range(len(self.params)):
-            self.params[i] += self.model_config['MLModel']['lr'] * delta_x[i]
-            self.server_c[i] += self.model_config['FedModel']['C'] * delta_c[i]
-        return self.params, self.server_c
+        mdl_cfg = ConfigurationManager().model_config
+        for i in range(len(self.host_params)):
+            self.host_params[i] += mdl_cfg.learning_rate * delta_x[i]
+            self.server_c[i] += mdl_cfg.C * delta_c[i]
+        self.ml_model.set_weights(self.host_params)
 
     def fit_on_local_data(self):
         variate_diff = [self.server_c[i] - self.client_c[i] for i in range(len(self.client_c))]
@@ -82,10 +88,12 @@ class FedSCA(FedAvg):
         return super(FedSCA, self).fit_on_local_data()
 
     def retrieve_local_upload_info(self):
-        K = np.ceil(self.train_data_size / self.model_config['FedModel']['B']) * self.model_config['FedModel']['E']
+        mdl_cfg = ConfigurationManager().model_config
+        B, E, lr = mdl_cfg.B, mdl_cfg.E, mdl_cfg.learning_rate
+        K = np.ceil(len(self.train_data['x']) / B * E)
         new_c = [
             self.client_c[i] - self.server_c[i] + 
-            1/(K*self.model_config['MLModel']['lr'])*(self.local_params_pre[i]-self.local_params_cur[i])
+            1 / (K * lr) * (self.local_params_pre[i] - self.local_params_cur[i])
             for i in range(len(self.client_c))
         ]
         delta_params = [self.local_params_cur[i]-self.local_params_pre[i] for i in range(len(self.local_params_cur))]

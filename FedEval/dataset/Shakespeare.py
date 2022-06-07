@@ -23,24 +23,41 @@ class shakespeare(FedData):
                 results.append([self.chars[e] for e in list(record)])
             return results
 
+        assert 0 < self.num_clients <= 1121, \
+            f"Shakespeare has maximum 1121 clients, received parameter num_clients={self.num_clients}"
+
+        # selected_clients = set(
+        #     sorted(data['users'], key=lambda e: data['num_samples'][data['users'].index(e)], reverse=True)
+        #     [:self.num_clients]
+        # )
+        # Random Sample
+        selected_clients = np.random.choice(data['users'], size=self.num_clients, replace=False)
+
+        total_num_samples = sum(data['num_samples'])
+
         x, y = [], []
         self.identity = []
         for i in range(len(data['users'])):
             # set constraint to the number of data samples
-            if data['num_samples'][i] < 10:
+            if data['users'][i] not in selected_clients:
                 continue
             x += process_sentences(data['user_data'][data['users'][i]]['x'])
             y += process_sentences(data['user_data'][data['users'][i]]['y'])
             self.identity.append(data['num_samples'][i])
 
-        x = np.array(x, dtype=np.float32)
-        y = np.array(y, dtype=np.int32)
+        x = np.array(x, dtype=np.float64)
+        y = np.array(y, dtype=np.int64)
+
+        # Fix num class
+        self.num_class = 80
 
         if len(y.shape) == 1 or y.shape[-1] == 1:
-            self.num_class = np.max(y) + 1
             y = tf.keras.utils.to_categorical(y, self.num_class)
-        else:
-            self.num_class = y.shape[-1]
+
+        print('#' * 40)
+        print(f'# Data info, total samples {total_num_samples}, selected clients {self.num_clients}, '
+              f'selected samples {sum(self.identity)} Ratio {sum(self.identity) / total_num_samples}')
+        print('#' * 40)
 
         return x, y
 

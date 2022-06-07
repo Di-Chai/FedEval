@@ -1,5 +1,8 @@
 import functools
+
 import tensorflow as tf
+
+from ..config.configuration import ConfigurationManager
 
 
 class MLP(tf.keras.Model):
@@ -7,9 +10,12 @@ class MLP(tf.keras.Model):
     def __init__(self, target_shape, **kwargs):
         super().__init__()
 
-        units = kwargs.get('units', 256)
-        dropout = kwargs.get('dropout', 0.2)
-        activation = kwargs.get('activation', 'relu')
+        mdl_cfg = ConfigurationManager().model_config
+        default_unit_size = mdl_cfg.unit_size if mdl_cfg.unit_size and len(
+            mdl_cfg.unit_size) > 0 else 256
+        units = kwargs.get('units', default_unit_size)
+        dropout = kwargs.get('dropout', mdl_cfg.dropout)
+        activation = kwargs.get('activation', mdl_cfg.activation)
         output_raw = kwargs.get('output_raw', False)
 
         num_classes = target_shape[-1]

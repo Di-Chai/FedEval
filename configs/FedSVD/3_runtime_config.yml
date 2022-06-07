@@ -1,0 +1,24 @@
+communication:
+  bandwidth_download: 1024Mbit
+  bandwidth_upload: 1024Mbit
+  fast_mode: false
+  latency: 25ms
+  limit_network_resource: false
+  method: SocketIO
+  port: 8000
+docker:
+  enable_gpu: false
+  image: fedeval:v1
+  num_containers: 2
+  num_gpu: 0
+log:
+  base_level: INFO
+  console_log_level: INFO
+  file_log_level: INFO
+  log_dir: log/large_scale_lr
+server:
+  host: 127.0.0.1
+  listen: 127.0.0.1
+  num_clients: 2
+  port: 8000
+  secret_key: secret!

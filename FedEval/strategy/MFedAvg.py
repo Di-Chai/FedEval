@@ -1,37 +1,34 @@
-import os
-import pickle
 import numpy as np
-import tensorflow as tf
 
-from .utils import *
+from ..aggregater import aggregate_weighted_average
+from ..config import ConfigurationManager, Role
 from ..model import *
-from ..dataset import get_data_shape
-from ..utils import ParamParser
 from .FedAvg import FedAvg
 
 
 class MFedAvg(FedAvg):
 
-    def __init__(self, role, data_config, model_config, runtime_config, **kwags):
-        super().__init__(role, data_config, model_config, runtime_config, **kwags)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-        if role == 'server':
+        if ConfigurationManager().role == Role.Server:
             self.v = None
 
     def update_host_params(self, client_params, aggregate_weights):
         if self.v is None:
-            self.v = [np.zeros(e.shape) for e in self.params]
+            self.v = [np.zeros(e.shape) for e in self.host_params]
         agg_params = aggregate_weighted_average(client_params, aggregate_weights)
-        agg_delta = [self.params[i] - agg_params[i] for i in range(len(self.params))]
+        agg_delta = [self.host_params[i] - agg_params[i] for i in range(len(self.host_params))]
+        momentum = ConfigurationManager().model_config.momentum
         self.v = [
-            self.v[i] * self.model_config['FedModel']['momentum'] + agg_delta[i]
-            for i in range(len(self.params))
+            self.v[i] * momentum + agg_delta[i] * (1 - momentum)
+            for i in range(len(self.host_params))
         ]
-        self.params = [
-            self.params[i] - self.v[i]
-            for i in range(len(self.params))
+        self.host_params = [
+            self.host_params[i] - self.v[i]
+            for i in range(len(self.host_params))
         ]
-        return self.params
+        self.ml_model.set_weights(self.host_params)
 
 
 class MFedSGD(MFedAvg):

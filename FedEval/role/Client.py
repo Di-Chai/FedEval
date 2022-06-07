@@ -1,258 +1,203 @@
 import os
-import gc
 import time
-import json
-import pickle
-import requests
-import logging
-import numpy as np
-import joblib
+import copy
+from typing import Any, Mapping
 
-from socketIO_client import SocketIO
-from ..utils import obj_to_pickle_string
-from ..strategy import *
+from ..communicaiton import ModelWeightsHandler, get_client_communicator
+from ..communicaiton.events import *
+from ..config import ConfigurationManager, Role, ServerFlaskInterface
+from ..utils.utils import obj_to_pickle_string
+from .container import ClientContextManager
+from .logger import HyperLogger
+from .node import Node
 
 
-class Client(object):
+class Client(Node):
+    """a client node implementation based on FlaskNode."""
 
     MAX_DATASET_SIZE_KEPT = 6000
 
-    def __init__(self, data_config, model_config, runtime_config):
+    def __init__(self):
+        cfg_mgr = ConfigurationManager()
+        cfg_mgr.role = Role.Client
+        super().__init__()
+        container_id = int(os.environ.get('CONTAINER_ID', 0))
+        self._init_logger(container_id, )
+        self.config_gpu(container_id)
+        self._ctx_mgr = ClientContextManager(container_id, self._hyper_logger._log_dir_path)
+        self._ctx_mgr.set_logger(self.logger)
+        # self._communicator = ClientFlaskCommunicator()
+        self._communicator = get_client_communicator()
 
-        # (1) Name
-        self.name = 'client'
-        # self.cid = os.environ.get('CLIENT_ID', '0')
-        self.container_id = os.environ.get('CONTAINER_ID', '0')
-        # (2) Logger
-        time_str = time.strftime('%Y_%m%d_%H%M%S', time.localtime())
-        self.logger = logging.getLogger("container")
-        self.logger.setLevel(logging.INFO)
-        self.log_dir = os.path.join(runtime_config.get('log_dir', 'log'), 'Container' + self.container_id, time_str)
-        os.makedirs(self.log_dir, exist_ok=True)
-        self.fh = logging.FileHandler(os.path.join(self.log_dir, 'train.log'))
-        self.fh.setLevel(logging.INFO)
-        # create console handler with a higher log level
-        self.ch = logging.StreamHandler()
-        self.ch.setLevel(logging.ERROR)
-        # create formatter and add it to the handlers
-        self.formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        self.fh.setFormatter(self.formatter)
-        self.ch.setFormatter(self.formatter)
-        # add the handlers to the logger
-        self.logger.addHandler(self.fh)
-        self.logger.addHandler(self.ch)
-        
-        # Initialize the fed model for all the clients in this container
-        num_containers = runtime_config['docker']['num_containers']
-        num_clients = runtime_config['server']['num_clients']
-        num_clients_in_this_container = int(num_clients / num_containers)
-        cid_start = int(self.container_id) * num_clients_in_this_container
-        if num_clients % num_containers != 0:
-            if num_clients % num_containers > int(self.container_id):
-                num_clients_in_this_container += 1
-                cid_start += int(self.container_id)
-            else:
-                cid_start += num_clients % num_containers
-        
-        fed_model_class = eval(model_config['FedModel']['name'])
-        self.client_fed_model_fname = os.path.join(self.log_dir, 'client_%s_fed_model')
-        self.local_train_round = {}
-        self.host_params_round = {}
-        self.cid_list = []
-        for cid in range(cid_start, cid_start + num_clients_in_this_container):
-            start = time.time()
-            if os.path.isdir(self.client_fed_model_fname % cid) is False:
-                os.makedirs(self.client_fed_model_fname % cid, exist_ok=True)
-            self.fed_model = fed_model_class(
-                role='client_%s' % cid, data_config=data_config, model_config=model_config, runtime_config=runtime_config
-            )
-            self.fed_model = save_fed_model(self.fed_model, self.client_fed_model_fname % cid)
-            if cid < (cid_start + num_clients_in_this_container - 1):
-                del self.fed_model
-            self.local_train_round[cid] = 0
-            self.host_params_round[cid] = -1
-            self.cid_list.append(cid)
-            self.logger.info('Save model using %s' % (time.time() - start))
+        central_server_service_addr = cfg_mgr.runtime_config.central_server_addr
+        listen_port = cfg_mgr.runtime_config.central_server_port
+        download_url_pattern = f'{central_server_service_addr}:{listen_port}{ServerFlaskInterface.DownloadPattern.value}'
+        self._model_weights_io_handler = ModelWeightsHandler(download_url_pattern)
+        self._register_handles()
+        self.start()
 
-        # Load arbitrary fed model
-        start = time.time()
-        self.curr_online_client = self.cid_list[0]
-        self.fed_model = load_fed_model(self.fed_model, self.client_fed_model_fname % self.curr_online_client)
-        print('#' * 30)
-        print('Load fed model costing', time.time() - start)
-        server_host, server_port = self.fed_model.param_parser.parse_server_addr(self.name)
+    def _init_logger(self, container_id, **kwargs):
+        self._hyper_logger = HyperLogger('container', f'Container{container_id}')
+        self.logger = self._hyper_logger.get()
 
-        self.weights_download_url = 'http://' + server_host + ':%s' % server_port + '/download/'
+    @property
+    def log_dir(self):
+        return self._hyper_logger.log_dir_path
 
-        # Start the connection
-        self.sio = SocketIO(server_host, server_port)
-        self.register_handles()
-        self.logger.info("sent wakeup")
-        self.sio.emit('client_wake_up')
-        self.sio.wait()
-
-    def register_handles(self):
-
+    def _register_handles(self):
+        @self._communicator.on(ClientEvent.Connect)
         def on_connect():
             print('connect')
             self.logger.info('connect')
 
+        @self._communicator.on(ClientEvent.Disconnect)
         def on_disconnect():
             print('disconnect')
             self.logger.info('disconnect')
 
+        @self._communicator.on(ClientEvent.Reconnect)
         def on_reconnect():
             print('reconnect')
             self.logger.info('reconnect')
 
+        @self._communicator.on(ClientEvent.Init)
         def on_init():
             self.logger.info('on init')
             self.logger.info("local model initialized done.")
-            self.sio.emit('client_ready', [self.container_id] + self.cid_list)
-        
-        def on_request_update(*args):
-            
+            self._communicator.invoke(
+                ServerEvent.Ready, self._ctx_mgr.container_id, list(self._ctx_mgr.client_ids))
+
+        @self._communicator.on(ClientEvent.RequestUpdate)
+        def on_request_update(data_from_server: Mapping[str, Any]):
+
             # Mark the receive time
             time_receive_request = time.time()
 
-            data_from_server, callback = args[0], args[1]
-
-            # Call backs for debug, could be removed in the future
-            callback('Train Received by', self.container_id)
-
-            # Get the selected clients
+            # Get the selected clients and weights information
             selected_clients = data_from_server['selected_clients']
-
-            self.logger.info('Debug: selected clients' + str(selected_clients))
-
             current_round = data_from_server['round_number']
+            encoded_weights_file_path: str = data_from_server['weights_file_name']
+
+            rt_cfg = ConfigurationManager().runtime_config
+            if rt_cfg.comm_fast_mode:
+                shared_parameter = None
 
             for cid in selected_clients:
                 time_start_update = time.time()
-                self.logger.info("### Round {}, Cid {} ###".format(current_round, cid))
-                if self.curr_online_client != cid:
-                    start = time.time()
-                    # Save before load
-                    self.fed_model = save_fed_model(
-                        self.fed_model, self.client_fed_model_fname % self.curr_online_client
-                    )
-                    self.fed_model = load_fed_model(self.fed_model, self.client_fed_model_fname % cid)
-                    self.curr_online_client = cid
-                    self.logger.info("Loaded fed model of client %s using %s" % (cid, time.time()-start))
-                self.local_train_round[cid] += 1
-                # Download the parameter if the local model is not the latest
-                self.logger.info('Debug: %s' % (current_round - self.host_params_round[cid]))
-                if (current_round - self.host_params_round[cid]) > 1:
-                    weights_file_name = 'model_{}.pkl'.format(current_round - 1)
-                    self.host_params_round[cid] = current_round - 1
-                    response = requests.get(self.weights_download_url + weights_file_name, timeout=600)
-                    self.fed_model.set_host_params_to_local(pickle.loads(response.content), current_round=current_round)
-                    self.logger.info("train received model: %s" % weights_file_name)
+                self.logger.info(f"### Round {current_round}, Cid {cid} ###")
+                with self._ctx_mgr.get(cid) as client_ctx:
+                    client_ctx.step_forward_local_train_round()
+                    # Download the parameter if the local model is not the latest
+                    if (current_round - client_ctx.host_params_round) > 1:
+                        client_ctx.host_params_round = current_round - 1
+                        if rt_cfg.comm_fast_mode:
+                            if shared_parameter is None:
+                                shared_parameter = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
+                            client_ctx.strategy.set_host_params_to_local(
+                                copy.deepcopy(shared_parameter), current_round=current_round)
+                        else:
+                            weights = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
+                            client_ctx.strategy.set_host_params_to_local(weights, current_round=current_round)
+                        self.logger.info(f"train received model: {encoded_weights_file_path}")
 
-                # fit on local and retrieve new uploading params
-                train_loss, train_data_size = self.fed_model.fit_on_local_data()
-                upload_data = self.fed_model.retrieve_local_upload_info()
+                    # fit on local and retrieve new uploading params
+                    client_fit_results = client_ctx.strategy.fit_on_local_data()
+                    if client_fit_results:
+                        train_loss, train_data_size = client_fit_results
+                    else:
+                        train_loss, train_data_size = -1, -1
+                    self.logger.info(f"Local train loss {train_loss}")
 
-                self.logger.info("Local train loss %s" % train_loss)
+                    upload_data = client_ctx.strategy.retrieve_local_upload_info()
+                    weights_as_string = obj_to_pickle_string(upload_data)
+                    time_finish_update = time.time()    # Mark the update finish time
 
-                # Mark the update finish time
-                time_finish_update = time.time()
+                    response = {
+                        'cid': client_ctx.id,
+                        'round_number': current_round,
+                        'local_round_number': client_ctx.local_train_round,
+                        'weights': weights_as_string,
+                        'train_size': train_data_size,
+                        'train_loss': train_loss,
+                        'time_start_update': time_start_update,
+                        'time_finish_update': time_finish_update,
+                        'time_receive_request': time_receive_request,
+                    }
 
-                response = {
-                    'cid': os.environ.get('CLIENT_ID'),
-                    'round_number': current_round,
-                    'local_round_number': self.local_train_round[cid],
-                    'weights': obj_to_pickle_string(upload_data),
-                    'train_size': train_data_size,
-                    'train_loss': train_loss,
-                    'time_start_update': time_start_update,
-                    'time_finish_update': time_finish_update,
-                    'time_receive_request': time_receive_request,
-                }
+                    self.logger.info("Emit client_update")
+                    try:
+                        self._communicator.invoke(
+                            ServerEvent.ResponseUpdate, response)
+                        self.logger.info("sent trained model to server")
+                    except Exception as e:
+                        self.logger.error(e)
+                    self.logger.info(f"Client {client_ctx.id} Emited update")
 
-                # TMP
-                self.logger.info("Local train time: %s" % (time_finish_update - time_start_update))
+        @self._communicator.on(ClientEvent.RequestEvaluate)
+        def on_request_evaluate(data_from_server: Mapping[str, Any]):
 
-                self.logger.info("Emit client_update")
-                try:
-                    self.sio.emit('client_update', response)
-                    self.logger.info("sent trained model to server")
-                except Exception as e:
-                    self.logger.error(e)
-                self.logger.info("Client %s Emited update" % cid)
-
-        def on_request_evaluate(*args):
-            
             time_receive_evaluate = time.time()
-
-            data_from_server, callback = args[0], args[1]
-
-            # Call backs
-            callback('Evaluate Received by', self.container_id)
 
             # Get the selected clients
             selected_clients = data_from_server['selected_clients']
 
             current_round = data_from_server['round_number']
 
+            rt_cfg = ConfigurationManager().runtime_config
+            if rt_cfg.comm_fast_mode:
+                shared_parameter = None
+
+            # Download the latest weights
+            encoded_weights_file_path: str = data_from_server['weights_file_name']
             for cid in selected_clients:
                 time_start_evaluate = time.time()
-                if self.curr_online_client != cid:
-                    # Save before load
-                    self.fed_model = save_fed_model(
-                        self.fed_model, self.client_fed_model_fname % self.curr_online_client
-                    )
-                    start = time.time()
-                    self.fed_model = load_fed_model(self.fed_model, self.client_fed_model_fname % cid)
-                    self.curr_online_client = cid
-                    self.logger.info("Loaded fed model of client %s using %s" % (cid, time.time()-start))
-                # Download the latest weights
-                if data_from_server.get('weights_file_name'):
-                    weights_file_name = data_from_server['weights_file_name']
-                elif (current_round - self.host_params_round[cid]) > 0:
-                    weights_file_name = 'model_{}.pkl'.format(current_round)
-                else:
-                    weights_file_name = None
+                with self._ctx_mgr.get(cid) as client_ctx:
+                    client_ctx.host_params_round = current_round
+                    if rt_cfg.comm_fast_mode:
+                        if shared_parameter is None:
+                            shared_parameter = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
+                        client_ctx.strategy.set_host_params_to_local(
+                            copy.deepcopy(shared_parameter), current_round=current_round)
+                    else:
+                        weights = self._model_weights_io_handler.fetch_params(encoded_weights_file_path)
+                        client_ctx.strategy.set_host_params_to_local(weights, current_round=current_round)
+                    self.logger.info(f"eval received model: {encoded_weights_file_path}")
 
-                if weights_file_name:
-                    self.host_params_round[cid] = current_round
-                    response = requests.get(self.weights_download_url + weights_file_name, timeout=600)
-                    self.fed_model.set_host_params_to_local(pickle.loads(response.content), current_round=current_round)
-                    self.logger.info("eval received model: %s" % weights_file_name)
+                    evaluate = client_ctx.strategy.local_evaluate()
+                    evaluate = evaluate or {}
 
-                evaluate = self.fed_model.local_evaluate()
+                    self.logger.info("Local Evaluate" + str(evaluate))
 
-                self.logger.info("Local Evaluate" + str(evaluate))
+                    time_finish_evaluate = time.time()
 
-                time_finish_evaluate = time.time()
+                    response = {
+                        'cid': client_ctx.id,
+                        'round_number': current_round,
+                        'local_round_number': client_ctx.local_train_round,
+                        'time_start_evaluate': time_start_evaluate,
+                        'time_finish_evaluate': time_finish_evaluate,
+                        'time_receive_request': time_receive_evaluate,
+                        'evaluate': evaluate
+                    }
 
-                response = {
-                    'cid': os.environ.get('CLIENT_ID'),
-                    'round_number': current_round,
-                    'local_round_number': self.local_train_round,
-                    'time_start_evaluate': time_start_evaluate,
-                    'time_finish_evaluate': time_finish_evaluate,
-                    'time_receive_request': time_receive_evaluate,
-                    'evaluate': evaluate
-                }
+                    self.logger.info("Emit client evaluate")
+                    try:
+                        self._communicator.invoke(
+                            ServerEvent.ResponseEvaluate, response)
+                        self.logger.info("sent evaluation results to server")
+                    except Exception as e:
+                        self.logger.error(e)
+                    self.logger.info(f"Client {client_ctx.id} Emited evaluate")
 
-                self.logger.info("Emit client evaluate")
-                try:
-                    self.sio.emit('client_evaluate', response)
-                    self.logger.info("sent evaluation results to server")
-                except Exception as e:
-                    self.logger.error(e)
-                self.logger.info("Client %s Emited evaluate" % cid)
-
+        @self._communicator.on(ClientEvent.Stop)
         def on_stop():
-            self.fed_model.client_exit_job(self)
+            for cid in self._ctx_mgr.client_ids:
+                with self._ctx_mgr.get(cid) as client_ctx:
+                    client_ctx.strategy.client_exit_job(self)
             print("Federated training finished ...")
             exit(0)
 
-        self.sio.on('connect', on_connect)
-        self.sio.on('disconnect', on_disconnect)
-        self.sio.on('reconnect', on_reconnect)
-        self.sio.on('init', on_init)
-        self.sio.on('request_update', on_request_update)
-        self.sio.on('request_evaluate', on_request_evaluate)
-        self.sio.on('stop', on_stop)
+    def start(self):
+        self._communicator.invoke(ServerEvent.WakeUp)
+        self.logger.info("sent wakeup")
+        self._communicator.wait()

@@ -1,141 +1,90 @@
-import os
-import random
-import pickle
 import numpy as np
 import tensorflow as tf
 
-from .utils import *
-from ..model import *
-from ..dataset import get_data_shape
-from ..utils import ParamParser
 from ..callbacks import *
+from ..config.configuration import ConfigurationManager
+from ..model import *
+from ..utils import ParamParser
+from .FederatedStrategy import FedStrategy
 
 
-class FedAvg:
+class FedAvg(FedStrategy):
 
-    def __init__(self, role, data_config, model_config, runtime_config, param_parser=ParamParser, logger=None):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        self.data_config = data_config
-        self.model_config = model_config
-        self.runtime_config = runtime_config
-        self.role = role
-        self.logger = logger
-
-        self.param_parser = param_parser(
-            data_config=data_config, model_config=model_config, runtime_config=runtime_config
-        )
-
-        self.ml_model = self.param_parser.parse_model()
-        
-        self.current_round = None
-        if self.role.startswith('server'):
-            self.params = None
-            self.gradients = None
-            # TMP
-            run_config = self.param_parser.parse_run_config()
-            self.num_clients_contacted_per_round = run_config['num_clients_contacted_per_round']
-            self.train_selected_clients = None
-        # only clients parse data
-        if self.role.startswith('client'):
-            cid = self.role.split('_')[-1]
-            self.train_data, self.train_data_size, self.val_data, self.val_data_size, \
-            self.test_data, self.test_data_size = self.param_parser.parse_data(client_id=cid)
-            self.local_params_pre = None
-            self.local_params_cur = None
-
-        # TODO: Add the callback modeler for implementing attacks
-        if self.model_config['FedModel'].get('callback') is not None:
-            self.callback = eval(self.model_config['FedModel']['callback'])()
+    def host_select_train_clients(self, ready_clients):
+        cfg = ConfigurationManager()
+        if self.eval_selected_clients is not None and \
+                len(self.eval_selected_clients) >= cfg.num_of_train_clients_contacted_per_round:
+            self.train_selected_clients = np.random.choice(
+                list(self.eval_selected_clients), cfg.num_of_train_clients_contacted_per_round, replace=False
+            )
+            # Clear the selected evaluation clients
+            self.eval_selected_clients = None
         else:
-            self.callback = None
-    
+            self.train_selected_clients = np.random.choice(
+                list(ready_clients), cfg.num_of_train_clients_contacted_per_round, replace=False
+            )
+        return self.train_selected_clients.tolist()
+
+    def host_select_evaluate_clients(self, ready_clients):
+        cfg = ConfigurationManager()
+        self.eval_selected_clients = np.random.choice(
+            list(ready_clients),
+            cfg.num_of_eval_clients_contacted_per_round,
+            replace=False
+        )
+        return self.eval_selected_clients.tolist()
+
+
+class FedSGD(FedAvg):
+
     # Testing Function, which is not used by any strategy
     def compute_gradients(self, x, y):
         with tf.GradientTape() as tape:
             y_hat = self.ml_model(x)
-            loss_op = tf.keras.losses.get(self.model_config['MLModel']['loss'])
+            loss_op = tf.keras.losses.get(ConfigurationManager().model_config.loss_calc_method)
             loss = loss_op(y, y_hat)
             gradients = tape.gradient(loss, self.ml_model.trainable_variables)
-        return gradients
-
-    # (1) Host functions
-    def host_get_init_params(self):
-        self.params = self.ml_model.get_weights()
-        return self.params
-
-    # (1) Host functions
-    def update_host_params(self, client_params, aggregate_weights):
-        if self.callback is not None:
-            client_params = self.callback.on_host_aggregate_begin(client_params)
-        self.params = aggregate_weighted_average(client_params, aggregate_weights)
-        return self.params
-
-    # (1) Host functions
-    def host_exit_job(self, host):
-        if self.callback is not None:
-            self.callback.on_host_exit()
+        for i in range(len(gradients)):
+            try:
+                gradients[i] = gradients[i].numpy()
+            except AttributeError:
+                gradients[i] = tf.convert_to_tensor(gradients[0]).numpy()
+        try:
+            loss = loss.numpy()
+        except AttributeError:
+            loss = tf.convert_to_tensor(loss).numpy()
+        return loss, gradients
 
     def host_select_train_clients(self, ready_clients):
-        self.train_selected_clients = random.sample(list(ready_clients), self.num_clients_contacted_per_round)
+        self.train_selected_clients = ready_clients
         return self.train_selected_clients
 
     def host_select_evaluate_clients(self, ready_clients):
-        return [e for e in self.train_selected_clients if e in ready_clients]
+        self.eval_selected_clients = ready_clients
+        return self.eval_selected_clients
 
-    # (2) Client functions
-    def set_host_params_to_local(self, host_params, current_round):
-        if self.callback is not None:
-            host_params = self.callback.on_setting_host_to_local(host_params)
-        self.current_round = current_round
-        self.ml_model.set_weights(host_params)
-
-    # (2) Client functions
     def fit_on_local_data(self):
-        if self.callback is not None:
-            self.train_data, model = self.callback.on_client_train_begin(
-                data=self.train_data, model=self.ml_model.get_weights()
-            )
-            self.ml_model.set_weights(model)
+        batched_gradients = []
+        batched_loss = []
+        actual_size = []
+        x_train = self.train_data['x']
+        y_train = self.train_data['y']
+        parallel_size = 1024
+        for i in range(0, len(x_train), parallel_size):
+            actual_size.append(min(parallel_size, len(x_train) - i))
+            tmp_loss, tmp_gradients = self.compute_gradients(
+                x_train[i:i + parallel_size], y_train[i:i + parallel_size])
+            batched_gradients.append([e / float(actual_size[-1]) for e in tmp_gradients])
+            batched_loss.append(np.mean(tmp_loss))
+        actual_size = np.array(actual_size) / np.sum(actual_size)
+        aggregated_gradients = []
+        for i in range(len(batched_gradients[0])):
+            aggregated_gradients.append(np.average([e[i] for e in batched_gradients], axis=0, weights=actual_size))
+        batched_loss = np.average(batched_loss, weights=actual_size)
         self.local_params_pre = self.ml_model.get_weights()
-        train_log = self.ml_model.fit(
-            x=self.train_data['x'], y=self.train_data['y'],
-            epochs=self.model_config['FedModel']['E'],
-            batch_size=self.model_config['FedModel']['B']
-        )
-        train_loss = train_log.history['loss'][-1]
+        self.ml_model.optimizer.apply_gradients(zip(aggregated_gradients, self.ml_model.trainable_variables))
         self.local_params_cur = self.ml_model.get_weights()
-        return train_loss, self.train_data_size
-
-    def _retrieve_local_params(self):
-        return self.ml_model.get_weights()
-    
-    # (2) Client functions
-    def retrieve_local_upload_info(self):
-        model = self.ml_model.get_weights()
-        if self.callback is not None:
-            model = self.callback.on_client_upload_begin(model)
-        return model
-
-    # (2) Client functions
-    def local_evaluate(self):
-        evaluate = {}
-        # val and test
-        val_result = self.ml_model.evaluate(x=self.val_data['x'], y=self.val_data['y'])
-        test_result = self.ml_model.evaluate(x=self.test_data['x'], y=self.test_data['y'])
-        metrics_names = self.ml_model.metrics_names
-        # Reformat
-        evaluate.update({'val_' + metrics_names[i]: float(val_result[i]) for i in range(len(metrics_names))})
-        evaluate.update({'test_' + metrics_names[i]: float(test_result[i]) for i in range(len(metrics_names))})
-        # TMP
-        evaluate.update({'val_size': self.val_data_size})
-        evaluate.update({'test_size': self.test_data_size})
-        return evaluate
-
-    # (2) Client functions
-    def client_exit_job(self, client):
-        if self.callback is not None:
-            self.callback.on_client_exit()
-
-
-class FedSGD(FedAvg):
-    pass
+        return batched_loss, len(x_train)
