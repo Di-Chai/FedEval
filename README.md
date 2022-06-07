@@ -1,10 +1,4 @@
-## Benchmark Results Released!
-
-Link to benchmark results: https://di-chai.github.io/FedEval/BenchmarkResults.html
-
-Link to reproduction guidelines: https://di-chai.github.io/FedEval/Reproduce.html
-
-## FedEval (iSpree Model)
+## FedEval
 
 ----
 
@@ -12,17 +6,31 @@ Link to reproduction guidelines: https://di-chai.github.io/FedEval/Reproduce.htm
 
 FedEval is a benchmarking platform with comprehensive evaluation model (i.e., iSpree model) for federated learning. The arxiv paper is available at: https://arxiv.org/abs/2011.09655
 
-#### The iSpree Evaluation Model
+## News!
 
-The iSpree evaluation model is the core of our benchmarking system. It defines six evaluation metrics that cannot be excluded in the system: Incentive, Security, Privacy, Robustness, Efficacy, and Efficiency.
+#### May 20, 2022: Our Paper FedSVD Accepted by KDD 2022!
 
-#### Docs
+Our paper "Practical Lossless Federated Singular Vector Decomposition over Billion-Scale Data" (FedSVD) is accepted by KDD 2022.
+
+FedSVD is implemented and benchmarked using FedEval, and the code is also open-sourced. Detail instructions of reproducing the results could be found at [Here](./research/FedSVD).
+
+#### Aug 30, 2021: Benchmark Results Released!
+
+Link to benchmark results: https://di-chai.github.io/FedEval/BenchmarkResults.html
+
+Link to reproduction guidelines: https://di-chai.github.io/FedEval/Reproduce.html
+
+## Docs
 
 - [User guide and Documentation](https://di-chai.github.io/FedEval/)
 
+## Introduction to FedEval and the Evaluation Model
+
+The iSpree evaluation model is the core of our benchmarking system. It defines six evaluation metrics that cannot be excluded in the system: Incentive, Security, Privacy, Robustness, Efficacy, and Efficiency.
+
 #### Introduction to FedEval
 
-![The framework of FedEval benchmarking system](https://di-chai.github.io/FedEval/_images/bm_system.png)
+![The framework of FedEval benchmarking system](https://di-chai.github.io/FedEval/images/bm_system.png)
 
 We propose a federated benchmarking system called FedEval shown in the above figure, which demonstrates the inputs, inner architecture, and outputs of the system. Our iSpree evaluation model is built inside the benchmarking system. Three key modules are designed in the system:
 
