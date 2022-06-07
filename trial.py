@@ -304,8 +304,8 @@ if host_name == "mac":
 # Test the time
 if host_name == "workstation":
     runtime_config['docker']['num_containers'] = 8
-    runtime_config['docker']['enable_gpu'] = False
-    runtime_config['docker']['num_gpu'] = 0
+    runtime_config['docker']['enable_gpu'] = True
+    runtime_config['docker']['num_gpu'] = 2
 
 # Test the time
 if host_name == "Alienware":
@@ -317,12 +317,15 @@ if host_name == "Alienware":
 # Time testing
 time_testing = True
 if time_testing:
-    runtime_config['communication']['limit_network_resource'] = False
-    runtime_config['communication']['bandwidth_upload'] = '10000Mbit'
-    runtime_config['communication']['bandwidth_download'] = '10000Mbit'
+    runtime_config['communication']['limit_network_resource'] = True
+    runtime_config['communication']['bandwidth_upload'] = '100Mbit'
+    runtime_config['communication']['bandwidth_download'] = '100Mbit'
     runtime_config['communication']['fast_mode'] = False
     model_config['FedModel']['distributed_evaluate'] = True
-    model_config['FedModel']['max_rounds'] = 5
+    if args.dataset == 'shakespeare':
+        model_config['FedModel']['max_rounds'] = 1
+    else:
+        model_config['FedModel']['max_rounds'] = 5
     model_config['FedModel']['C'] = 1.0
     runtime_config['log']['log_dir'] = os.path.join(runtime_config['log']['log_dir'], host_name)
 

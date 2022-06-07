@@ -339,29 +339,29 @@ class LogAnalysis:
         results = [['Repeat'] + [e.split('$$')[-1] for e in self.diff_keys if e not in self.omit_keys]
                    + [e[0] for e in self.csv_result_keys]]
 
-        max_length = set([len(average_results[e]) for e in average_results])
-        for length in max_length:
-            for key in average_results:
-                if len(average_results[key]) < length:
-                    continue
-                tmp_record = average_results[key][:length]
-                average = []
-                std = []
-                for k in range(len(tmp_record[0])):
-                    tmp = []
-                    for j in range(len(tmp_record)):
-                        if tmp_record[j][k] is not None:
-                            tmp.append(tmp_record[j][k])
-                    if len(tmp) > 0:
-                        average.append('%.5f' % np.mean(tmp))
-                        std.append('%.5f' % np.std(tmp))
-                    else:
-                        average.append('NA')
-                        std.append('NA')
-                results.append(
-                    [len(tmp_record)] + key.split('$$') +
-                    ['%s(%s)' % (average[i], std[i]) for i in range(len(average))]
-                )
+        # max_length = set([len(average_results[e]) for e in average_results])
+        # for length in max_length:
+        for key in average_results:
+            # if len(average_results[key]) < length:
+            #     continue
+            tmp_record = average_results[key] # [:length]
+            average = []
+            std = []
+            for k in range(len(tmp_record[0])):
+                tmp = []
+                for j in range(len(tmp_record)):
+                    if tmp_record[j][k] is not None:
+                        tmp.append(tmp_record[j][k])
+                if len(tmp) > 0:
+                    average.append('%.5f' % np.mean(tmp))
+                    std.append('%.5f' % np.std(tmp))
+                else:
+                    average.append('NA')
+                    std.append('NA')
+            results.append(
+                [len(tmp_record)] + key.split('$$') +
+                ['%s(%s)' % (average[i], std[i]) for i in range(len(average))]
+            )
         return results
 
     def to_csv(self, file_name='average_results.csv'):
@@ -369,6 +369,7 @@ class LogAnalysis:
             with open(file_name, 'w') as f:
                 for e in self.average_results:
                     f.write(', '.join([str(e1) for e1 in e]) + '\n')
+            print(f'Fed Results Saved to {file_name}')
 
     def process_central_simulate_results(self, log_files):
         result_dict = {}

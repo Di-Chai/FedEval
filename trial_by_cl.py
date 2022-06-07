@@ -29,7 +29,12 @@ if __name__ == '__main__':
 
     if host_name == "ministation":
         runtime_config['docker']['enable_gpu'] = True
-        runtime_config['docker']['num_containers'] = 10
+        runtime_config['docker']['num_containers'] = 5
+        runtime_config['docker']['num_gpu'] = 1
+
+    if host_name == 'Alienware':
+        runtime_config['docker']['enable_gpu'] = True
+        runtime_config['docker']['num_containers'] = 4
         runtime_config['docker']['num_gpu'] = 1
 
     if args.dataset == 'mnist':
@@ -46,7 +51,7 @@ if __name__ == '__main__':
 
     if args.dataset == 'shakespeare':
         params['runtime_config']['server']['port'] = 8014
-        params['runtime_config']['docker']['num_containers'] = 9
+        params['runtime_config']['docker']['num_containers'] = 2
 
     for seed in range(repeat):
         params['data_config']['random_seed'] = seed
