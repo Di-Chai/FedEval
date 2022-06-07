@@ -1,15 +1,13 @@
 name: unittest
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
   push:
     branches: [ restruture ]
   pull_request:
     branches: [ restruture ]
 
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    branches: [ restruture ]
 
 jobs:
   build:
@@ -29,7 +27,5 @@ jobs:
     - name: Unittest
       run: |
         python -m unittest
-    # coverage run tests.py
-    # coverage xml
     # - name: Upload coverage to Codecov
     #   uses: codecov/codecov-action@v2
