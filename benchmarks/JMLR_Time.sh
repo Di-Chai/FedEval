@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+cd ..
+
 export FED_EVAL_REPEAT=1
 export FED_EVAL_LOG_DIR=log/JMLRTime
 

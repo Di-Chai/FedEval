@@ -1,7 +1,5 @@
 ## FedEval
 
-----
-
 [![Documentation Status](https://readthedocs.org/projects/fedeval/badge/?version=latest)](https://fedeval.readthedocs.io/en/latest/?badge=latest)
 
 FedEval is a benchmarking platform with comprehensive evaluation model (i.e., iSpree model) for federated learning. The arxiv paper is available at: https://arxiv.org/abs/2011.09655

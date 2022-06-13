@@ -8,11 +8,41 @@ import psutil
 from abc import ABCMeta, abstractmethod
 from typing import List, Mapping
 from functools import reduce
+from scipy.stats import wasserstein_distance
 from ..utils import obj_to_pickle_string, pickle_string_to_obj
 
 import numpy as np
 
 from ..config.configuration import ConfigurationManager
+
+
+def get_emd(non_iid_data):
+    num_bins = 10
+    user_hists = []
+    for user_idx in range(len(non_iid_data)):
+        user_data = non_iid_data[user_idx]['x_train']
+        user_data = np.reshape(user_data, [len(user_data), -1])
+        tmp_hists = []
+        for i in range(user_data.shape[-1]):
+            n, bins = np.histogram(user_data[:, i], bins=num_bins, range=(np.min(user_data), np.max(user_data)))
+            n = n / user_data.shape[0]
+            tmp_hists.append([n, bins])
+        user_hists.append(tmp_hists)
+
+    emd_matrix = np.zeros([len(non_iid_data), len(non_iid_data)])
+    for i in range(len(non_iid_data)):
+        for j in range(len(non_iid_data)):
+            if i > j:
+                continue
+            tmp = []
+            for k in range(len(user_hists[i])):
+                tmp.append(wasserstein_distance(
+                    user_hists[i][k][0], user_hists[j][k][0],
+                    user_hists[i][k][1][1:], user_hists[j][k][1][1:])
+                )
+            emd_matrix[i][j] = np.mean(tmp)
+    emd_matrix += emd_matrix.T
+    return np.mean(emd_matrix)
 
 
 def split_data(data, ratio_list) -> List[np.ndarray]:
