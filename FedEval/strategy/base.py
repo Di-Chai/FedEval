@@ -1,6 +1,5 @@
 
 class FedModel:
-    # Another choice is in ./FederatedStrategy.py: FedStrategyInterface.
 
     # Host functions
     def update_host_params(self):
@@ -29,7 +28,6 @@ class FedModel:
 
 
 class CallBack:
-    # TODO/Q(fgh): another Callback in callback module: ?? 
 
     def on_setting_host_to_local(self, host_params, **kwargs):
         return host_params

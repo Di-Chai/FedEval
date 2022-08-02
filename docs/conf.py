@@ -72,4 +72,4 @@ html_theme = 'sphinx_rtd_theme'
 
 # Autoapi settings
 autoapi_dirs = [os.path.join(BASE_PATH, "FedEval")]
-autoapi_ignore = ['*unittest*', 'test_*.py']
+autoapi_ignore = ['*unittest*', 'test_*.py', '*/data/*', '*attack*', '*callbacks*']

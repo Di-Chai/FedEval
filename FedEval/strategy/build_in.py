@@ -7,3 +7,4 @@ from .FedSCA import FedSCA
 from .MFedAvg import MFedAvg, MFedSGD
 from .FedSVD import FedSVD
 from .SecureAggregation import SecureAggregation
+from .PaillierAggregation import PaillierAggregation

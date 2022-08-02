@@ -224,6 +224,7 @@ class SecureAggregation(FedStrategy):
         elif self._client_status is SAStatus.UpdateWeights:
             super(SecureAggregation, self).set_host_params_to_local(host_params['weights'], current_round=current_round)
         else:
+            print(host_params)
             raise NotImplementedError
 
     def fit_on_local_data(self):

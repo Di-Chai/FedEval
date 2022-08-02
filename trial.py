@@ -3,6 +3,7 @@ import argparse
 import socket
 
 from FedEval.run_util import run_util, ConfigurationManager
+from FedEval.utils import get_emd
 from multiprocessing import Process
 
 args_parser = argparse.ArgumentParser()
@@ -336,8 +337,10 @@ if args.tune == 'network':
         model_config['FedModel']['max_rounds'] = 5
     if args.strategy == 'SecureAggregation':
         model_config['FedModel']['max_rounds'] = 10
+        model_config['FedModel']['distributed_evaluate'] = False
     if args.strategy == 'PaillierAggregation':
         model_config['FedModel']['max_rounds'] = runtime_config['server']['num_clients']
+        model_config['FedModel']['distributed_evaluate'] = False
 
     runtime_config['log']['log_dir'] = os.path.join(runtime_config['log']['log_dir'], host_name)
 
@@ -347,6 +350,7 @@ params = {
     'model_config': model_config,
     'runtime_config': runtime_config
 }
+
 
 if __name__ == '__main__':
 
