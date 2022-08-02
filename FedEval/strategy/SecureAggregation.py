@@ -34,8 +34,8 @@ class SAStatus(enum.Enum):
 
 class SecureAggregation(FedStrategy):
 
-    def __init__(self, param_parser=ParamParser, **kwargs):
-        super().__init__(param_parser, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         config_manager = ConfigurationManager()
         if config_manager.role == Role.Server:
@@ -224,6 +224,7 @@ class SecureAggregation(FedStrategy):
         elif self._client_status is SAStatus.UpdateWeights:
             super(SecureAggregation, self).set_host_params_to_local(host_params['weights'], current_round=current_round)
         else:
+            print(host_params)
             raise NotImplementedError
 
     def fit_on_local_data(self):

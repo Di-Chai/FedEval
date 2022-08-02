@@ -15,7 +15,9 @@ class FedSTC(FedAvg):
 
     def __init__(self, **kwargs):
         super(FedSTC, self).__init__(**kwargs)
-        if ConfigurationManager().role == Role.Client:
+        cfg = ConfigurationManager()
+        self._sparsity = cfg.model_config.stc_sparsity
+        if cfg.role == Role.Client:
             self.client_residual = self._init_residual()
         else:
             self.server_residual = self._init_residual()
@@ -70,7 +72,7 @@ class FedSTC(FedAvg):
         delta_params = self._tensor_to_vector(delta_params)
 
         self.client_residual += delta_params
-        delta_w_plus_r = self.stc(self.client_residual)
+        delta_w_plus_r = self.stc(self.client_residual, sparsity=self._sparsity)
         # update the local residual
         self.client_residual -= delta_w_plus_r
         # Compress the stc(delta_w + R) and return
@@ -95,7 +97,7 @@ class FedSTC(FedAvg):
         delta_W = np.average(client_params_dense, weights=aggregate_weights, axis=0)
         self.server_residual += delta_W
         del client_params, client_params_dense, delta_W
-        self._delta_W_plus_r = self.stc(self.server_residual)
+        self._delta_W_plus_r = self.stc(self.server_residual, sparsity=self._sparsity)
         # update the residual
         self.server_residual -= self._delta_W_plus_r
         model_updates = self._vector_to_tensor(self._delta_W_plus_r)

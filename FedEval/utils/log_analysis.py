@@ -263,7 +263,7 @@ class LogAnalysis:
                 ax[i].set_xlabel(x_labels[i])
             ax[1].set_title(key)
             fig.tight_layout()
-            plt.savefig(os.path.join('log/images', '%s.png' % key), dpi=400)
+            plt.savefig(os.path.join('log', 'images', '%s.png' % key), dpi=400)
             plt.close()
 
         for k1 in aggregate_results:

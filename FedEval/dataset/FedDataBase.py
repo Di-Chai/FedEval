@@ -129,6 +129,7 @@ class FedData(metaclass=ABCMeta):
             client_data_size.append([len(train), len(val), len(test)])
             hickle.dump(target, os.path.join(self.output_dir, f'client_{i}.pkl'))
             del target
+        print([sum(e) for e in client_data_size])
         client_data_size = np.mean(client_data_size, axis=0).astype(int)
         print(f'Average Client sample size: train {client_data_size[0]} val {client_data_size[1]} '
               f'test {client_data_size[2]}')

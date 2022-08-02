@@ -3,6 +3,7 @@ import argparse
 import socket
 
 from FedEval.run_util import run_util, ConfigurationManager
+from FedEval.utils import get_emd
 from multiprocessing import Process
 
 args_parser = argparse.ArgumentParser()
@@ -76,6 +77,8 @@ fine_tuned_params = {
 parsed_strategy = {
     'MFedSGD': 'FedSGD',
     'MFedAvg': 'FedAvg',
+    'PaillierAggregation': 'FedAvg',
+    'SecureAggregation': 'FedAvg'
 }
 
 try:
@@ -94,7 +97,13 @@ mode = args.mode
 repeat = args.repeat
 
 tune_params = {
-    'lr': [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0]
+    'lr': [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0],
+    'network': [
+        [False, None, None, None],
+        [True, '1024Mbit', '1024Mbit', '50ms'],
+        [True, '100Mbit', '100Mbit', '50ms']
+    ],
+    'sparsity': [0.1, 0.2, 0.3, 0.4, 0.5, 1.0]
 }
 
 data_config = {
@@ -315,27 +324,33 @@ if host_name == "Alienware":
 
 ############################################################
 # Time testing
-time_testing = True
-if time_testing:
-    runtime_config['communication']['limit_network_resource'] = True
-    runtime_config['communication']['bandwidth_upload'] = '100Mbit'
-    runtime_config['communication']['bandwidth_download'] = '100Mbit'
+if args.tune == 'network':
+    # runtime_config['communication']['limit_network_resource'] = True
+    # runtime_config['communication']['bandwidth_upload'] = '100Mbit'
+    # runtime_config['communication']['bandwidth_download'] = '100Mbit'
+    # model_config['FedModel']['C'] = 1.0
     runtime_config['communication']['fast_mode'] = False
     model_config['FedModel']['distributed_evaluate'] = True
     if args.dataset == 'shakespeare':
         model_config['FedModel']['max_rounds'] = 1
     else:
         model_config['FedModel']['max_rounds'] = 5
-    model_config['FedModel']['C'] = 1.0
+    if args.strategy == 'SecureAggregation':
+        model_config['FedModel']['max_rounds'] = 10
+        model_config['FedModel']['distributed_evaluate'] = False
+    if args.strategy == 'PaillierAggregation':
+        model_config['FedModel']['max_rounds'] = runtime_config['server']['num_clients']
+        model_config['FedModel']['distributed_evaluate'] = False
+
     runtime_config['log']['log_dir'] = os.path.join(runtime_config['log']['log_dir'], host_name)
 
 ############################################################
-
 params = {
     'data_config': data_config,
     'model_config': model_config,
     'runtime_config': runtime_config
 }
+
 
 if __name__ == '__main__':
 
@@ -350,6 +365,21 @@ if __name__ == '__main__':
             if args.tune == 'lr':
                 for lr in tune_params['lr']:
                     params['model_config']['MLModel']['optimizer']['lr'] = lr
+                    pro = Process(target=run_util, args=(execution, mode, config), kwargs=params)
+                    pro.start()
+                    pro.join()
+            elif args.tune == 'network':
+                for flag, bandwidth_upload, bandwidth_download, latency in tune_params['network']:
+                    params['runtime_config']['communication']['limit_network_resource'] = flag
+                    params['runtime_config']['communication']['bandwidth_upload'] = bandwidth_upload
+                    params['runtime_config']['communication']['bandwidth_download'] = bandwidth_download
+                    params['runtime_config']['communication']['latency'] = latency
+                    pro = Process(target=run_util, args=(execution, mode, config), kwargs=params)
+                    pro.start()
+                    pro.join()
+            elif args.tune == 'sparsity':
+                for sparsity in tune_params['sparsity']:
+                    params['model_config']['FedModel']['sparsity'] = sparsity
                     pro = Process(target=run_util, args=(execution, mode, config), kwargs=params)
                     pro.start()
                     pro.join()

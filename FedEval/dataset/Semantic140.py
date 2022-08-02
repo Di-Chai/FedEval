@@ -167,6 +167,7 @@ class semantic140(FedData):
         user_count = {}
         for user in all_users:
             user_count[user] = user_count.get(user, 0) + 1
+        user_count = {key: item for key, item in user_count.items() if item > 5}
         total_num_samples = sum([user_count[e] for e in user_count])
         selected_user_set = set(
             sorted([e for e in user_count], key=lambda e: user_count[e], reverse=True)[:self.num_clients]
