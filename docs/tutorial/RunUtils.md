@@ -11,7 +11,7 @@ This function is a CLI interface, which is used to:
 
 `FedEval.run.__main__`  is suitable for *small scale* experiments, such as prototype iteration, debug. You can directly use them in containers like this:
 
-![docker run command](images/docker_run_params.png)
+![docker run command](../images/docker_run_params.png)
 
 where the dark part issues a new container using the image we build (tagged as fedeval:v4); the blue part are parameters of  `docker run` command, which maps the current directory to the same place in the container and sets working directory as this one; the red part is what we run in the container; and the orange part are parameters of `FedEval.run.__main__`.
 

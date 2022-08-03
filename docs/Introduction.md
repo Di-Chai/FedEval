@@ -1,10 +1,10 @@
 ## Introduction
 
-#### The iSpree Evaluation Model
+#### The Evaluation Model
 
-The iSpree model is the core of our benchmarking system. It defines six evaluation metrics for the FL systems: Incentive, Security, Privacy, Robustness, Efficacy, and Efficiency.
 
-#### The Benchmarking System: FedEval
+
+#### The Evaluation Framework
 
 ![The framework of FedEval benchmarking system](images/bm_system.png)
 

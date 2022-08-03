@@ -20,11 +20,13 @@ Link to reproduction guidelines: https://di-chai.github.io/FedEval/Reproduce.htm
 
 ## Docs
 
-- [User guide and Documentation](https://di-chai.github.io/FedEval/)
+[User guide and Documentation](https://fedeval.readthedocs.io/en/latest/)
 
-## Introduction to FedEval and the Evaluation Model
+## A Brief Introduction
 
-The iSpree evaluation model is the core of our benchmarking system. It defines six evaluation metrics that cannot be excluded in the system: Incentive, Security, Privacy, Robustness, Efficacy, and Efficiency.
+
+
+The FedEval evaluation model is the core of our benchmarking system. Currently, four evaluation metrics are 
 
 #### Introduction to FedEval
 

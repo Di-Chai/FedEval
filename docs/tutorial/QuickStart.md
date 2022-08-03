@@ -46,6 +46,6 @@ docker rm $(docker ps --filter ancestor=fedeval:v1 -aq)
 
 #### Dashboard Example
 
-   ![Dashboard Example](images/dashboard.png)
+   ![Dashboard Example](../images/dashboard.png)
 
 --------------------------------------

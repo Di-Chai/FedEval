@@ -13,6 +13,6 @@ A Benchmark System with a Comprehensive Evaluation Model for Federated Learning.
    :maxdepth: 2
 
    Introduction <Introduction>
-   Benchmark Results <results/index>
-   Installation <Environment>
+   Environments <Environment>
    Tutorials <tutorial/index>
+   Benchmarks <benchmark/index>

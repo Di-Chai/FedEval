@@ -13,3 +13,5 @@ Tutorial
    RunUtils.md
 
    Contribute.md
+
+   StrategyAndCallbacks.md
