@@ -15,4 +15,4 @@ A Benchmark System with a Comprehensive Evaluation Model for Federated Learning.
    Introduction <Introduction>
    Environments <Environment>
    Tutorials <tutorial/index>
-   Benchmarks <benchmark/index>
+   Benchmarks <benchmark/benchmark>
