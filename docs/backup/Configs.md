@@ -7,14 +7,14 @@ Following we give detailed comments for each parameter used in the config files.
 ```yaml
 # data_dir: The output dir of the clients' data
 data_dir: data
-# dataset: Dataset name, mnist / femnist / celeba / semantic140
-dataset: semantic140
+# dataset: Dataset name, mnist / femnist / celeba / sentiment140
+dataset: sentiment140
 # non-iid: True or False, controling the non-IID setting
 non-iid: True
 # non-iid-class: The # of image classes hold by each client, used in mnist, cifar10, cifar100, only works when non-iid=True
 non-iid-class: 1
 # non-iid-strategy: which strategy will be used in the non-IID setting
-# E.g., "natural" strategy for femnist, celebA, semantic140 dataset, "average" for mnist, cifar10 and cifar100
+# E.g., "natural" strategy for femnist, celebA, sentiment140 dataset, "average" for mnist, cifar10 and cifar100
 non-iid-strategy: average # Only work when non-iid = True
 # normalize: True or False, controling whether the data will be normalized
 normalize: true

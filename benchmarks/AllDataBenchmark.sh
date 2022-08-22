@@ -18,7 +18,7 @@ read NONIID
 export FED_EVAL_REPEAT=10
 export FED_EVAL_LOG_DIR=log/JMLRSummary
 
-for DATESET in mnist femnist celeba semantic140 shakespeare
+for DATESET in mnist femnist celeba sentiment140 shakespeare
 do
     if [ $NONIID = "True" ]
     then

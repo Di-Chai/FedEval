@@ -46,7 +46,7 @@ if __name__ == '__main__':
     if args.dataset == 'celeba':
         params['runtime_config']['server']['port'] = 8012
 
-    if args.dataset == 'semantic140':
+    if args.dataset == 'sentiment140':
         params['runtime_config']['server']['port'] = 8013
 
     if args.dataset == 'shakespeare':

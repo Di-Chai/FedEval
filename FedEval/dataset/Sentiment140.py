@@ -139,7 +139,7 @@ def tweet2Vec(tweet, word2vectors):
     return np.mean([word2vectors.get(stemmer.stem(t), np.zeros(shape=(200,))) for t in tweet.split(" ")], 0)
 
 
-class semantic140(FedData):
+class sentiment140(FedData):
 
     def load_data(self):
         with open(os.path.join(self.data_dir, 'sent140', 'training.1600000.processed.noemoticon.csv'),

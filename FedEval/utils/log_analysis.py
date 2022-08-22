@@ -197,7 +197,7 @@ class LogAnalysis:
             best_index = len(val_loss_list)
             if best_index <= 1:
                 continue
-            if self.configs[i]['data_config']['dataset'] == 'semantic140':
+            if self.configs[i]['data_config']['dataset'] == 'sentiment140':
                 test_acc_key = 'test_binary_accuracy'
             else:
                 test_acc_key = 'test_accuracy'

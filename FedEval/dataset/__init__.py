@@ -1,6 +1,6 @@
 from .FedImage import *
 from .FedMatrix import *
-from .Semantic140 import *
+from .Sentiment140 import *
 from .Shakespeare import *
 from .CelebA import *
 from .FEMNIST import *
@@ -27,7 +27,7 @@ def get_data_shape(dataset_name: str):
     elif dataset_name == 'shakespeare':
         x_size = (None, 80)
         y_size = (None, 80)
-    elif dataset_name == 'semantic140':
+    elif dataset_name == 'sentiment140':
         x_size = (None, 25, 200)
         y_size = (None, 1)
     elif dataset_name == 'wine':

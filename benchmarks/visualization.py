@@ -46,7 +46,7 @@ if __name__ == '__main__':
         non_iid = '1' if record[0]['non-iid'] else '0'
         fl_model = record[1]['FedModel']['name']
 
-        if dataset == 'semantic140':
+        if dataset == 'sentiment140':
             test_acc_key = 'test_binary_accuracy'
         else:
             test_acc_key = 'test_accuracy'
@@ -115,7 +115,7 @@ if __name__ == '__main__':
         single_data = np.mean(multi_data, axis=0)
         return single_data
     
-    datasets = ['mnist', 'femnist', 'celeba', 'semantic140', 'shakespeare']
+    datasets = ['mnist', 'femnist', 'celeba', 'sentiment140', 'shakespeare']
     metrics = [cr_to_acc_list, ca_to_acc_list, time_to_acc_list]
     titles = ['CR To Accuracy', 'CA To Accuracy', 'Time To Accuracy']
     x_labels = ['Communication Rounds', 'Communication Amounts (MB)', 'Time (Seconds)']

@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
     c1, c2, c3 = ConfigurationManager.load_configs('configs/debug')
 
-    datasets = ['mnist', 'femnist', 'celeba', 'semantic140', 'shakespeare']
+    datasets = ['mnist', 'femnist', 'celeba', 'sentiment140', 'shakespeare']
 
     target_configs = []
 
@@ -79,7 +79,7 @@ if __name__ == '__main__':
                     data_config['sample_size'] = None
                     runtime_config['server']['num_clients'] = 1000
 
-                if dataset == 'semantic140':
+                if dataset == 'sentiment140':
                     data_config['sample_size'] = None
                     runtime_config['server']['num_clients'] = 1000
 

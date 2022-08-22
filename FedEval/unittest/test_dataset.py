@@ -2,7 +2,7 @@ import os
 import unittest
 from multiprocessing import Process, Manager
 
-from ..dataset import mnist, cifar10, cifar100, celeba, femnist, semantic140, shakespeare
+from ..dataset import mnist, cifar10, cifar100, celeba, femnist, sentiment140, shakespeare
 from copy import deepcopy
 from ..config.configuration import ConfigurationManager, _DEFAULT_D_CFG, _DEFAULT_RT_CFG
 from ..run_util import recursive_update_dict
@@ -84,8 +84,8 @@ class DatasetTestCase(unittest.TestCase):
             ['celeba', False, 1, 'average', 5304],
             ['celeba', True, 1, 'natural', 5304],
 
-            ['semantic140', False, 1, 'average', 161],
-            ['semantic140', True, 1, 'natural', 161],
+            ['sentiment140', False, 1, 'average', 161],
+            ['sentiment140', True, 1, 'natural', 161],
 
             ['shakespeare', False, 1, 'average', 1121],
             ['shakespeare', True, 1, 'natural', 1121],

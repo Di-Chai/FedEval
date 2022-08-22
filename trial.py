@@ -51,7 +51,7 @@ fine_tuned_params = {
         'FedOpt': {'B': 128, 'C': 0.1, 'E': 10, 'lr': 0.1},
         'model': 'LeNet'
     },
-    "semantic140": {
+    "sentiment140": {
         'Local': {'B': 8192, 'C': None, 'E': None, 'lr': 0.1},
         'Central': {'B': 8192, 'C': None, 'E': None, 'lr': 2.5},
         'FedSGD': {'B': 100000000, 'C': 1.0, 'E': 1, 'lr': 0.01},
@@ -166,7 +166,7 @@ if args.dataset == 'celeba':
     data_config['sample_size'] = None
     runtime_config['server']['num_clients'] = 1000
 
-if args.dataset == 'semantic140':
+if args.dataset == 'sentiment140':
     data_config['sample_size'] = None
     runtime_config['server']['num_clients'] = 1000
     model_config['MLModel']['embedding_dim'] = 0
@@ -222,7 +222,7 @@ if args.strategy == 'FedSGD':
             model_config['FedModel']['B'] = 8192 * 4
         elif args.dataset == 'celeba':
             model_config['FedModel']['B'] = 8192
-        elif args.dataset == 'semantic140':
+        elif args.dataset == 'sentiment140':
             model_config['FedModel']['B'] = 8192 * 2
         elif args.dataset == 'shakespeare':
             model_config['FedModel']['B'] = 8192 * 2
@@ -236,17 +236,17 @@ if args.tune == 'lr':
     if args.strategy == 'FedSGD' or execution == 'simulate_central':
         if args.dataset == 'shakespeare':
             tune_params['lr'] = [1.0, 1.5, 2, 2.5, 3]
-        if args.dataset == 'semantic140':
+        if args.dataset == 'sentiment140':
             tune_params['lr'] = [1.0, 1.5, 2, 2.5, 3]
     
     if args.strategy == 'FedAvg':
-        if args.dataset == 'semantic140':
+        if args.dataset == 'sentiment140':
             tune_params['lr'] = [0.005, 0.01, 0.05, 0.1]
 
     if execution == 'simulate_local':
         if args.dataset == 'shakespeare':
             tune_params['lr'] = [3.5, 4, 4.5, 5, 5.5, 6]
-        if args.dataset == 'semantic140':
+        if args.dataset == 'sentiment140':
             tune_params['lr'] = [5e-2, 1e-1, 5e-1, 1.0]
 
     if args.strategy == 'FedOpt':

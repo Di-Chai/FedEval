@@ -107,7 +107,7 @@ Two substeps, i.e., 2.1 and 2.2, are required.
 
 ```python
 from .FedImage import *
-from .Semantic140 import *
+from .Sentiment140 import *
 from .Shakespeare import *
 # Step 2.1 Add the import information
 from .FedIMDB import imdb
@@ -132,7 +132,7 @@ def get_data_shape(dataset):
     elif dataset == 'shakespeare':
         x_size = (None, 80)
         y_size = (None, 80)
-    elif dataset == 'semantic140':
+    elif dataset == 'sentiment140':
         x_size = (None, 25, 200)
         y_size = (None, 1)
     # Step 2.2 Add the shape information
