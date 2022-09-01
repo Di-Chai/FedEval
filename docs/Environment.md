@@ -85,7 +85,7 @@ fedeval        v1      2386be014ab5   3 months ago    4.39GB
 
 ### Download the dataset
 
-The dataset is available at : [resources](https://www.jianguoyun.com/p/DX_c64cQrLjGCBjywfUD)
+The dataset is available at : [resources](https://www.jianguoyun.com/p/DZ8I2q8QhdfRChiDntUEIAA)
 
 Download the `data.tar.gz`, and put it at the project directory. Using the following commend to unpack the data:
 
