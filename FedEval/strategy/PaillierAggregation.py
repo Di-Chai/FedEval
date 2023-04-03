@@ -15,7 +15,7 @@ from ..model import *
 from ..utils import ParamParser
 from .FederatedStrategy import FedStrategy, HostParamsType
 from ..config.configuration import ConfigurationManager, Role
-from ..aggregator import aggregate_weighted_average
+from ..aggregator import ParamAggregator
 from ..secure_protocols import ShamirSecretSharing, GaloisFieldNumber, aes_gcm_decrypt, \
     aes_gcm_encrypt, GaloisFieldParams
 
@@ -124,7 +124,7 @@ class PaillierAggregation(FedStrategy):
                 for record in client_params:
                     self._received_pk.update(record)
             else:
-                self.host_params = aggregate_weighted_average(client_params, aggregate_weights)
+                self.host_params = ParamAggregator(params=client_params).weighted_average(aggregate_weights)
                 self._server_status = PAStatus.UpdateWeights
 
     def set_host_params_to_local(self, host_params, current_round: int):

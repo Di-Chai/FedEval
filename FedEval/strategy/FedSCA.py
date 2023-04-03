@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.training import gen_training_ops
 
-from ..aggregator import aggregate_weighted_average
+from ..aggregator import ParamAggregator
 from ..config.configuration import ConfigurationManager
 from ..utils import ParamParser
 from .FedAvg import FedAvg
@@ -71,8 +71,8 @@ class FedSCA(FedAvg):
         super(FedSCA, self).set_host_params_to_local(server_params, current_round)
 
     def update_host_params(self, client_params, aggregate_weights):
-        delta_x = aggregate_weighted_average([e[0] for e in client_params], aggregate_weights)
-        delta_c = aggregate_weighted_average([e[1] for e in client_params], aggregate_weights)
+        delta_x = ParamAggregator(params=[e[0] for e in client_params]).weighted_average(aggregate_weights)
+        delta_c = ParamAggregator(params=[e[1] for e in client_params]).weighted_average(aggregate_weights)
         mdl_cfg = ConfigurationManager().model_config
         for i in range(len(self.host_params)):
             self.host_params[i] += mdl_cfg.learning_rate * delta_x[i]
