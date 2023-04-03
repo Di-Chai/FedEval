@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from enum import Enum
 from typing import Iterable, List, Mapping, Optional, Tuple, Union
 
-from ..aggregater import ModelWeights, aggregate_weighted_average
+from ..aggregator import ModelWeights, aggregate_weighted_average
 from ..callbacks import *
 from ..config import ClientId, ConfigurationManager, Role
 from ..model import *

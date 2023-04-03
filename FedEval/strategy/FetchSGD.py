@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from csvec import CSVec
 
-from ..aggregater import normalize_weights
+from ..aggregator import normalize_weights
 from ..config.configuration import ConfigurationManager
 from .FedAvg import FedAvg
 

@@ -15,7 +15,7 @@ from ..model import *
 from ..utils import ParamParser
 from .FederatedStrategy import FedStrategy, HostParamsType
 from ..config.configuration import ConfigurationManager, Role
-from ..aggregater import aggregate_weighted_average
+from ..aggregator import aggregate_weighted_average
 from ..secure_protocols import ShamirSecretSharing, GaloisFieldNumber, aes_gcm_decrypt, \
     aes_gcm_encrypt, GaloisFieldParams
 

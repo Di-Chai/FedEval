@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.training import gen_training_ops
 
-from ..aggregater import aggregate_weighted_average
+from ..aggregator import aggregate_weighted_average
 from ..config.configuration import ConfigurationManager
 from ..utils import ParamParser
 from .FedAvg import FedAvg
