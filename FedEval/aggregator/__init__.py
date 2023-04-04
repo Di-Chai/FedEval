@@ -10,7 +10,7 @@ class ParamAggregator:
     """A class to aggregate the parameters from different clients."""
 
     def __init__(self, params: Iterable[ModelWeights]) -> None:
-        self._params: Iterable[ModelWeights] = params
+        self._params: Iterable[ModelWeights] = [np.array(param) for param in params]
 
     def average(self) -> ModelWeights:
         """return the average of the given client-side params.
