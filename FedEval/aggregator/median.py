@@ -22,7 +22,7 @@ def trimmed_coordinate_wise_median(client_params: Iterable[ModelWeights], ratio:
 
     Args:
         client_params (Iterable[ModelWeights]): The weights from different clients, ordered like [params1, params2, ...].
-        ratio (float, optional): The ratio of extreme parameter values to trim. Should be between 0 and 1.
+        ratio (float, optional): The ratio of extreme parameter values to trim. Should be between 0 and 0.5.
             Defaults to 0.05.
 
     Raises:
