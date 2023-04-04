@@ -1,4 +1,4 @@
-from typing import Any
+from typing import List
+from numpy import ndarray
 
-
-ModelWeights = Any  # weights of DL model
+ModelWeights = List[ndarray]  # weights of DL model

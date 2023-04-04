@@ -1,16 +1,18 @@
-from typing import Iterable, Union
-import numpy as np
+from typing import Iterable, Optional, Union
+from numpy import mean as np_mean
 
 from .ModelWeight import ModelWeights
+from .utils import layerwise_aggregate as _layerwise_aggregate
 from .mean import weighted_average, trimmed_mean
 from .median import coordinate_wise_median, trimmed_coordinate_wise_median
+from .krum import krum
 
 
 class ParamAggregator:
     """A class to aggregate the parameters from different clients."""
 
     def __init__(self, params: Iterable[ModelWeights]) -> None:
-        self._params: Iterable[ModelWeights] = [np.array(param) for param in params]
+        self._params: Iterable[ModelWeights] = params
 
     def average(self) -> ModelWeights:
         """return the average of the given client-side params.
@@ -18,7 +20,7 @@ class ParamAggregator:
         Returns:
             ModelWeights: the aggregated parameters which have the same format with any instance from the client_params
         """
-        return np.stack(self._params).mean(axis=0)
+        return _layerwise_aggregate(self._params, np_mean)
 
     def weighted_average(self, weights: Iterable[Union[float, int]]) -> ModelWeights:
         """return the weighted average of the given client-side params according to the given weights.
@@ -74,3 +76,19 @@ class ParamAggregator:
             ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
         """
         return trimmed_mean(self._params, ratio)
+
+    def krum(self, select: Optional[int] = 1) -> ModelWeights:
+        """
+        Return the krum aggregate of the given client-side params.
+
+        Args:
+            select (int, optional): The number of clients to select to support multi-krum.
+                If set to None, it will return an averaged one of all the params. Defaults to 1.
+
+        Raises:
+            ValueError: If select is invalid.
+
+        Returns:
+            ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
+        """
+        return krum(self._params, select)

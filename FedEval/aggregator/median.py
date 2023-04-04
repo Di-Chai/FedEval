@@ -3,7 +3,7 @@ from numpy import median
 
 from .trim import trim_params
 from .ModelWeight import ModelWeights
-
+from .utils import layerwise_aggregate
 
 def coordinate_wise_median(client_params: Iterable[ModelWeights]) -> ModelWeights:
     """return the coordinate-wise median of the given client-side params.
@@ -14,7 +14,7 @@ def coordinate_wise_median(client_params: Iterable[ModelWeights]) -> ModelWeight
     Returns:
         ModelWeights: the aggregated parameters which have the same format with any instance from the client_params
     """
-    return median(client_params, axis=0)
+    return layerwise_aggregate(client_params, median)
 
 
 def trimmed_coordinate_wise_median(client_params: Iterable[ModelWeights], ratio: float = 0.05) -> ModelWeights:
@@ -34,4 +34,4 @@ def trimmed_coordinate_wise_median(client_params: Iterable[ModelWeights], ratio:
         ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
     """
     trimmed_params = trim_params(client_params, ratio)
-    return median(trimmed_params, axis=0)
+    return coordinate_wise_median(trimmed_params)

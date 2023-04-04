@@ -1,23 +1,10 @@
 from typing import Iterable, Union
-from numpy import ndarray, array, float as np_float, sum as np_sum, mean
+from functools import partial
+from numpy import sum as mean, average
 
 from .ModelWeight import ModelWeights
 from .trim import trim_params
-
-
-def normalize_weights(weights: Iterable[Union[float, int]]) -> ndarray:
-    """normalize the given weights so that its summation equals to 1.0
-
-    Args:
-        weights (Iterable[Union[float, int]]): a Iterable object filled with non-negative numbers.
-
-    Returns:
-        np.ndarray: an non-negative array that sums up to 1.0
-    """
-    weights = array(weights).astype(np_float)
-    assert (weights >= 0).all(
-    ), 'all the numbers in the given weight should be non-negative'
-    return weights / weights.sum()
+from .utils import layerwise_aggregate
 
 
 def weighted_average(client_params: Iterable[ModelWeights], weights: Iterable[Union[float, int]]) -> ModelWeights:
@@ -34,8 +21,8 @@ def weighted_average(client_params: Iterable[ModelWeights], weights: Iterable[Un
     """
     assert len(client_params) == len(
         weights), 'the number of client params and weights should be the same'
-    weights = normalize_weights(weights)
-    return np_sum([client_params[i] * weights[i] for i in range(len(client_params))], axis=0)
+    weighted_average = partial(average, weights=weights)
+    return layerwise_aggregate(client_params, weighted_average)
 
 
 def trimmed_mean(client_params: Iterable[ModelWeights], ratio: float = 0.05) -> ModelWeights:
@@ -55,4 +42,4 @@ def trimmed_mean(client_params: Iterable[ModelWeights], ratio: float = 0.05) -> 
         ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
     """
     trimmed_params = trim_params(client_params, ratio)
-    return mean(trimmed_params, axis=0)
+    return layerwise_aggregate(trimmed_params, mean)
