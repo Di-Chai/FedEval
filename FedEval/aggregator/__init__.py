@@ -2,7 +2,7 @@ from typing import Iterable, Union
 import numpy as np
 
 from .ModelWeight import ModelWeights
-from .mean import weighted_average
+from .mean import weighted_average, trimmed_mean
 from .median import coordinate_wise_median, trimmed_coordinate_wise_median
 
 
@@ -33,7 +33,7 @@ class ParamAggregator:
         """
         return weighted_average(self._params, weights)
 
-    def coordinate_wise_median(self) -> ModelWeights:
+    def median(self) -> ModelWeights:
         """return the coordinate-wise median of the given client-side params.
 
         Returns:
@@ -41,7 +41,7 @@ class ParamAggregator:
         """
         return coordinate_wise_median(self._params)
 
-    def trimmed_coordinate_wise_median(self, ratio: float = 0.05) -> ModelWeights:
+    def trimmed_median(self, ratio: float = 0.05) -> ModelWeights:
         """
         Return the coordinate-wise median of the given client-side params after trimming a certain ratio
         of the extreme parameter values.
@@ -57,3 +57,20 @@ class ParamAggregator:
             ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
         """
         return trimmed_coordinate_wise_median(self._params, ratio)
+
+    def trimmed_mean(self, ratio: float = 0.05) -> ModelWeights:
+        """
+        Return the coordinate-wise mean of the given client-side params after trimming a certain ratio
+        of the extreme parameter values.
+
+        Args:
+            ratio (float, optional): The ratio of extreme parameter values to trim. Should be between 0 and 1.
+                Defaults to 0.05.
+
+        Raises:
+            ValueError: If trim_ratio is in [0, 0.5).
+
+        Returns:
+            ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
+        """
+        return trimmed_mean(self._params, ratio)

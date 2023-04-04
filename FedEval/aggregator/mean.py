@@ -1,7 +1,8 @@
 from typing import Iterable, Union
-from numpy import ndarray, array, float as np_float, sum as np_sum
+from numpy import ndarray, array, float as np_float, sum as np_sum, mean
 
 from .ModelWeight import ModelWeights
+from .trim import trim_params
 
 
 def normalize_weights(weights: Iterable[Union[float, int]]) -> ndarray:
@@ -35,3 +36,23 @@ def weighted_average(client_params: Iterable[ModelWeights], weights: Iterable[Un
         weights), 'the number of client params and weights should be the same'
     weights = normalize_weights(weights)
     return np_sum([client_params[i] * weights[i] for i in range(len(client_params))], axis=0)
+
+
+def trimmed_mean(client_params: Iterable[ModelWeights], ratio: float = 0.05) -> ModelWeights:
+    """
+    Return the coordinate-wise mean of the given client-side params after trimming a certain ratio
+    of the extreme parameter values.
+
+    Args:
+        client_params (Iterable[ModelWeights]): The weights from different clients, ordered like [params1, params2, ...].
+        ratio (float, optional): The ratio of extreme parameter values to trim. Should be between 0 and 0.5.
+            Defaults to 0.05.
+
+    Raises:
+        ValueError: If trim_ratio is in [0, 0.5).
+
+    Returns:
+        ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
+    """
+    trimmed_params = trim_params(client_params, ratio)
+    return mean(trimmed_params, axis=0)

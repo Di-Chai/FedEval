@@ -1,6 +1,8 @@
 from typing import Iterable
+from numpy import median
+
+from .trim import trim_params
 from .ModelWeight import ModelWeights
-from numpy import median, stack, sort
 
 
 def coordinate_wise_median(client_params: Iterable[ModelWeights]) -> ModelWeights:
@@ -31,19 +33,5 @@ def trimmed_coordinate_wise_median(client_params: Iterable[ModelWeights], ratio:
     Returns:
         ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
     """
-    if not (0 <= ratio and ratio < 0.5):
-        raise ValueError('Trim ratio must be in [0, 0.5).')
-
-    stacked_params = stack(client_params)
-    num_params = stacked_params.shape[1]
-    num_trim = int(num_params * ratio)
-
-    # Check if all but one parameter will be trimmed, and adjust num_trim accordingly
-    if num_trim*2 >= num_params:
-        num_trim = 0 if num_params <= 2 else (num_params-1) // 2
-
-    # Sort the parameter values along each axis (coordinate)
-    sorted_params = sort(stacked_params, axis=0)
-    # Trim the specified ratio of lowest and highest parameters along each axis
-    trimmed_params = sorted_params[num_trim:-num_trim, :]
+    trimmed_params = trim_params(client_params, ratio)
     return median(trimmed_params, axis=0)
