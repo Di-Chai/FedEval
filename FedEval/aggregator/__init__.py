@@ -6,6 +6,7 @@ from .utils import layerwise_aggregate as _layerwise_aggregate
 from .mean import weighted_average, trimmed_mean
 from .median import coordinate_wise_median, trimmed_coordinate_wise_median
 from .krum import krum
+from .norm_clipping import norm_clip
 
 
 class ParamAggregator:
@@ -92,3 +93,18 @@ class ParamAggregator:
             ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
         """
         return krum(self._params, select)
+
+    def norm_clip(self, server_param: ModelWeights, threshold: Optional[float] = 0.5) -> ModelWeights:
+        """Aggregate the given client-side params by norm clipping.
+
+        Args:
+            server_param (ModelWeights): the weights at the server-side
+            threshold (Optional[float], optional): the threshold of the norm. Defaults to 0.5.
+
+        Raises:
+            ValueError: If threshold is invalid.
+
+        Returns:
+            ModelWeights: the aggregated model weights.
+        """
+        return norm_clip(self._params, server_param, threshold)
