@@ -33,7 +33,7 @@ PyYAML==6.0
 Pympler==1.0.1
 hickle==4.0.4
 itsdangerous==2.0.1
-werkzeug==2.0.3
+werkzeug==2.2.3
 
 # Plots and CV
 Pillow==8.4.0
