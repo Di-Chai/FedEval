@@ -19,7 +19,6 @@ torch==1.10.2
 
 # NLP datasets
 nltk==3.6.7
-Pillow==8.4.0
 
 # SSH
 paramiko==2.10.4
@@ -37,6 +36,7 @@ itsdangerous==2.0.1
 werkzeug==2.0.3
 
 # Plots and CV
+Pillow==8.4.0
 matplotlib==3.3.4
 opencv-python-headless==4.5.5.64
 

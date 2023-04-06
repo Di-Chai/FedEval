@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from enum import Enum
 from typing import Iterable, List, Mapping, Optional, Tuple, Union
 
-from ..aggregater import ModelWeights, aggregate_weighted_average
+from ..aggregator import ModelWeights, ParamAggregator
 from ..callbacks import *
 from ..config import ClientId, ConfigurationManager, Role
 from ..model import *
@@ -409,8 +409,8 @@ class FedStrategy(FedStrategyInterface):
             client_params = self.callback.on_host_aggregate_begin(
                 client_params)
         # update host params
-        self.host_params = aggregate_weighted_average(
-            client_params, aggregate_weights)
+        self.host_params = ParamAggregator(
+            params=client_params).weighted_average(aggregate_weights)
         self.ml_model.set_weights(self.host_params)
 
     def host_exit_job(self, host):

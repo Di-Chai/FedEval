@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..aggregater import aggregate_weighted_average
+from ..aggregator import ParamAggregator
 from ..config import ConfigurationManager, Role
 from .FedAvg import FedAvg
 
@@ -29,7 +29,7 @@ class FedOpt(FedAvg):
         return delta_x
 
     def update_host_params(self, client_params, aggregate_weights):
-        delta_x_agg = aggregate_weighted_average(client_params, aggregate_weights)
+        delta_x_agg = ParamAggregator(params=client_params).weighted_average(aggregate_weights)
         self.cur_delta_x = delta_x_agg
 
         self.cur_delta_x = [
