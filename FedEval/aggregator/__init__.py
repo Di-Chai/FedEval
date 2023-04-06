@@ -54,7 +54,7 @@ class ParamAggregator:
                 Defaults to 0.05.
 
         Raises:
-            ValueError: If trim_ratio is in [0, 0.5).
+            ValueError: If trim_ratio is not in [0, 0.5).
 
         Returns:
             ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
@@ -71,7 +71,7 @@ class ParamAggregator:
                 Defaults to 0.05.
 
         Raises:
-            ValueError: If trim_ratio is in [0, 0.5).
+            ValueError: If trim_ratio is not in [0, 0.5).
 
         Returns:
             ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.

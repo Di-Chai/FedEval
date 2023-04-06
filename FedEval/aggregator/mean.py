@@ -16,11 +16,14 @@ def weighted_average(client_params: Iterable[ModelWeights], weights: Iterable[Un
             clients' training sample size. E.g., A, B, and C have 10, 20, and 30 images, then the
             aggregate_weights can be `[1/6, 1/3, 1/2]` or `[10, 20, 30]`. 
 
+    Raises:
+        ValueError: if the number of client params and weights are not the same
+
     Returns:
         ModelWeights: the aggregated parameters which have the same format with any instance from the client_params
     """
-    assert len(client_params) == len(
-        weights), 'the number of client params and weights should be the same'
+    if len(client_params) != len(weights):
+        raise ValueError('the number of client params and weights should be the same')
     weighted_average = partial(average, weights=weights)
     return layerwise_aggregate(client_params, weighted_average)
 
@@ -36,7 +39,7 @@ def trimmed_mean(client_params: Iterable[ModelWeights], ratio: float = 0.05) -> 
             Defaults to 0.05.
 
     Raises:
-        ValueError: If trim_ratio is in [0, 0.5).
+        ValueError: If trim_ratio is not in [0, 0.5).
 
     Returns:
         ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
