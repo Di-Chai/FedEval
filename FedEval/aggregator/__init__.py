@@ -7,6 +7,7 @@ from .mean import weighted_average, trimmed_mean
 from .median import coordinate_wise_median, trimmed_coordinate_wise_median
 from .krum import krum
 from .norm_clipping import norm_clip
+from .bulyan import bulyan
 
 
 class ParamAggregator:
@@ -93,6 +94,24 @@ class ParamAggregator:
             ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
         """
         return krum(self._params, select)
+    
+    def bulyan(self, ratio: float = 0.05, select: Optional[int] = 1, dist_metric: str = 'euclidean') -> ModelWeights:
+        """
+        Return the bulyan aggregate of the given client-side params.
+
+        Args:
+            ratio (float, optional): The ratio of extreme parameter values to trim. Should be in [0, 0.5).
+                Defaults to 0.05.
+            select (int, optional): The number of clients to select to support multi-krum. Defaults to 1.
+            dist_metric (str, optional): The distance metric to use. Defaults to 'euclidean'.
+
+        Raises:
+            ValueError: Invalid number of selected params or trim ratio.
+
+        Returns:
+            ModelWeights: The aggregated parameters which have the same format with any instance from the client_params.
+        """
+        return bulyan(self._params, ratio, select, dist_metric)
 
     def norm_clip(self, server_param: ModelWeights, threshold: Optional[float] = 0.5) -> ModelWeights:
         """Aggregate the given client-side params by norm clipping.

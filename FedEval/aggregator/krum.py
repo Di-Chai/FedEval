@@ -14,13 +14,16 @@ from .ModelWeight import ModelWeights
 from .utils import layerwise_aggregate, stack_layers
 
 
-def krum(params: Iterable[ModelWeights], select: Optional[int] = 1, dist_metric: str = 'euclidean') -> ModelWeights:
-    if select == None or select == len(params):
-        return layerwise_aggregate(params, mean)
+def _check_select(select: int, num_params: int) -> int:
+    if select is None or select == num_params:
+        return num_params
     assert isinstance(select, int), 'select must be an integer'
-    if not(select > 0 and select <= len(params)):
+    if not(select > 0 and select <= num_params):
         raise ValueError("Invalid number of selected params. It should be in range (0, len(params)].")
+    return select
 
+def krum_select_params(params: Iterable[ModelWeights], select: Optional[int] = 1, dist_metric: str = 'euclidean') -> Iterable[ModelWeights]:
+    _check_select(select, len(params))
     layerwise_distances = list()
     for layers in zip(*params):
         condensed_distances = pdist(stack_layers(layers), metric=dist_metric)
@@ -29,5 +32,8 @@ def krum(params: Iterable[ModelWeights], select: Optional[int] = 1, dist_metric:
     distances = np_sum(layerwise_distances, axis=0)
     scores = np_sum(distances, axis=0)
     selected_idx = argpartition(scores, select)[:select]
-    selected_params = [params[idx] for idx in selected_idx]
+    return [params[idx] for idx in selected_idx]
+
+def krum(params: Iterable[ModelWeights], select: Optional[int] = 1, dist_metric: str = 'euclidean') -> ModelWeights:
+    selected_params = krum_select_params(params, select, dist_metric)
     return layerwise_aggregate(selected_params, mean)
