@@ -1,6 +1,6 @@
 # Communications
 # -- Web Service --
-Flask==1.1.2
+Flask==2.3.2
 # -- SocketIO --
 Flask-SocketIO==4.3.1
 socketIO-client==0.7.2
