@@ -15,7 +15,7 @@ grpcio-tools==1.46.0
 scipy==1.5.4
 scikit-learn==0.24.2
 pandas==1.1.5
-torch==1.10.2
+torch==1.13.1
 
 # NLP datasets
 nltk==3.6.7
