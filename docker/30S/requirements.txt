@@ -36,7 +36,7 @@ itsdangerous==2.0.1
 werkzeug==2.0.3
 
 # Plots and CV
-Pillow==8.4.0
+Pillow==9.3.0
 matplotlib==3.3.4
 opencv-python-headless==4.5.5.64
 
