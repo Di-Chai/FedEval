@@ -11,7 +11,7 @@ grpcio==1.46.0
 grpcio-tools==1.46.0
 
 # Computation
-numpy==1.18.5
+numpy==1.22.0
 scipy==1.5.4
 scikit-learn==0.24.2
 pandas==1.1.5
