@@ -1,6 +1,6 @@
 ## Benchmarks
 
-Here we report a benchmarking study on five most well-known FL mechanisms using iSpree model.
+Here we report a benchmarking study on five most well-known FL mechanisms using FedEval.
 
 ### Experiment Settings
 
