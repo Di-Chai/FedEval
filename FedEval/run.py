@@ -92,7 +92,7 @@ def generate_docker_compose_server(path):
         'working_dir': '/FML',
         'cap_add': ['NET_ADMIN'],
         'environment': [],
-        'deploy': {'resources': {'limits': {'cpus': max(1, int(multiprocessing.cpu_count() / rt_cfg.container_num))}}}
+        'deploy': {'resources': {'limits': {'cpus': str(max(1, int(multiprocessing.cpu_count() / rt_cfg.container_num)))}}}
     }
 
     if UNIFIED_JOB_TIME is not None:
@@ -190,7 +190,7 @@ def generate_docker_compose_local(path):
         'cap_add': ['NET_ADMIN'],
         'networks': ['server-clients'],
         'environment': [],
-        'deploy': {'resources': {'limits': {'cpus': max(1, int(multiprocessing.cpu_count() / rt_cfg.container_num))}}}
+        'deploy': {'resources': {'limits': {'cpus': str(max(1, int(multiprocessing.cpu_count() / rt_cfg.container_num)))}}}
     }
 
     if UNIFIED_JOB_TIME is not None:
