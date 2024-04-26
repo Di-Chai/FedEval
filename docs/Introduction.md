@@ -2,7 +2,7 @@
 
 #### The Evaluation Goals and Measures
 
-<img src="images/FL_evaluation_goal.png" width="500">
+![FL Evaluation Goals and Measures](images/FL_evaluation_goal.png)
 
 Based on the investigation of existing works, we summarize the evaluation goals of federated learning (FL) into utility, efficiency, and security \& privacy. For each of the goals, we summarize the detailed measurements, which form the basis of FedEval (i.e., our evaluation platform). The detailed introduction of the evaluation goals and measures could be found in our survey paper.([Arxiv](https://arxiv.org/abs/2308.11841)/[IEEE](https://ieeexplore.ieee.org/abstract/document/10480259)).
 
